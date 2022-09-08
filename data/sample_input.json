@@ -1,13 +1,17 @@
 {
-    "workflow": "/tmp/sample_workflow.json",
-    "reference_flops": "100Mf",
-    "platform": "/tmp/sample_platform.xml",
-    "wrench": {
+    "workflow": {
+        "file": "/tmp/sample_workflow.json",
+        "reference_flops": "100Mf"
+    },
+    "platform": {
+        "file": "/tmp/sample_platform.xml"
+    },
+    "message_payloads": {
         "BatchComputeServiceMessagePayload": {
             "STANDARD_JOB_DONE_MESSAGE_PAYLOAD": 1024
         }
     },
-    "property": {
+    "service_properties": {
         "SimpleStorageServiceProperty": {
             "BUFFER_SIZE": "1048576"
         }
