@@ -120,7 +120,24 @@ int main(int argc, char **argv) {
     std::string submit_hostname;
 
     // Create Property Lists for compute services
-    std::map<
+    wrench::WRENCH_PROPERTY_COLLECTION_TYPE storage_service_property_list;
+    wrench::WRENCH_MESSAGE_PAYLOADCOLLECTION_TYPE storage_service_messagepayload_list;
+
+    if (json_input.find("storage_service_properties") != json_input.end()) {
+        for (const auto &prop : json_input["storage_service_properties"].as_object()) {
+            if (prop.value().as_object().size() != 1)  {
+                std::cerr << "Error: Invalid property specification in JSON input file for " << prop.key() << "\n";
+                exit(1);
+            }
+            for (const auto &spec : prop.value().as_object()) {
+                std::string property_name = prop.key().to_string() + "::" + spec.key().to_string();
+                auto property = wrench::StorageServiceProperty::translateString(property_name);
+                std::string property_value = boost::json::value_to<std::string>(spec.value());
+                storage_service_property_list[property] = property_value;
+            }
+        }
+    }
+
 
     for (const auto &h : simgrid::s4u::Engine::get_instance()->get_all_hosts()) {
         if (std::string(h->get_property("type")) == "compute") {
@@ -135,7 +152,7 @@ int main(int argc, char **argv) {
                     {{"/"}},
                     {
                             {wrench::SimpleStorageServiceProperty::BUFFER_SIZE,
-                                    parameters["storage_service_buffer_size"]},
+                                    "XXXstorage_service_buffer_size"},
                             {wrench::SimpleStorageServiceProperty::MAX_NUM_CONCURRENT_DATA_CONNECTIONS,
                                     boost::json::value_to<std::string>(json_input["max_num_concurrent_data_connections"])}
                     },

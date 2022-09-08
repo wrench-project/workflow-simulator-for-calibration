@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.2)
 message(STATUS "Cmake version ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}")
 
-project(my-wrench-simulator)
+project(workflow-simulator-for-calibration)
 
 add_definitions("-Wall -Wno-unused-variable -Wno-unused-private-field")
 
