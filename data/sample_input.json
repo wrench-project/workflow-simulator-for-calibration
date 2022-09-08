@@ -11,7 +11,7 @@
             "STANDARD_JOB_DONE_MESSAGE_PAYLOAD": 1024
         }
     },
-    "service_properties": {
+    "storage_service_properties": {
         "SimpleStorageServiceProperty": {
             "BUFFER_SIZE": "1048576"
         }

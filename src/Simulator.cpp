@@ -74,25 +74,18 @@ int main(int argc, char **argv) {
         std::cerr << "Error while reading JSON file " << argv[1] << ": " << e.what() << "\n";
     }
 
-    // Get all the top-level information from the JSON input into
-    std::unordered_map<std::string, std::string> top_level_parameters;
-    std::vector<std::string> parameter_keys = {
-            "platform",
-            "workflow",
-            "reference_flops",
-    };
 
-    for (auto const &key : parameter_keys) {
-        if (json_input.find(key) == json_input.end()) {
-            std::cerr << "Error: cannot find top-level item with key '" << key << "' in JSON input file\n";
-            exit(1);
-        }
-        top_level_parameters[key] = boost::json::value_to<std::string>(json_input[key]);
-    }
 
     // Instantiating the simulated platform
     try {
-        simulation->instantiatePlatform(top_level_parameters["platform"]);
+        std::string platform_file;
+        try {
+            platform_file = boost::json::value_to<std::string>(json_input["platform"].as_object()["file"]);
+        } catch (std::exception &e) {
+            std::cerr << "Error: Invalid platform file specification in JSON input (" << e.what() <<  ")\n";
+            exit(1);
+        }
+        simulation->instantiatePlatform(platform_file);
     } catch (std::invalid_argument &e) {
         std::cerr << "Error: " << e.what() << "\n";
         exit(1);
@@ -101,9 +94,18 @@ int main(int argc, char **argv) {
     // Create the workflow
     std::shared_ptr<wrench::Workflow> workflow;
     try {
+        std::string workflow_file;
+        std::string reference_flops;
+        try {
+            workflow_file = boost::json::value_to<std::string>(json_input["workflow"].as_object()["file"]);
+            reference_flops = boost::json::value_to<std::string>(json_input["workflow"].as_object()["reference_flops"]);
+        } catch (std::exception &e) {
+            std::cerr << "Error: Invalid workflow file or reference_flops specification in JSON input (" << e.what() <<  ")\n";
+            exit(1);
+        }
         workflow = wrench::WfCommonsWorkflowParser::createWorkflowFromJSON(
-                top_level_parameters["workflow"],
-                top_level_parameters["reference_flops"]);
+                workflow_file,
+                reference_flops);
     } catch (std::invalid_argument &e) {
         std::cerr << "Error: " << e.what() << "\n";
 
