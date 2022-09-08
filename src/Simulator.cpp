@@ -111,15 +111,8 @@ int main(int argc, char **argv) {
 
     }
 
-    // Instantiate a compute service on each "compute" node along with its
-    // local storage service
-    std::vector<
-            std::pair<std::shared_ptr<wrench::ComputeService>,
-                    std::shared_ptr<wrench::StorageService>>> compute_node_services;
-    std::shared_ptr<wrench::StorageService> submit_node_storage_service;
-    std::string submit_hostname;
 
-    // Create Property Lists for compute services
+    // Create Property Lists and Payload Lists for storage services
     wrench::WRENCH_PROPERTY_COLLECTION_TYPE storage_service_property_list;
     wrench::WRENCH_MESSAGE_PAYLOADCOLLECTION_TYPE storage_service_messagepayload_list;
 
@@ -130,14 +123,68 @@ int main(int argc, char **argv) {
                 exit(1);
             }
             for (const auto &spec : prop.value().as_object()) {
-                std::string property_name = prop.key().to_string() + "::" + spec.key().to_string();
+                auto property_name = prop.key().to_string() + "::" + spec.key().to_string();
                 auto property = wrench::StorageServiceProperty::translateString(property_name);
                 std::string property_value = boost::json::value_to<std::string>(spec.value());
                 storage_service_property_list[property] = property_value;
             }
         }
     }
+    if (json_input.find("storage_service_payloads") != json_input.end()) {
+        for (const auto &pl : json_input["storage_service_payloads"].as_object()) {
+            if (pl.value().as_object().size() != 1)  {
+                std::cerr << "Error: Invalid payload specification in JSON input file for " << pl.key() << "\n";
+                exit(1);
+            }
+            for (const auto &spec : pl.value().as_object()) {
+                auto payload_name = pl.key().to_string() + "::" + spec.key().to_string();
+                auto payload = wrench::StorageServiceMessagePayload::translateString(payload_name);
+                double payload_value = spec.value().as_double();
+                storage_service_messagepayload_list[payload] = payload_value;
+            }
+        }
+    }
 
+    // Create Property Lists and Payload Lists for compute services
+    wrench::WRENCH_PROPERTY_COLLECTION_TYPE compute_service_property_list;
+    wrench::WRENCH_MESSAGE_PAYLOADCOLLECTION_TYPE compute_service_messagepayload_list;
+
+    if (json_input.find("compute_service_properties") != json_input.end()) {
+        for (const auto &prop : json_input["compute_service_properties"].as_object()) {
+            if (prop.value().as_object().size() != 1)  {
+                std::cerr << "Error: Invalid property specification in JSON input file for " << prop.key() << "\n";
+                exit(1);
+            }
+            for (const auto &spec : prop.value().as_object()) {
+                auto property_name = prop.key().to_string() + "::" + spec.key().to_string();
+                auto property = wrench::ComputeServiceProperty::translateString(property_name);
+                std::string property_value = boost::json::value_to<std::string>(spec.value());
+                compute_service_property_list[property] = property_value;
+            }
+        }
+    }
+    if (json_input.find("compute_service_payloads") != json_input.end()) {
+        for (const auto &pl : json_input["compute_service_payloads"].as_object()) {
+            if (pl.value().as_object().size() != 1)  {
+                std::cerr << "Error: Invalid payload specification in JSON input file for " << pl.key() << "\n";
+                exit(1);
+            }
+            for (const auto &spec : pl.value().as_object()) {
+                auto payload_name = pl.key().to_string() + "::" + spec.key().to_string();
+                auto payload = wrench::ComputeServiceMessagePayload::translateString(payload_name);
+                double payload_value = spec.value().as_double();
+                compute_service_messagepayload_list[payload] = payload_value;
+            }
+        }
+    }
+
+    // Instantiate a compute service on each "compute" node along with its
+    // local storage service
+    std::vector<
+            std::pair<std::shared_ptr<wrench::ComputeService>,
+                    std::shared_ptr<wrench::StorageService>>> compute_node_services;
+    std::shared_ptr<wrench::StorageService> submit_node_storage_service;
+    std::string submit_hostname;
 
     for (const auto &h : simgrid::s4u::Engine::get_instance()->get_all_hosts()) {
         if (std::string(h->get_property("type")) == "compute") {
@@ -145,18 +192,13 @@ int main(int argc, char **argv) {
                     h->get_cname(),
                     {h->get_cname()},
                     "/",
-                    {},
-                    {}));
+                    compute_service_property_list,
+                    compute_service_messagepayload_list));
             auto storage_service = simulation->add(new wrench::SimpleStorageService(
                     h->get_cname(),
                     {{"/"}},
-                    {
-                            {wrench::SimpleStorageServiceProperty::BUFFER_SIZE,
-                                    "XXXstorage_service_buffer_size"},
-                            {wrench::SimpleStorageServiceProperty::MAX_NUM_CONCURRENT_DATA_CONNECTIONS,
-                                    boost::json::value_to<std::string>(json_input["max_num_concurrent_data_connections"])}
-                    },
-                    {}));
+                    storage_service_property_list,
+                    storage_service_messagepayload_list));
             compute_node_services.emplace_back(compute_service, storage_service);
 
         } else if (std::string(h->get_property("type")) == "submit") {
@@ -167,13 +209,8 @@ int main(int argc, char **argv) {
             submit_node_storage_service = simulation->add(new wrench::SimpleStorageService(
                     h->get_cname(),
                     {{"/"}},
-                    {
-                            {wrench::SimpleStorageServiceProperty::BUFFER_SIZE,
-                                    boost::json::value_to<std::string>(json_input["storage_service_buffer_size"])},
-                            {wrench::SimpleStorageServiceProperty::MAX_NUM_CONCURRENT_DATA_CONNECTIONS,
-                                    boost::json::value_to<std::string>(json_input["max_num_concurrent_data_connections"])}
-                    },
-                    {}));
+                    storage_service_property_list,
+                    storage_service_messagepayload_list));
         }
     }
 
