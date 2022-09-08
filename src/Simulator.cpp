@@ -119,6 +119,9 @@ int main(int argc, char **argv) {
     std::shared_ptr<wrench::StorageService> submit_node_storage_service;
     std::string submit_hostname;
 
+    // Create Property Lists for compute services
+    std::map<
+
     for (const auto &h : simgrid::s4u::Engine::get_instance()->get_all_hosts()) {
         if (std::string(h->get_property("type")) == "compute") {
             auto compute_service = simulation->add(new wrench::BareMetalComputeService(

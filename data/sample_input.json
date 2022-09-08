@@ -6,14 +6,18 @@
     "platform": {
         "file": "/tmp/sample_platform.xml"
     },
-    "message_payloads": {
+    "compute_service_message_payloads": {
         "BatchComputeServiceMessagePayload": {
             "STANDARD_JOB_DONE_MESSAGE_PAYLOAD": 1024
         }
+    },
+    "storage_service_message_payloads": {
     },
     "storage_service_properties": {
         "SimpleStorageServiceProperty": {
             "BUFFER_SIZE": "1048576"
         }
+    },
+    "compute_service_properties": {
     }
 }
