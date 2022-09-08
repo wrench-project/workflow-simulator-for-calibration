@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
         try {
             platform_file = boost::json::value_to<std::string>(json_input["platform"].as_object()["file"]);
         } catch (std::exception &e) {
-            std::cerr << "Error: Invalid platform file specification in JSON input (" << e.what() <<  ")\n";
+            std::cerr << "Error: Invalid or missing platform file specification in JSON input (" << e.what() <<  ")\n";
             exit(1);
         }
         simulation->instantiatePlatform(platform_file);
@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
             workflow_file = boost::json::value_to<std::string>(json_input["workflow"].as_object()["file"]);
             reference_flops = boost::json::value_to<std::string>(json_input["workflow"].as_object()["reference_flops"]);
         } catch (std::exception &e) {
-            std::cerr << "Error: Invalid workflow file or reference_flops specification in JSON input (" << e.what() <<  ")\n";
+            std::cerr << "Error: Invalid or missing workflow file or reference_flops specification in JSON input (" << e.what() <<  ")\n";
             exit(1);
         }
         workflow = wrench::WfCommonsWorkflowParser::createWorkflowFromJSON(
@@ -111,6 +111,31 @@ int main(int argc, char **argv) {
 
     }
 
+    // Data scheme
+    std::string data_scheme;
+    try {
+        data_scheme = boost::json::value_to<std::string>(json_input["data_scheme"]);
+    } catch (std::exception &e) {
+        std::cerr << "Error: Invalid or missing data_scheme specification in JSON input (" << e.what() <<  ")\n";
+        exit(1);
+    }
+    if (data_scheme != "all_remote") {
+        std::cerr << "Error: data_scheme " << data_scheme << " is not (yet?) implemented\n";
+        exit(1);
+    }
+
+    // Compute service type
+    std::string compute_service_type;
+    try {
+        compute_service_type = boost::json::value_to<std::string>(json_input["compute_service_type"]);
+    } catch (std::exception &e) {
+        std::cerr << "Error: Invalid or missing compute_service_type specification in JSON input (" << e.what() <<  ")\n";
+        exit(1);
+    }
+    if (data_scheme != "bare_metal") {
+        std::cerr << "Error: compute_service_type " << compute_service_type << " is not (yet?) implemented\n";
+        exit(1);
+    }
 
     // Create Property Lists and Payload Lists for storage services
     wrench::WRENCH_PROPERTY_COLLECTION_TYPE storage_service_property_list;
