@@ -6,6 +6,8 @@
     "platform": {
         "file": "/tmp/sample_platform.xml"
     },
+    "data_scheme": "all_remote",
+    "compute_service_type": "bare_metal",
     "compute_service_message_payloads": {
         "ComputeServiceMessagePayload": {
             "STANDARD_JOB_DONE_MESSAGE_PAYLOAD": 1024
