@@ -191,7 +191,7 @@ int main(int argc, char **argv) {
             auto compute_service = simulation->add(new wrench::BareMetalComputeService(
                     h->get_cname(),
                     {h->get_cname()},
-                    "/",
+                    "",
                     compute_service_property_list,
                     compute_service_messagepayload_list));
             auto storage_service = simulation->add(new wrench::SimpleStorageService(
@@ -218,13 +218,9 @@ int main(int argc, char **argv) {
     simulation->add(
             new wrench::Controller(workflow, compute_node_services, submit_node_storage_service, submit_hostname));
 
-///* Instantiate a file registry service */
-//auto file_registry_service = new wrench::FileRegistryService("UserHost");
-//simulation->add(file_registry_service);
-
-    // Stage input files on the storage service
+    // Create each file ab-initio on the storage service
     for (auto const &f: workflow->getInputFiles()) {
-        simulation->stageFile(f, submit_node_storage_service);
+        submit_node_storage_service->createFile(f);
     }
 
     // Launch the simulation
