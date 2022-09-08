@@ -7,7 +7,7 @@
         "file": "/tmp/sample_platform.xml"
     },
     "compute_service_message_payloads": {
-        "BatchComputeServiceMessagePayload": {
+        "BareMetalComputeServiceMessagePayload": {
             "STANDARD_JOB_DONE_MESSAGE_PAYLOAD": 1024
         }
     },
