@@ -13,6 +13,7 @@
  **/
 
 #include <iostream>
+#include <utility>
 
 #include "Controller.h"
 
@@ -29,10 +30,14 @@ namespace wrench {
      * @param hostname: the name of the host on which to start the WMS
      */
     Controller::Controller(std::shared_ptr<Workflow> workflow,
-                           const std::shared_ptr<BareMetalComputeService> &bare_metal_compute_service,
-                           const std::shared_ptr<SimpleStorageService> &storage_service,
+                           std::vector<
+                                   std::pair<std::shared_ptr<wrench::ComputeService>,
+                                           std::shared_ptr<wrench::StorageService>>> compute_node_services,
+                           std::shared_ptr<wrench::StorageService> submit_node_storage_service,
                            const std::string &hostname) : ExecutionController(hostname, "controller"),
-                                                          workflow(workflow), bare_metal_compute_service(bare_metal_compute_service), storage_service(storage_service) {}
+                                                          workflow(std::move(workflow)),
+                                                          compute_node_services(std::move(compute_node_services)),
+                                                          submit_node_storage_service(std::move(submit_node_storage_service)) {}
 
     /**
      * @brief main method of the Controller
@@ -52,6 +57,7 @@ namespace wrench {
         /* Create a job manager so that we can create/submit jobs */
         auto job_manager = this->createJobManager();
 
+#if 0
         /* While the workflow isn't done, repeat the main loop */
         while (not this->workflow->isDone()) {
 
@@ -85,6 +91,7 @@ namespace wrench {
         }
 
         WRENCH_INFO("Workflow execution complete!");
+#endif
         return 0;
     }
 

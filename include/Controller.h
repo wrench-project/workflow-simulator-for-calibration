@@ -25,8 +25,10 @@ namespace wrench {
         // Constructor
         Controller(
                 std::shared_ptr<Workflow> workflow,
-                const std::shared_ptr<BareMetalComputeService> &bare_metal_compute_service,
-                const std::shared_ptr<SimpleStorageService> &storage_service,
+                std::vector<
+                        std::pair<std::shared_ptr<wrench::ComputeService>,
+                                std::shared_ptr<wrench::StorageService>>> compute_node_services,
+                std::shared_ptr<wrench::StorageService> submit_node_storage_service,
                 const std::string &hostname);
 
     protected:
@@ -38,8 +40,10 @@ namespace wrench {
         int main() override;
 
         std::shared_ptr<Workflow> workflow;
-        const std::shared_ptr<BareMetalComputeService> bare_metal_compute_service;
-        const std::shared_ptr<SimpleStorageService> storage_service;
+        std::vector<
+                std::pair<std::shared_ptr<wrench::ComputeService>,
+                        std::shared_ptr<wrench::StorageService>>> compute_node_services;
+        std::shared_ptr<wrench::StorageService> submit_node_storage_service;
     };
 }// namespace wrench
 #endif//CONTROLLER_H

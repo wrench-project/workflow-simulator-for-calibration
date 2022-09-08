@@ -1,0 +1,110 @@
+<?xml version="1.0"?>
+<!DOCTYPE platform SYSTEM "http://simgrid.gforge.inria.fr/simgrid/simgrid.dtd">
+<platform version="4.1">
+    <zone id="AS0" routing="Full">
+
+        <!-- Intel(R) Xeon(R) Gold 6240R CPU @ 2.40GHz -->
+        <host id="submit_host" speed="48Gf" core="24">
+            <prop id="type" value="submit"/>
+            <prop id="ram" value="192GB"/>
+            <disk id="disk_submit" read_bw="200MBps" write_bw="200MBps">
+                <prop id="size" value="500000GiB"/>
+                <prop id="mount" value="/"/>
+            </disk>
+        </host>
+
+        <!-- Intel(R) Xeon(R) Gold 6240R CPU @ 2.40GHz -->
+        <host id="compute_host_1" speed="48Gf" core="24">
+            <prop id="type" value="compute"/>
+            <prop id="ram" value="192GB"/>
+        </host>
+
+        <!-- Intel(R) Xeon(R) Gold 6240R CPU @ 2.40GHz -->
+        <host id="compute_host_2" speed="48Gf" core="24">
+            <prop id="type" value="compute"/>
+            <prop id="ram" value="192GB"/>
+        </host>
+
+        <!-- Intel(R) Xeon(R) Gold 6240R CPU @ 2.40GHz -->
+        <host id="compute_host_3" speed="48Gf" core="24">
+            <prop id="type" value="compute"/>
+            <prop id="ram" value="192GB"/>
+        </host>
+
+        <!-- Intel(R) Xeon(R) Gold 6240R CPU @ 2.40GHz -->
+        <host id="compute_host_4" speed="48Gf" core="24">
+            <prop id="type" value="compute"/>
+            <prop id="ram" value="192GB"/>
+        </host>
+
+        <!-- Intel(R) Xeon(R) Gold 6240R CPU @ 2.40GHz -->
+        <host id="compute_host_5" speed="48Gf" core="24">
+            <prop id="type" value="compute"/>
+            <prop id="ram" value="192GB"/>
+        </host>
+
+        <link id="submit_to_compute" bandwidth="100GBps" latency="100us"/>
+        <link id="compute_to_compute" bandwidth="100GBps" latency="100us"/>
+        <route src="submit_host" dst="compute_host_1">
+            <link_ctn id="submit_to_compute"/>
+        </route>
+
+        <route src="submit_host" dst="compute_host_2">
+            <link_ctn id="submit_to_compute"/>
+        </route>
+
+        <route src="submit_host" dst="compute_host_3">
+            <link_ctn id="submit_to_compute"/>
+        </route>
+
+        <route src="submit_host" dst="compute_host_4">
+            <link_ctn id="submit_to_compute"/>
+        </route>
+
+        <route src="submit_host" dst="compute_host_5">
+            <link_ctn id="submit_to_compute"/>
+        </route>
+
+
+        <route src="compute_host_1" dst="compute_host_2">
+            <link_ctn id="compute_to_compute"/>
+        </route>
+
+        <route src="compute_host_1" dst="compute_host_3">
+            <link_ctn id="compute_to_compute"/>
+        </route>
+
+        <route src="compute_host_1" dst="compute_host_4">
+            <link_ctn id="compute_to_compute"/>
+        </route>
+
+        <route src="compute_host_1" dst="compute_host_5">
+            <link_ctn id="compute_to_compute"/>
+        </route>
+
+        <route src="compute_host_2" dst="compute_host_3">
+            <link_ctn id="compute_to_compute"/>
+        </route>
+
+        <route src="compute_host_2" dst="compute_host_4">
+            <link_ctn id="compute_to_compute"/>
+        </route>
+
+        <route src="compute_host_2" dst="compute_host_5">
+            <link_ctn id="compute_to_compute"/>
+        </route>
+
+        <route src="compute_host_3" dst="compute_host_4">
+            <link_ctn id="compute_to_compute"/>
+        </route>
+
+        <route src="compute_host_3" dst="compute_host_5">
+            <link_ctn id="compute_to_compute"/>
+        </route>
+
+        <route src="compute_host_4" dst="compute_host_5">
+            <link_ctn id="compute_to_compute"/>
+        </route>
+
+    </zone>
+</platform>

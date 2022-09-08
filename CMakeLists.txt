@@ -14,6 +14,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMakeModules/")
 find_package(WRENCH REQUIRED)
 find_package(SimGrid REQUIRED)
 find_package(Boost REQUIRED)
+find_package(Boost COMPONENTS json REQUIRED)
 
 # include directories
 include_directories(include/ /usr/local/include/ /opt/local/include/ ${WRENCH_INCLUDE_DIR} ${SimGrid_INCLUDE_DIR} ${Boost_INCLUDE_DIR})
@@ -26,23 +27,23 @@ set(SOURCE_FILES
         )
 
 # generating the executable
-add_executable(my-wrench-simulator ${SOURCE_FILES})
+add_executable(workflow-simulator-for-calibration ${SOURCE_FILES})
 
 # Specify libraries to link
 if (ENABLE_BATSCHED)
-    target_link_libraries(my-wrench-simulator
+    target_link_libraries(workflow-simulator-for-calibration
             ${WRENCH_LIBRARY}
             ${SimGrid_LIBRARY}
             ${Boost_LIBRARIES}
-#            ${WRENCH_WFCOMMONS_WORKFLOW_PARSER_LIBRARY}
+            ${WRENCH_WFCOMMONS_WORKFLOW_PARSER_LIBRARY}
             -lzmq)
 else()
-    target_link_libraries(my-wrench-simulator
+    target_link_libraries(workflow-simulator-for-calibration
             ${WRENCH_LIBRARY}
             ${SimGrid_LIBRARY}
             ${Boost_LIBRARIES}
-#            ${WRENCH_WFCOMMONS_WORKFLOW_PARSER_LIBRARY}
+            ${WRENCH_WFCOMMONS_WORKFLOW_PARSER_LIBRARY}
             )
 endif()
 
-install(TARGETS my-wrench-simulator DESTINATION bin)
+install(TARGETS workflow-simulator-for-calibration DESTINATION bin)
