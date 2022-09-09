@@ -35,12 +35,14 @@ namespace wrench {
                            std::shared_ptr<wrench::StorageService> submit_node_storage_service,
                            std::string data_scheme,
                            std::string compute_service_type,
+                           double scheduling_overhead,
                            const std::string &hostname) : ExecutionController(hostname, "controller"),
                                                           workflow(std::move(workflow)),
                                                           compute_node_services(std::move(compute_node_services)),
                                                           submit_node_storage_service(std::move(submit_node_storage_service)),
                                                           data_scheme(std::move(data_scheme)),
-                                                          compute_service_type(std::move(compute_service_type)) {}
+                                                          compute_service_type(std::move(compute_service_type)),
+                                                          scheduling_overhead(scheduling_overhead) {}
 
     /**
      * @brief main method of the Controller
@@ -76,10 +78,11 @@ namespace wrench {
         while (not this->workflow->isDone()) {
 
             // Submit each ready task as a single job
-            int num_job_submitted = 0;
             auto ready_tasks = this->workflow->getReadyTasks();
 
             for (auto const &ready_task: ready_tasks) {
+
+                wrench::Simulation::sleep(this->scheduling_overhead);
 
                 // Pick a target compute service (and service-specific arguments while we're at it)
                 std::shared_ptr<ComputeService> target_cs = nullptr;

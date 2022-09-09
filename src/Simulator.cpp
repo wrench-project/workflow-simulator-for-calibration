@@ -3,10 +3,6 @@
  ** executions, which takes in a number of calibration parameters.
  **/
 
-#define GFLOP (1000.0 * 1000.0 * 1000.0)
-#define MBYTE (1000.0 * 1000.0)
-#define GBYTE (1000.0 * 1000.0 * 1000.0)
-
 #include <iostream>
 #include <wrench-dev.h>
 
@@ -259,12 +255,21 @@ int main(int argc, char **argv) {
     }
 
     // Instantiate a Controller on the submit_host
+    double scheduling_overhead;
+    try {
+        scheduling_overhead = boost::json::value_to<double>(json_input["scheduling_overhead"]);
+    } catch (std::exception &e) {
+        std::cerr << "Error: Invalid or missing scheduling_overhead specification in JSON input (" << e.what() <<  ")\n";
+        exit(1);
+    }
+
     simulation->add(
             new wrench::Controller(workflow,
                                    compute_node_services,
                                    submit_node_storage_service,
                                    data_scheme,
                                    compute_service_type,
+                                   scheduling_overhead,
                                    submit_hostname));
 
     // Create each file ab-initio on the storage service (no file registry service)

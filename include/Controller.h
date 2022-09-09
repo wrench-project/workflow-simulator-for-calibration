@@ -30,6 +30,7 @@ namespace wrench {
                 std::shared_ptr<wrench::StorageService> submit_node_storage_service,
                 std::string data_scheme,
                 std::string compute_service_type,
+                double scheduling_overhead,
                 const std::string &hostname);
 
     protected:
@@ -50,6 +51,8 @@ namespace wrench {
 
         std::string data_scheme;
         std::string compute_service_type;
+        double scheduling_overhead;
+
     };
 }// namespace wrench
 #endif//CONTROLLER_H
