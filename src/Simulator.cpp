@@ -132,7 +132,7 @@ int main(int argc, char **argv) {
         std::cerr << "Error: Invalid or missing compute_service_type specification in JSON input (" << e.what() <<  ")\n";
         exit(1);
     }
-    if (data_scheme != "bare_metal") {
+    if (compute_service_type != "bare_metal") {
         std::cerr << "Error: compute_service_type " << compute_service_type << " is not (yet?) implemented\n";
         exit(1);
     }
@@ -241,9 +241,14 @@ int main(int argc, char **argv) {
 
     // Instantiate a Controller on the submit_host
     simulation->add(
-            new wrench::Controller(workflow, compute_node_services, submit_node_storage_service, submit_hostname));
+            new wrench::Controller(workflow,
+                                   compute_node_services,
+                                   submit_node_storage_service,
+                                   data_scheme,
+                                   compute_service_type,
+                                   submit_hostname));
 
-    // Create each file ab-initio on the storage service
+    // Create each file ab-initio on the storage service (no file registry service)
     for (auto const &f: workflow->getInputFiles()) {
         submit_node_storage_service->createFile(f);
     }

@@ -29,11 +29,14 @@ namespace wrench {
                         std::pair<std::shared_ptr<wrench::ComputeService>,
                                 std::shared_ptr<wrench::StorageService>>> compute_node_services,
                 std::shared_ptr<wrench::StorageService> submit_node_storage_service,
+                std::string data_scheme,
+                std::string compute_service_type,
                 const std::string &hostname);
 
     protected:
         // Overridden method
         void processEventStandardJobCompletion(std::shared_ptr<StandardJobCompletedEvent>) override;
+        void processEventStandardJobFailure(std::shared_ptr<StandardJobFailedEvent>) override;
 
     private:
         // main() method of the WMS
@@ -44,6 +47,11 @@ namespace wrench {
                 std::pair<std::shared_ptr<wrench::ComputeService>,
                         std::shared_ptr<wrench::StorageService>>> compute_node_services;
         std::shared_ptr<wrench::StorageService> submit_node_storage_service;
+
+        std::map<std::shared_ptr<ComputeService>, unsigned long> core_availability;
+
+        std::string data_scheme;
+        std::string compute_service_type;
     };
 }// namespace wrench
 #endif//CONTROLLER_H
