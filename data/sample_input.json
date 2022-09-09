@@ -6,8 +6,8 @@
     "platform": {
         "file": "/tmp/sample_platform.xml"
     },
-    "data_scheme": "all_remote_streaming",
-    "compute_service_type": "bare_metal",
+    "compute_service_scheme": "htcondor_batch",
+    "storage_service_scheme": "submit_only",
     "scheduling_overhead": 1.0,
     "storage_service_properties": {
         "StorageServiceProperty": {
@@ -18,6 +18,9 @@
         }
     },
     "compute_service_properties": {
+        "BareMetalComputeServiceProperty": { // How can we make compute_service_scheme_specific?
+            "THREAD_STARTUP_OVERHEAD": "42"
+        }
     },
     "compute_service_message_payloads": {
         "ComputeServiceMessagePayload": {

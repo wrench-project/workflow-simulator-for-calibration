@@ -25,11 +25,11 @@ namespace wrench {
         // Constructor
         Controller(
                 std::shared_ptr<Workflow> workflow,
-                std::unordered_map<std::shared_ptr<wrench::ComputeService>,
-                        std::shared_ptr<wrench::StorageService>> compute_node_services,
+                std::string compute_service_scheme,
+                std::string storage_service_scheme,
+                std::set<std::shared_ptr<wrench::ComputeService>> compute_services,
                 std::shared_ptr<wrench::StorageService> submit_node_storage_service,
-                std::string data_scheme,
-                std::string compute_service_type,
+                std::shared_ptr<wrench::StorageService>  slurm_head_node_storage_service,
                 double scheduling_overhead,
                 const std::string &hostname);
 
@@ -43,16 +43,14 @@ namespace wrench {
         int main() override;
 
         std::shared_ptr<Workflow> workflow;
-        std::unordered_map<std::shared_ptr<wrench::ComputeService>,
-                std::shared_ptr<wrench::StorageService>> compute_node_services;
+        std::string compute_service_scheme;
+        std::string storage_service_scheme;
+        std::set<std::shared_ptr<wrench::ComputeService>> compute_services;
         std::shared_ptr<wrench::StorageService> submit_node_storage_service;
-
-        std::map<std::shared_ptr<ComputeService>, unsigned long> core_availability;
-
-        std::string data_scheme;
-        std::string compute_service_type;
+        std::shared_ptr<wrench::StorageService> slurm_head_node_storage_service;
         double scheduling_overhead;
 
+        std::map<std::shared_ptr<ComputeService>, unsigned long> core_availability;
     };
 }// namespace wrench
 #endif//CONTROLLER_H

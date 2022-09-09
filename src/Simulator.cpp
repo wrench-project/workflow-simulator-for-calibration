@@ -52,13 +52,15 @@ boost::json::object readJSONFromFile(const std::string& filepath) {
  */
 int main(int argc, char **argv) {
 
-    std::set<std::string> implemented_data_schemes = {
-            "all_remote_streaming",
-            "copy_to_local_and_back_to_remote"
+    std::set<std::string> implemented_compute_service_schemes = {
+            "all_bare_metal",
+            "batch_only",
+            "htcondor_batch"
     };
 
-    std::set<std::string> implemented_compute_service_types = {
-            "bare_metal"
+    std::set<std::string> implemented_storage_service_schemes = {
+            "submit_only",
+            "submit_and_slurm_head",
     };
 
     // Create and initialize simulation
@@ -74,12 +76,8 @@ int main(int argc, char **argv) {
 
     if (std::string(argv[1]) == "--help") {
         std::cerr << "Usage: " << argv[0] << " <json input file>" << std::endl;
-        std::cerr << "  Implemented data schemes:\n";
-        for (auto const &scheme : implemented_data_schemes) {
-            std::cerr << "    - " << scheme << "\n";
-        }
         std::cerr << "  Implemented compute service types:\n";
-        for (auto const &type : implemented_compute_service_types) {
+        for (auto const &type : implemented_compute_service_schemes) {
             std::cerr << "    - " << type << "\n";
         }
         exit(0);
@@ -128,29 +126,28 @@ int main(int argc, char **argv) {
 
     }
 
-    // Data scheme
-    std::string data_scheme;
+    // Compute service scheme
+    std::string compute_service_scheme;
     try {
-        data_scheme = boost::json::value_to<std::string>(json_input["data_scheme"]);
+        compute_service_scheme = boost::json::value_to<std::string>(json_input["compute_service_scheme"]);
     } catch (std::exception &e) {
-        std::cerr << "Error: Invalid or missing data_scheme specification in JSON input (" << e.what() <<  ")\n";
+        std::cerr << "Error: Invalid or missing compute_service_scheme specification in JSON input (" << e.what() <<  ")\n";
         exit(1);
     }
-
-    if (implemented_data_schemes.find(data_scheme) == implemented_data_schemes.end()) {
-        std::cerr << "Error: unknown or unimplemented data scheme " << data_scheme << "\n";
+    if (implemented_compute_service_schemes.find(compute_service_scheme) == implemented_compute_service_schemes.end()) {
+        std::cerr << "Error: unknown or unimplemented compute service scheme " << compute_service_scheme << "\n";
     }
 
-    // Compute service type
-    std::string compute_service_type;
+    // Storage service scheme
+    std::string storage_service_scheme;
     try {
-        compute_service_type = boost::json::value_to<std::string>(json_input["compute_service_type"]);
+        storage_service_scheme = boost::json::value_to<std::string>(json_input["storage_service_scheme"]);
     } catch (std::exception &e) {
-        std::cerr << "Error: Invalid or missing compute_service_type specification in JSON input (" << e.what() <<  ")\n";
+        std::cerr << "Error: Invalid or missing storage_service_scheme specification in JSON input (" << e.what() <<  ")\n";
         exit(1);
     }
-    if (implemented_compute_service_types.find(compute_service_type) == implemented_compute_service_types.end()) {
-        std::cerr << "Error: unknown or unimplemented compute service type " << compute_service_type << "\n";
+    if (implemented_storage_service_schemes.find(storage_service_scheme) == implemented_storage_service_schemes.end()) {
+        std::cerr << "Error: unknown or unimplemented storage service scheme " << storage_service_scheme << "\n";
     }
 
     // Create Property Lists and Payload Lists for storage services
@@ -219,39 +216,112 @@ int main(int argc, char **argv) {
         }
     }
 
-    // Instantiate a compute service on each "compute" node along with its
-    // local storage service
-    std::unordered_map<std::shared_ptr<wrench::ComputeService>,
-            std::shared_ptr<wrench::StorageService>> compute_node_services;
-    std::shared_ptr<wrench::StorageService> submit_node_storage_service;
-    std::string submit_hostname;
-
+    // Gather all relevant hostnames and perform sanity checks
+    std::string submit_node_hostname;
+    std::string slurm_head_node_hostname;
+    std::vector<std::string> slurm_compute_node_hostnames;
     for (const auto &h : simgrid::s4u::Engine::get_instance()->get_all_hosts()) {
-        if (std::string(h->get_property("type")) == "compute") {
-            auto compute_service = simulation->add(new wrench::BareMetalComputeService(
-                    h->get_cname(),
-                    {h->get_cname()},
-                    "",
-                    compute_service_property_list,
-                    compute_service_messagepayload_list));
-            auto storage_service = simulation->add(new wrench::SimpleStorageService(
-                    h->get_cname(),
-                    {{"/"}},
-                    storage_service_property_list,
-                    storage_service_messagepayload_list));
-            compute_node_services[compute_service] =  storage_service;
-
-        } else if (std::string(h->get_property("type")) == "submit") {
-            if (submit_node_storage_service) {
-                throw std::invalid_argument("There should be a single host of type 'submit' in the platform");
+        if (std::string(h->get_property("type")) == "submit") {
+            if (not submit_node_hostname.empty()) {
+                std::cerr << "Error: More than one host of type 'submit' in the platform description\n";
+                exit(1);
+            } else {
+                submit_node_hostname = h->get_cname();
             }
-            submit_hostname = h->get_cname();
-            submit_node_storage_service = simulation->add(new wrench::SimpleStorageService(
-                    h->get_cname(),
+        }
+        if (std::string(h->get_property("type")) == "slurm_head") {
+            if (not submit_node_hostname.empty()) {
+                std::cerr << "Error: More than one host of type 'slurm_head' in the platform description\n";
+                exit(1);
+            } else {
+                slurm_head_node_hostname = h->get_cname();
+            }
+        }
+        if (std::string(h->get_property("type")) == "slurm_compute") {
+                slurm_compute_node_hostnames.push_back(h->get_cname());
+        }
+    }
+    if (submit_node_hostname.empty()) {
+        std::cerr << "Error: There should be a host of type 'submit' in the platform description\n";
+        exit(1);
+    }
+    if (slurm_head_node_hostname.empty()) {
+        std::cerr << "Error: There should be a host of type 'slurm_head' in the platform description\n";
+        exit(1);
+    }
+    if (slurm_compute_node_hostnames.empty()) {
+        std::cerr << "Error: There should be at least one host of type 'slurm_compute' in the platform description\n";
+        exit(1);
+    }
+
+    // Create relevant storage services
+
+    // There is always a storage service on the submit_node
+    auto submit_node_storage_service =
+            simulation->add(new wrench::SimpleStorageService(
+                    submit_node_hostname,
                     {{"/"}},
                     storage_service_property_list,
                     storage_service_messagepayload_list));
+
+    // There may be a storage service on the slurm head node
+    std::shared_ptr<wrench::StorageService> slurm_head_node_storage_service = nullptr;
+    if (storage_service_scheme == "submit_and_slurm_head") {
+        slurm_head_node_storage_service =
+                simulation->add(new wrench::SimpleStorageService(
+                        slurm_head_node_hostname,
+                        {{"/"}},
+                        storage_service_property_list,
+                        storage_service_messagepayload_list));
+    }
+
+    // Create relevant compute services
+
+    std::set<std::shared_ptr<wrench::ComputeService>> compute_services;
+
+    if (compute_service_scheme == "all_bare_metal") {
+        // Create one bare-metal service on all compute nodes
+        for (auto const &host : slurm_compute_node_hostnames) {
+            compute_services.insert(simulation->add(
+                    new wrench::BareMetalComputeService(
+                            host,
+                            {host},
+                            "",
+                            compute_service_property_list,
+                            compute_service_messagepayload_list)));
         }
+
+    } else if (compute_service_scheme == "batch_only") {
+        // Create a batch compute service that manages all compute nodes
+        compute_services.insert(simulation->add(
+                new wrench::BatchComputeService(
+                        slurm_head_node_hostname,
+                        slurm_compute_node_hostnames,
+                        "",
+                        compute_service_property_list,
+                        compute_service_messagepayload_list)));
+
+    } else if (compute_service_scheme == "htcondor_batch") {
+        // Create a batch compute service that manages all compute nodes
+        auto batch = simulation->add(
+                new wrench::BatchComputeService(
+                        slurm_head_node_hostname,
+                        slurm_compute_node_hostnames,
+                        "",
+                        compute_service_property_list,
+                        compute_service_messagepayload_list));
+        // Create a top-level HTCondor compute service
+        // TODO: EXPOSE THE PROPERTIES IN THE JSON
+        compute_services.insert(simulation->add(
+                new wrench::HTCondorComputeService(
+                        submit_node_hostname,
+                        {batch},
+                        {{wrench::HTCondorComputeServiceProperty::NEGOTIATOR_OVERHEAD, "1.0"},
+                         {wrench::HTCondorComputeServiceProperty::GRID_PRE_EXECUTION_DELAY, "10.0"},
+                         {wrench::HTCondorComputeServiceProperty::GRID_POST_EXECUTION_DELAY, "10.0"},
+                         {wrench::HTCondorComputeServiceProperty::NON_GRID_PRE_EXECUTION_DELAY, "5.0"},
+                         {wrench::HTCondorComputeServiceProperty::NON_GRID_POST_EXECUTION_DELAY, "5.0"}},
+                        {})));
     }
 
     // Instantiate a Controller on the submit_host
@@ -265,12 +335,13 @@ int main(int argc, char **argv) {
 
     simulation->add(
             new wrench::Controller(workflow,
-                                   compute_node_services,
+                                   compute_service_scheme,
+                                   storage_service_scheme,
+                                   compute_services,
                                    submit_node_storage_service,
-                                   data_scheme,
-                                   compute_service_type,
+                                   slurm_head_node_storage_service,
                                    scheduling_overhead,
-                                   submit_hostname));
+                                   submit_node_hostname));
 
     // Create each file ab-initio on the storage service (no file registry service)
     for (auto const &f: workflow->getInputFiles()) {

@@ -29,20 +29,22 @@ namespace wrench {
      * @param storage_services: a set of storage services available to store files
      * @param hostname: the name of the host on which to start the WMS
      */
-    Controller::Controller(std::shared_ptr<Workflow> workflow,
-                           std::unordered_map<std::shared_ptr<wrench::ComputeService>,
-                                   std::shared_ptr<wrench::StorageService>> compute_node_services,
-                           std::shared_ptr<wrench::StorageService> submit_node_storage_service,
-                           std::string data_scheme,
-                           std::string compute_service_type,
-                           double scheduling_overhead,
-                           const std::string &hostname) : ExecutionController(hostname, "controller"),
-                                                          workflow(std::move(workflow)),
-                                                          compute_node_services(std::move(compute_node_services)),
-                                                          submit_node_storage_service(std::move(submit_node_storage_service)),
-                                                          data_scheme(std::move(data_scheme)),
-                                                          compute_service_type(std::move(compute_service_type)),
-                                                          scheduling_overhead(scheduling_overhead) {}
+    Controller::Controller(
+            std::shared_ptr<Workflow> workflow,
+            std::string compute_service_scheme,
+            std::string storage_service_scheme,
+            std::set<std::shared_ptr<wrench::ComputeService>> compute_services,
+            std::shared_ptr<wrench::StorageService> submit_node_storage_service,
+            std::shared_ptr<wrench::StorageService>  slurm_head_node_storage_service,
+            double scheduling_overhead,
+            const std::string &hostname) : ExecutionController(hostname, "controller"),
+                                           workflow(std::move(workflow)),
+                                           compute_service_scheme(std::move(compute_service_scheme)),
+                                           storage_service_scheme(std::move(storage_service_scheme)),
+                                           compute_services(std::move(compute_services)),
+                                           submit_node_storage_service(std::move(submit_node_storage_service)),
+                                           slurm_head_node_storage_service(std::move(slurm_head_node_storage_service)),
+                                           scheduling_overhead(scheduling_overhead) {}
 
     /**
      * @brief main method of the Controller
@@ -60,15 +62,16 @@ namespace wrench {
         WRENCH_INFO("Controller starting");
         WRENCH_INFO("About to execute a workflow with %lu tasks", this->workflow->getNumberOfTasks());
 
-        // Fill-in the potentially useful map of core availability (likely only useful for the bare_metal
-        // compute service type)
-        for (auto const &s : this->compute_node_services) {
-            auto cs = s.first;
-            unsigned long num_cores = 0;
-            for (auto const &h :cs->getPerHostNumCores()) {
-                num_cores += h.second;
+        // Fill-in the potentially useful map of core availability, which is only
+        // useful for the all_bare_metal compute service scheme
+        if (compute_service_scheme == "all_bare_metal") {
+            for (auto const &cs : this->compute_services) {
+                unsigned long num_cores = 0;
+                for (auto const &h :cs->getPerHostNumCores()) {
+                    num_cores += h.second;
+                }
+                this->core_availability[cs] = num_cores;
             }
-            this->core_availability[cs] = num_cores;
         }
 
         // Create a job manager so that we can create/submit jobs
@@ -88,7 +91,7 @@ namespace wrench {
                 std::shared_ptr<ComputeService> target_cs = nullptr;
                 std::map<std::string, std::string> service_specific_arguments;
 
-                if (this->compute_service_type == "bare_metal") {
+                if (this->compute_service_scheme == "all_bare_metal") {
                     for (auto const &avail : this->core_availability) {
                         auto cs = avail.first;
                         auto count = avail.second;
@@ -98,8 +101,25 @@ namespace wrench {
                             break;
                         }
                     }
+                    // Force on-core executions, just in case
+                    service_specific_arguments[ready_task->getID()] = "1";
+
+                } else if (this->compute_service_scheme == "batch_only") {
+                    target_cs = *(this->compute_services.begin());
+                    service_specific_arguments["-N"] = "1";
+                    service_specific_arguments["-c"] = "1";
+                    service_specific_arguments["-t"] = "100000"; // doesn't matter since all tasks are 1-core
+
+                } else if (this->compute_service_scheme == "htcondor_batch") {
+                    target_cs = *(this->compute_services.begin());
+                    service_specific_arguments["-universe"] = "grid";
+                    service_specific_arguments["-N"] = "1";
+                    service_specific_arguments["-c"] = "1";
+                    service_specific_arguments["-t"] = "100000"; // doesn't matter since all tasks are 1-core
+                    // Only one batch service, so we shouldn't have to specify it
+
                 } else {
-                    throw std::runtime_error("Unimplemented compute_service_type in the Controller: " + compute_service_type);
+                    throw std::runtime_error("Unimplemented compute_service_scheme in the Controller: " + compute_service_scheme);
                 }
 
                 if (!target_cs) {
@@ -116,32 +136,32 @@ namespace wrench {
                 std::vector<std::tuple<std::shared_ptr<DataFile>, std::shared_ptr<FileLocation>, std::shared_ptr<FileLocation>>> post_file_copies;
                 std::vector<std::tuple<std::shared_ptr<DataFile>, std::shared_ptr<FileLocation>>> cleanup_file_deletions;
 
-                // Data scheme
-                if (data_scheme == "all_remote_streaming") {
+                // Set up all data stuff
+                if (storage_service_scheme == "submit_only") {
                     for (auto const &f: ready_task->getInputFiles()) {
-                        file_locations[f] = FileLocation::LOCATION(this->compute_node_services[target_cs]);
-                        pre_file_copies.emplace_back(f,
-                                                     FileLocation::LOCATION(this->submit_node_storage_service),
-                                                     FileLocation::LOCATION(this->compute_node_services[target_cs]));
+                        file_locations[f] = FileLocation::LOCATION(this->submit_node_storage_service);
                     }
                     for (auto const &f: ready_task->getOutputFiles()) {
-                        file_locations[f] = FileLocation::LOCATION(this->compute_node_services[target_cs]);
+                        file_locations[f] = FileLocation::LOCATION(this->submit_node_storage_service);
+                    }
+
+                } else if (storage_service_scheme == "submit_and_slurm_head") {
+                    for (auto const &f: ready_task->getInputFiles()) {
+                        file_locations[f] = FileLocation::LOCATION(this->slurm_head_node_storage_service);
+                        pre_file_copies.emplace_back(f,
+                                                     FileLocation::LOCATION(this->submit_node_storage_service),
+                                                     FileLocation::LOCATION(this->slurm_head_node_storage_service));
+                    }
+                    for (auto const &f: ready_task->getOutputFiles()) {
+                        file_locations[f] = FileLocation::LOCATION(this->slurm_head_node_storage_service);
                         post_file_copies.emplace_back(f,
-                                                      FileLocation::LOCATION(this->compute_node_services[target_cs]),
+                                                      FileLocation::LOCATION(this->slurm_head_node_storage_service),
                                                       FileLocation::LOCATION(this->submit_node_storage_service));
                     }
 
-                } else if (data_scheme == "copy_to_local_and_back_to_remote") {
-                    for (auto const &f: ready_task->getInputFiles()) {
-                        file_locations[f] = FileLocation::LOCATION(submit_node_storage_service);
-                    }
-                    for (auto const &f: ready_task->getOutputFiles()) {
-                        file_locations[f] = FileLocation::LOCATION(submit_node_storage_service);
-                    }
-                } else {
-                    throw std::runtime_error("Unimplemented data_scheme in the Controller: " + data_scheme);
+                }   else {
+                    throw std::runtime_error("Unimplemented storage_service_scheme in the Controller: " + storage_service_scheme);
                 }
-
 
                 // Create the job
                 auto standard_job = job_manager->createStandardJob(tasks,
