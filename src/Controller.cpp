@@ -30,9 +30,8 @@ namespace wrench {
      * @param hostname: the name of the host on which to start the WMS
      */
     Controller::Controller(std::shared_ptr<Workflow> workflow,
-                           std::vector<
-                                   std::pair<std::shared_ptr<wrench::ComputeService>,
-                                           std::shared_ptr<wrench::StorageService>>> compute_node_services,
+                           std::unordered_map<std::shared_ptr<wrench::ComputeService>,
+                                   std::shared_ptr<wrench::StorageService>> compute_node_services,
                            std::shared_ptr<wrench::StorageService> submit_node_storage_service,
                            std::string data_scheme,
                            std::string compute_service_type,
@@ -82,6 +81,28 @@ namespace wrench {
 
             for (auto const &ready_task: ready_tasks) {
 
+                // Pick a target compute service (and service-specific arguments while we're at it)
+                std::shared_ptr<ComputeService> target_cs = nullptr;
+                std::map<std::string, std::string> service_specific_arguments;
+
+                if (this->compute_service_type == "bare_metal") {
+                    for (auto const &avail : this->core_availability) {
+                        auto cs = avail.first;
+                        auto count = avail.second;
+                        if (count > 0) {
+                            core_availability[cs] = count - 1;
+                            target_cs = cs;
+                            break;
+                        }
+                    }
+                } else {
+                    throw std::runtime_error("Unimplemented compute_service_type in the Controller: " + compute_service_type);
+                }
+
+                if (!target_cs) {
+                    break; // couldn't schedule the task, for whatever reason
+                }
+
                 // Create a standard job for the task
                 WRENCH_INFO("Creating a job for task %s", ready_task->getID().c_str());
 
@@ -93,7 +114,21 @@ namespace wrench {
                 std::vector<std::tuple<std::shared_ptr<DataFile>, std::shared_ptr<FileLocation>>> cleanup_file_deletions;
 
                 // Data scheme
-                if (data_scheme == "all_remote") {
+                if (data_scheme == "all_remote_streaming") {
+                    for (auto const &f: ready_task->getInputFiles()) {
+                        file_locations[f] = FileLocation::LOCATION(this->compute_node_services[target_cs]);
+                        pre_file_copies.emplace_back(f,
+                                                     FileLocation::LOCATION(this->submit_node_storage_service),
+                                                     FileLocation::LOCATION(this->compute_node_services[target_cs]));
+                    }
+                    for (auto const &f: ready_task->getOutputFiles()) {
+                        file_locations[f] = FileLocation::LOCATION(this->compute_node_services[target_cs]);
+                        post_file_copies.emplace_back(f,
+                                                      FileLocation::LOCATION(this->compute_node_services[target_cs]),
+                                                      FileLocation::LOCATION(this->submit_node_storage_service));
+                    }
+
+                } else if (data_scheme == "copy_to_local_and_back_to_remote") {
                     for (auto const &f: ready_task->getInputFiles()) {
                         file_locations[f] = FileLocation::LOCATION(submit_node_storage_service);
                     }
@@ -115,33 +150,7 @@ namespace wrench {
 
                 // Submit the job to the compute service
                 WRENCH_INFO("Submitting the job to the compute service");
-                    std::shared_ptr<ComputeService> target_cs = nullptr;
-                std::map<std::string, std::string> service_specific_arguments;
-
-                // Compute service type
-                if (this->compute_service_type == "bare_metal") {
-
-                    // TODO: See whether one is idle with at least one free core
-                    // TODO: Submit the ob to that one
-                    // TODO: update some data struct with cores--
-                    for (auto const &avail : this->core_availability) {
-                        auto cs = avail.first;
-                        auto count = avail.second;
-                        if (count > 0)  {
-                            core_availability[cs] = count - 1;
-                            target_cs = cs;
-                            break;
-                        }
-                    }
-                } else {
-                    throw std::runtime_error("Unimplemented compute_service_type in the Controller: " + compute_service_type);
-                }
-
-                if (target_cs) {
-                    job_manager->submitJob(standard_job, target_cs, service_specific_arguments);
-                } else {
-                    break; // couldn't schedule the task, for whatever reason
-                }
+                job_manager->submitJob(standard_job, target_cs, service_specific_arguments);
             }
 
             // Wait for a workflow execution event and process it

@@ -56,6 +56,15 @@ boost::json::object readJSONFromFile(const std::string& filepath) {
  */
 int main(int argc, char **argv) {
 
+    std::set<std::string> implemented_data_schemes = {
+            "all_remote_streaming",
+            "copy_to_local_and_back_to_remote"
+    };
+
+    std::set<std::string> implemented_compute_service_types = {
+            "bare_metal"
+    };
+
     // Create and initialize simulation
     auto simulation = wrench::Simulation::createSimulation();
     simulation->init(&argc, argv);
@@ -63,7 +72,21 @@ int main(int argc, char **argv) {
     // Parse command-line arguments
     if (argc != 2) {
         std::cerr << "Usage: " << argv[0] << " <json input file>" << std::endl;
+        std::cerr << "       " << argv[0] << " --help" << std::endl;
         exit(1);
+    }
+
+    if (std::string(argv[1]) == "--help") {
+        std::cerr << "Usage: " << argv[0] << " <json input file>" << std::endl;
+        std::cerr << "  Implemented data schemes:\n";
+        for (auto const &scheme : implemented_data_schemes) {
+            std::cerr << "    - " << scheme << "\n";
+        }
+        std::cerr << "  Implemented compute service types:\n";
+        for (auto const &type : implemented_compute_service_types) {
+            std::cerr << "    - " << type << "\n";
+        }
+        exit(0);
     }
 
     // Parse the JSON input file
@@ -73,8 +96,6 @@ int main(int argc, char **argv) {
     } catch (std::invalid_argument &e) {
         std::cerr << "Error while reading JSON file " << argv[1] << ": " << e.what() << "\n";
     }
-
-
 
     // Instantiating the simulated platform
     try {
@@ -119,9 +140,9 @@ int main(int argc, char **argv) {
         std::cerr << "Error: Invalid or missing data_scheme specification in JSON input (" << e.what() <<  ")\n";
         exit(1);
     }
-    if (data_scheme != "all_remote") {
-        std::cerr << "Error: data_scheme " << data_scheme << " is not (yet?) implemented\n";
-        exit(1);
+
+    if (implemented_data_schemes.find(data_scheme) == implemented_data_schemes.end()) {
+        std::cerr << "Error: unknown or unimplemented data scheme " << data_scheme << "\n";
     }
 
     // Compute service type
@@ -132,9 +153,8 @@ int main(int argc, char **argv) {
         std::cerr << "Error: Invalid or missing compute_service_type specification in JSON input (" << e.what() <<  ")\n";
         exit(1);
     }
-    if (compute_service_type != "bare_metal") {
-        std::cerr << "Error: compute_service_type " << compute_service_type << " is not (yet?) implemented\n";
-        exit(1);
+    if (implemented_compute_service_types.find(compute_service_type) == implemented_compute_service_types.end()) {
+        std::cerr << "Error: unknown or unimplemented compute service type " << compute_service_type << "\n";
     }
 
     // Create Property Lists and Payload Lists for storage services
@@ -205,9 +225,8 @@ int main(int argc, char **argv) {
 
     // Instantiate a compute service on each "compute" node along with its
     // local storage service
-    std::vector<
-            std::pair<std::shared_ptr<wrench::ComputeService>,
-                    std::shared_ptr<wrench::StorageService>>> compute_node_services;
+    std::unordered_map<std::shared_ptr<wrench::ComputeService>,
+            std::shared_ptr<wrench::StorageService>> compute_node_services;
     std::shared_ptr<wrench::StorageService> submit_node_storage_service;
     std::string submit_hostname;
 
@@ -224,7 +243,7 @@ int main(int argc, char **argv) {
                     {{"/"}},
                     storage_service_property_list,
                     storage_service_messagepayload_list));
-            compute_node_services.emplace_back(compute_service, storage_service);
+            compute_node_services[compute_service] =  storage_service;
 
         } else if (std::string(h->get_property("type")) == "submit") {
             if (submit_node_storage_service) {
