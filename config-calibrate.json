@@ -1,0 +1,4 @@
+{
+    "simulator": "workflow-simulator-for-calibration",
+    "config": "data/sample_input.json"
+}
