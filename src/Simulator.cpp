@@ -161,6 +161,7 @@ int main(int argc, char **argv) {
                 exit(1);
             }
             for (const auto &spec : prop.value().as_object()) {
+                // This next line will not compile with Boost 1.79 (works with Boost 1.76)
                 auto property_name = prop.key().to_string() + "::" + spec.key().to_string();
                 auto property = wrench::StorageServiceProperty::translateString(property_name);
                 std::string property_value = boost::json::value_to<std::string>(spec.value());
