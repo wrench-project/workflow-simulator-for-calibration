@@ -108,8 +108,8 @@ int main(int argc, char **argv) {
 
     // Create the workflow
     std::shared_ptr<wrench::Workflow> workflow;
+    std::string workflow_file;
     try {
-        std::string workflow_file;
         std::string reference_flops;
         try {
             workflow_file = boost::json::value_to<std::string>(json_input["workflow"].as_object()["file"]);
@@ -350,7 +350,27 @@ int main(int argc, char **argv) {
     }
 
     // Launch the simulation
-    simulation->launch();
+    try {
+        simulation->launch();
+    } catch (std::runtime_error &e) {
+        std::cerr << "Exception: " << e.what() << std::endl;
+        return 0;
+    }
+
+    // Retrieve the observed execution time of the workflow on the actual platform
+    boost::json::object json_workflow;
+    try {
+        json_workflow = readJSONFromFile(workflow_file);
+    } catch (std::invalid_argument &e) {
+        std::cerr << "Error while reading JSON file " << workflow_file << ": " << e.what() << "\n";
+    }
+    
+    double observed_makespan = boost::json::value_to<double>(json_workflow["workflow"].as_object()["makespan"]);
+    // Get the makespan of the simulated workflow
+    double simu_makespan = workflow->getCompletionDate();
+    double err = observed_makespan - simu_makespan;
+
+    std::cout << simu_makespan << ":" << observed_makespan << ":" << std::fabs(err / simu_makespan) << std::endl;
 
     return 0;
 }

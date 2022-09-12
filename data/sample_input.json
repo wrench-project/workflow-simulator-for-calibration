@@ -1,10 +1,10 @@
 {
     "workflow": {
-        "file": "/tmp/sample_workflow.json",
+        "file": "data/sample_workflow.json",
         "reference_flops": "100Mf"
     },
     "platform": {
-        "file": "/tmp/sample_platform.xml"
+        "file": "data/sample_platform.xml"
     },
     "compute_service_scheme": "htcondor_batch",
     "storage_service_scheme": "submit_only",
@@ -18,7 +18,7 @@
         }
     },
     "compute_service_properties": {
-        "BareMetalComputeServiceProperty": { // How can we make compute_service_scheme_specific?
+        "BareMetalComputeServiceProperty": {
             "THREAD_STARTUP_OVERHEAD": "42"
         }
     },
