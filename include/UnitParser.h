@@ -33,7 +33,7 @@
         public:
             using std::unordered_map<std::string, double>::unordered_map;
             // tuples are : <unit, value for unit, base (2 or 10), true if abbreviated>
-            explicit unit_scale(std::initializer_list<std::tuple<const std::string, double, int, bool>> generators);
+            unit_scale(std::initializer_list<std::tuple<const std::string, double, int, bool>> generators);
         };
 
     private:
@@ -43,6 +43,7 @@
         static double parse_size(const std::string &string);
         static double parse_compute_speed(const std::string &string);
         static double parse_bandwidth(const std::string &string);
+        static double parse_time(const std::string &string);
     };
 
     /***********************/

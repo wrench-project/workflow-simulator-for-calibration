@@ -242,8 +242,8 @@ int main(int argc, char **argv) {
                 slurm_head_node_hostname = h->get_cname();
             }
         }
-        if (std::string(h->get_property("type")) == "slurm_compute") {
-                slurm_compute_node_hostnames.push_back(h->get_cname());
+        if (std::string(h->get_property("type")) == "compute") {
+                slurm_compute_node_hostnames.emplace_back(h->get_cname());
         }
     }
     if (submit_node_hostname.empty()) {

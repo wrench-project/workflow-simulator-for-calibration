@@ -17,11 +17,35 @@ void PlatformCreator::create_platform() {
     // Create the top-level zone
     auto zone = sg4::create_full_zone("AS0");
 
-    // Get hosts and disk specs
-    auto host_specs = this->json_spec["compute_service_scheme_parameters"].as_object()[
-            this->json_spec["compute_service_scheme"].as_string()].as_object();
-    auto disk_specs = this->json_spec["storage_service_scheme_parameters"].as_object()[
-            this->json_spec["storage_service_scheme"].as_string()].as_object();
+    // Get compute, storage, and topology schemes
+    boost::json::string compute_service_scheme;
+    try {
+        compute_service_scheme = this->json_spec["compute_service_scheme"].as_string();
+    } catch (std::exception &e) {
+        throw std::invalid_argument("Missing 'compute_service_scheme' entry");
+    }
+    boost::json::string storage_service_scheme;
+    try {
+        storage_service_scheme = this->json_spec["storage_service_scheme"].as_string();
+    } catch (std::exception &e) {
+        throw std::invalid_argument("Missing 'storage_service_scheme' entry");
+    }
+
+    // Getting host and disk specs
+    boost::json::object host_specs;
+    try {
+        host_specs = this->json_spec["compute_service_scheme_parameters"].as_object()[
+                this->json_spec["compute_service_scheme"].as_string()].as_object();
+    } catch (std::exception &e)  {
+        throw std::invalid_argument("Missing or invalid mapping between 'compute_service_scheme' and an entry in 'compute_service_scheme_parameters'");
+    }
+    boost::json::object disk_specs;
+    try {
+        disk_specs = this->json_spec["storage_service_scheme_parameters"].as_object()[
+                this->json_spec["storage_service_scheme"].as_string()].as_object();
+    } catch (std::exception &e)  {
+        throw std::invalid_argument("Missing or invalid mapping between 'storage_service_scheme' and an entry in 'storage_service_scheme_parameters'");
+    }
 
     // Create the submit host
     if (not host_specs.contains("submit_host")) {
@@ -85,9 +109,9 @@ void PlatformCreator::create_platform() {
 
     auto slurm_head = zone->create_host("slurm_head", slurm_head_speed);
     slurm_head->set_core_count(slurm_head_num_cores);
-    slurm_head->set_property("type", "submit");
+    slurm_head->set_property("type", "slurm_head");
 
-    // Create the disk on the submit host, if need be
+    // Create the disk on the slurm head host, if need be
     if (disk_specs.contains("slurm_head_disk_read") and disk_specs.contains("slurm_head_disk_write")) {
         try {
             UnitParser::parse_bandwidth(boost::json::value_to<std::string>(disk_specs["slurm_head_disk_read"]));
@@ -111,7 +135,80 @@ void PlatformCreator::create_platform() {
         throw std::invalid_argument("Both 'slurm_head_disk_read' and 'slurm_head_disk_write' must be specified");
     }
 
-    // Create all compute nodes
+    // Create all compute hosts
+    if (not host_specs.contains("compute_hosts")) {
+        throw std::invalid_argument("Missing or invalid value for 'compute_hosts'");
+    }
+    auto compute_hosts_spec = host_specs["compute_hosts"].as_object();
+
+    int num_compute_hosts;
+    try {
+        num_compute_hosts = std::stoi(boost::json::value_to<std::string>(compute_hosts_spec["num_hosts"]));
+    } catch (std::exception  &e) {
+        throw std::invalid_argument("Missing or invalid value for  compute_hosts's 'num_hosts'");
+    }
+    if (num_compute_hosts < 1) {
+        throw std::invalid_argument("At least one compute host is needed");
+    }
+    double compute_host_speed;
+    try {
+        compute_host_speed = UnitParser::parse_compute_speed(
+                boost::json::value_to<std::string>(compute_hosts_spec["speed"]));
+    } catch (std::exception  &e) {
+        throw std::invalid_argument("Missing or invalid value for compute_hosts's 'speed'");
+    }
+    int compute_host_num_cores;
+    try {
+        compute_host_num_cores = std::stoi(boost::json::value_to<std::string>(compute_hosts_spec["num_cores"]));
+    } catch (std::exception  &e) {
+        throw std::invalid_argument("Missing or invalid value for compute_hosts's 'num_cores'");
+    }
+
+    std::vector<sg4::Host*> compute_hosts;
+    for (int i=0; i < num_compute_hosts; i++) {
+        auto compute_host = zone->create_host("compute_host_" + std::to_string(i), compute_host_speed);
+        compute_host->set_core_count(compute_host_num_cores);
+        compute_host->set_property("type", "compute");
+        compute_hosts.push_back(compute_host);
+    }
+
+    // Create links and routes
+    boost::json::string topology_scheme;
+    try {
+        topology_scheme = this->json_spec["network_topology_scheme"].as_string();
+    } catch (std::exception &e) {
+        throw std::invalid_argument("Missing 'network_topology_scheme' entry");
+    }
+    auto link_specs = this->json_spec["network_topology_scheme_parameters"].as_object()[topology_scheme].as_object();
+
+    if (topology_scheme == "one_link") {
+        double bandwidth;
+        try {
+            bandwidth = UnitParser::parse_bandwidth(
+                    boost::json::value_to<std::string>(compute_hosts_spec["bandwidth"]));
+        } catch (std::exception  &e) {
+            throw std::invalid_argument("Missing or invalid 'bandwidth' value for 'one_link' scheme");
+        }
+        double latency;
+        try {
+            latency = UnitParser::parse_time(
+                    boost::json::value_to<std::string>(compute_hosts_spec["latency"]));
+            std::cerr << "LATENCY: " << latency << "\n";
+        } catch (std::exception  &e) {
+            throw std::invalid_argument("Missing or invalid 'latency' value for 'one_link' scheme");
+        }
+        auto network_link = zone->create_link("network_link", bandwidth)->set_latency(
+                boost::json::value_to<std::string>(compute_hosts_spec["latency"]));
+
+
+    } else if (topology_scheme == "two_links") {
+
+    } else if (topology_scheme == "many_links") {
+
+    } else {
+        throw std::invalid_argument("Invalid 'network_topology_scheme' value");
+    }
+
 
 #if 0
     // Create a ComputeHost
