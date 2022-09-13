@@ -1,0 +1,136 @@
+{
+    "workflow": {
+        "file": "data/sample_workflow.json",
+        "reference_flops": "100Mf"
+    },
+
+    "error_computation_scheme": "makespan",
+    "error_computation_scheme_options": {
+        "makespan": {
+        }
+    },
+
+    "compute_service_scheme": "all_bare_metal",
+    "compute_service_scheme_options": {
+        "all_bare_metal": {
+            "submit_host": {
+                "num_cores": "1231",
+                "speed": "123Gf"
+            },
+            "slurm_head_host": {
+                "num_cores": "10",
+                "speed": "423Gf"
+            },
+            "compute_hosts":
+            {
+                "num_cores": "10",
+                "speed": "423Gf"
+            },
+            "properties": {
+                "BareMetalComputeServiceProperty": {
+                    "THREAD_STARTUP_OVERHEAD": "42"
+                }
+            },
+            "payloads": {
+            }
+        },
+        "batch_only": {
+            "submit_host": {
+                "num_cores": "1231",
+                "speed": "123Gf"
+            },
+            "slurm_head_host": {
+                "num_cores": "10",
+                "speed": "423Gf"
+            },
+            "compute_hosts":
+            {
+                "num_cores": "10",
+                "speed": "423Gf"
+            },
+            "properties": {
+
+            },
+            "payloads": {
+            }
+        },
+        "htcondor_batch": {
+            "submit_host": {
+                "num_cores": "1231",
+                "speed": "123Gf"
+            },
+            "slurm_head_host": {
+                "num_cores": "10",
+                "speed": "423Gf"
+            },
+            "compute_hosts":
+            {
+                "num_cores": "10",
+                "speed": "423Gf"
+            },
+            "properties": {
+
+            },
+            "payloads": {
+            }
+        }
+    },
+
+    "storage_service_scheme": "submit_only",
+    "storage_service_scheme_options": {
+        "submit_only": {
+            "bandwidth_submit_disk_read": "100MBps",
+            "bandwidth_submit_disk_write": "10MBps",
+            "bandwidth_submit_properties": {
+            },
+            "bandwidth_submit_payloads": {
+            }
+        },
+        "submit_and_slurm_head": {
+            "bandwidth_submit_disk_read": "100MBps",
+            "bandwidth_submit_disk_write": "10MBps",
+            "bandwidth_submit_properties": {
+                "StorageServiceProperty": {
+                    "BUFFER_SIZE": "1048576"
+                },
+                "SimpleStorageServiceProperty": {
+                    "MAX_NUM_CONCURRENT_DATA_CONNECTIONS": "8"
+                }
+            },
+            "bandwidth_submit_payloads": {
+            },
+            "bandwidth_slurm_head_disk_read": "100MBps",
+            "bandwidth_slurm_head_disk_write": "10MBps",
+            "bandwidth_slurm_head_properties": {
+                "StorageServiceProperty": {
+                    "BUFFER_SIZE": "1048576"
+                },
+                "SimpleStorageServiceProperty": {
+                    "MAX_NUM_CONCURRENT_DATA_CONNECTIONS": "8"
+                }
+            },
+            "bandwidth_slurm_head_payloads": {
+            }
+        }
+    },
+
+    "platform_topology_scheme": "one_link",
+    "platform_topology_scheme_options": {
+        "one_link": {
+            "bandwidth": "40GBs",
+            "latency": "10us"
+        },
+        "two_links": {
+            "bandwidth_submit_to_slurm_head": "40GBs",
+            "latency_submit_to_slurm_head": "10us",
+            "bandwidth_slurm_head_to_compute_hosts": "40GBs",
+            "latency_slurm_head_to_compute_hosts": "10us" 
+        },
+        "many_links": {
+            "bandwidth_submit_to_slurm_head": "40GBs",
+            "latency_submit_to_slurm_head": "10us",
+            "bandwidth_slurm_head_to_compute_hosts": "40GBs",
+            "latency_slurm_head_to_compute_hosts": "10us"
+        }
+    }
+}
