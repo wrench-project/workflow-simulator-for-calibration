@@ -50,8 +50,8 @@
                 "speed": "423Gf"
             },
             "properties": {
-                "wrench::BatchComputeServiceProperty::THREAD_STARTUP_OVERHEAD": "1",
-                "wrench::BatchComputeServiceProperty::BATCH_SCHEDULING_ALGORITHM": "fcfs"
+                "BatchComputeServiceProperty::THREAD_STARTUP_OVERHEAD": "1",
+                "BatchComputeServiceProperty::BATCH_SCHEDULING_ALGORITHM": "fcfs"
             },
             "payloads": {
             }
@@ -72,8 +72,8 @@
                 "speed": "423Gf"
             },
             "batch_properties": {
-                "wrench::BatchComputeServiceProperty::THREAD_STARTUP_OVERHEAD": "1",
-                "wrench::BatchComputeServiceProperty::BATCH_SCHEDULING_ALGORITHM": "fcfs"
+                "BatchComputeServiceProperty::THREAD_STARTUP_OVERHEAD": "1",
+                "BatchComputeServiceProperty::BATCH_SCHEDULING_ALGORITHM": "fcfs"
             },
             "batch_payloads": {
             },
