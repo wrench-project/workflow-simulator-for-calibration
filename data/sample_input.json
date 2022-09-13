@@ -70,10 +70,15 @@
                 "num_cores": "10",
                 "speed": "423Gf"
             },
-            "properties": {
+            "batch_properties": {
 
             },
-            "payloads": {
+            "batch_payloads": {
+            },
+            "htcondor_properties": {
+
+            },
+            "htcondor_payloads": {
             }
         }
     },

@@ -294,7 +294,6 @@ int main(int argc, char **argv) {
                                      "slurm_head_payloads")));
     }
 
-#if 0
 
     // Create relevant compute services
 
@@ -302,25 +301,37 @@ int main(int argc, char **argv) {
 
     if (compute_service_scheme == "all_bare_metal") {
         // Create one bare-metal service on all compute nodes
-        for (auto const &host : slurm_compute_node_hostnames) {
+        for (auto const &host : compute_host_names) {
             compute_services.insert(simulation->add(
                     new wrench::BareMetalComputeService(
                             host,
                             {host},
                             "",
-                            compute_service_property_list,
-                            compute_service_messagepayload_list)));
+                            get_properties(json_input,
+                                           "compute_service_scheme_parameters",
+                                           compute_service_scheme,
+                                           "properties"),
+                            get_payloads(json_input,
+                                         "compute_service_scheme_parameters",
+                                         compute_service_scheme,
+                                         "payloads"))));
         }
 
     } else if (compute_service_scheme == "batch_only") {
         // Create a batch compute service that manages all compute nodes
         compute_services.insert(simulation->add(
                 new wrench::BatchComputeService(
-                        slurm_head_node_hostname,
-                        slurm_compute_node_hostnames,
+                        slurm_head_host_name,
+                        compute_host_names,
                         "",
-                        compute_service_property_list,
-                        compute_service_messagepayload_list)));
+                        get_properties(json_input,
+                                       "compute_service_scheme_parameters",
+                                       compute_service_scheme,
+                                       "properties"),
+                        get_payloads(json_input,
+                                     "compute_service_scheme_parameters",
+                                     compute_service_scheme,
+                                     "payloads")))));
 
     } else if (compute_service_scheme == "htcondor_batch") {
         // Create a batch compute service that manages all compute nodes
@@ -368,8 +379,6 @@ int main(int argc, char **argv) {
     for (auto const &f: workflow->getInputFiles()) {
         submit_node_storage_service->createFile(f);
     }
-
-#endif
 
     // Launch the simulation
     try {
