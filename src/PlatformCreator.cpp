@@ -216,6 +216,14 @@ void PlatformCreator::create_platform() {
                             {network_link_in_route}, true);
         }
 
+        for (auto const &h : compute_hosts) {
+            zone->add_route(slurm_head_host->get_netpoint(),
+                            h->get_netpoint(),
+                            nullptr,
+                            nullptr,
+                            {network_link_in_route}, true);
+        }
+
     } else if (topology_scheme == "two_links") {
 
         // Create network submit_to_slurm_head network link

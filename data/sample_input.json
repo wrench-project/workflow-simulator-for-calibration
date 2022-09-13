@@ -12,7 +12,7 @@
 
     "scheduling_overhead": "10ms",
 
-    "compute_service_scheme": "all_bare_metal",
+    "compute_service_scheme": "htcondor_batch",
     "compute_service_scheme_parameters": {
         "all_bare_metal": {
             "submit_host": {
@@ -84,13 +84,13 @@
         }
     },
 
-    "storage_service_scheme": "submit_only",
+    "storage_service_scheme": "submit_and_slurm_head",
     "storage_service_scheme_parameters": {
         "submit_only": {
             "bandwidth_submit_disk_read": "100MBps",
             "bandwidth_submit_disk_write": "10MBps",
             "submit_properties": {
-                "StorageServiceProperty::BUFFER_SIZE": "42",
+                "StorageServiceProperty::BUFFER_SIZE": "4200000",
                 "SimpleStorageServiceProperty::MAX_NUM_CONCURRENT_DATA_CONNECTIONS": "8"
             },
             "submit_payloads": {
@@ -101,7 +101,7 @@
             "bandwidth_submit_disk_read": "100MBps",
             "bandwidth_submit_disk_write": "10MBps",
             "submit_properties": {
-                "StorageServiceProperty::BUFFER_SIZE": "42",
+                "StorageServiceProperty::BUFFER_SIZE": "4200000",
                 "SimpleStorageServiceProperty::MAX_NUM_CONCURRENT_DATA_CONNECTIONS": "8"
             },
             "submit_payloads": {
@@ -109,7 +109,7 @@
             "slurm_head_disk_read": "100MBps",
             "slurm_head_disk_write": "10MBps",
             "slurm_head_properties": {
-                "StorageServiceProperty::BUFFER_SIZE": "1048576",
+                "StorageServiceProperty::BUFFER_SIZE": "1048576B",
                 "SimpleStorageServiceProperty::MAX_NUM_CONCURRENT_DATA_CONNECTIONS": "8"
             },
             "slurm_head_payloads": {
@@ -120,19 +120,19 @@
     "network_topology_scheme": "many_links",
     "network_topology_scheme_parameters": {
         "one_link": {
-            "bandwidth": "40GBps",
+            "bandwidth": "4MBps",
             "latency": "10us"
         },
         "two_links": {
-            "bandwidth_submit_to_slurm_head": "40GBps",
+            "bandwidth_submit_to_slurm_head": "4MBps",
             "latency_submit_to_slurm_head": "10us",
-            "bandwidth_slurm_head_to_compute_hosts": "40GBps",
+            "bandwidth_slurm_head_to_compute_hosts": "4MBps",
             "latency_slurm_head_to_compute_hosts": "10us" 
         },
         "many_links": {
-            "bandwidth_submit_to_slurm_head": "40GBps",
+            "bandwidth_submit_to_slurm_head": "4MBps",
             "latency_submit_to_slurm_head": "10us",
-            "bandwidth_slurm_head_to_compute_hosts": "40GBps",
+            "bandwidth_slurm_head_to_compute_hosts": "4MBps",
             "latency_slurm_head_to_compute_hosts": "10us"
         }
     }
