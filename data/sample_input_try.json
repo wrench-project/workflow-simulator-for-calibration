@@ -5,13 +5,13 @@
     },
 
     "error_computation_scheme": "makespan",
-    "error_computation_scheme_options": {
+    "error_computation_scheme_parameters": {
         "makespan": {
         }
     },
 
     "compute_service_scheme": "all_bare_metal",
-    "compute_service_scheme_options": {
+    "compute_service_scheme_parameters": {
         "all_bare_metal": {
             "submit_host": {
                 "num_cores": "1231",
@@ -77,7 +77,7 @@
     },
 
     "storage_service_scheme": "submit_only",
-    "storage_service_scheme_options": {
+    "storage_service_scheme_parameters": {
         "submit_only": {
             "bandwidth_submit_disk_read": "100MBps",
             "bandwidth_submit_disk_write": "10MBps",
@@ -115,7 +115,7 @@
     },
 
     "platform_topology_scheme": "one_link",
-    "platform_topology_scheme_options": {
+    "platform_topology_scheme_parameters": {
         "one_link": {
             "bandwidth": "40GBs",
             "latency": "10us"
