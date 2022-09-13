@@ -6,6 +6,7 @@
 #include <iostream>
 #include <wrench-dev.h>
 
+#include "UnitParser.h"
 #include "Controller.h"
 #include <boost/json.hpp>
 #include <PlatformCreator.h>
@@ -332,7 +333,7 @@ int main(int argc, char **argv) {
     // Instantiate a Controller on the submit_host
     double scheduling_overhead;
     try {
-        scheduling_overhead = boost::json::value_to<double>(json_input["scheduling_overhead"]);
+        scheduling_overhead = UnitParser::parse_time(boost::json::value_to<std::string>(json_input["scheduling_overhead"]));
     } catch (std::exception &e) {
         std::cerr << "Error: Invalid or missing scheduling_overhead specification in JSON input (" << e.what() <<  ")\n";
         exit(1);

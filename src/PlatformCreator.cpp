@@ -181,9 +181,9 @@ void PlatformCreator::create_platform() {
     }
     auto link_specs = this->json_spec["network_topology_scheme_parameters"].as_object()[topology_scheme].as_object();
 
-    std::cerr << "LINK_SPECS: " << link_specs << "\n";
-
     if (topology_scheme == "one_link") {
+
+        // Create network link
         double bandwidth;
         try {
             bandwidth = UnitParser::parse_bandwidth(
@@ -191,21 +191,37 @@ void PlatformCreator::create_platform() {
         } catch (std::exception  &e) {
             throw std::invalid_argument("Missing or invalid 'bandwidth' value for 'one_link' scheme");
         }
-        double latency;
         try {
-            latency = UnitParser::parse_time(
+            UnitParser::parse_time(
                     boost::json::value_to<std::string>(link_specs["latency"]));
-            std::cerr << "LATENCY: " << latency << "\n";
         } catch (std::exception  &e) {
             throw std::invalid_argument("Missing or invalid 'latency' value for 'one_link' scheme");
         }
-//        auto network_link = zone->create_link("network_link", bandwidth)->set_latency(
-//                boost::json::value_to<std::string>(compute_hosts_spec["latency"]));
+        auto network_link = zone->create_link("network_link", bandwidth)->set_latency(
+                boost::json::value_to<std::string>(link_specs["latency"]));
 
+        // Create all routes
+        {
+            sg4::LinkInRoute network_link_in_route{network_link};
+            zone->add_route(submit_host->get_netpoint(),
+                            slurm_head->get_netpoint(),
+                            nullptr,
+                            nullptr,
+                            {network_link_in_route});
+            for (auto const &h : compute_hosts) {
+                zone->add_route(submit_host->get_netpoint(),
+                                h->get_netpoint(),
+                                nullptr,
+                                nullptr,
+                                {network_link_in_route});
+            }
+        }
 
     } else if (topology_scheme == "two_links") {
+        throw std::runtime_error("TWO_LINKS scheme not implemented yet");
 
     } else if (topology_scheme == "many_links") {
+        throw std::runtime_error("MANU_LINKS scheme not implemented yet");
 
     } else {
         throw std::invalid_argument("Invalid 'network_topology_scheme' value");

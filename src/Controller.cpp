@@ -123,6 +123,7 @@ namespace wrench {
                 }
 
                 if (!target_cs) {
+                    std::cerr << "COULDN'T FIND A RESOURCE FOR THIS TASK\n";
                     break; // couldn't schedule the task, for whatever reason
                 }
 
@@ -193,6 +194,9 @@ namespace wrench {
         auto job = event->standard_job;
         auto task = job->getTasks().at(0);
         WRENCH_INFO("Notified that a standard job has completed task %s", task->getID().c_str());
+        if (this->compute_service_scheme == "all_bare_metal") {
+            this->core_availability[job->getParentComputeService()] += 1;
+        }
     }
 
     /**
