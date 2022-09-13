@@ -21,6 +21,10 @@ include_directories(include/ /usr/local/include/ /opt/local/include/ ${WRENCH_IN
 
 # source files
 set(SOURCE_FILES
+        include/UnitParser.h
+        src/UnitParser.cpp
+        include/PlatformCreator.h
+        src/PlatformCreator.cpp
         include/Controller.h
         src/Controller.cpp
         src/Simulator.cpp

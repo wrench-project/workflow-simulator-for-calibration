@@ -8,6 +8,7 @@
 
 #include "Controller.h"
 #include <boost/json.hpp>
+#include <PlatformCreator.h>
 
 /**
  * @brief Helper function to read a JSON object from a file
@@ -52,16 +53,9 @@ boost::json::object readJSONFromFile(const std::string& filepath) {
  */
 int main(int argc, char **argv) {
 
-    std::set<std::string> implemented_compute_service_schemes = {
-            "all_bare_metal",
-            "batch_only",
-            "htcondor_batch"
-    };
-
-    std::set<std::string> implemented_storage_service_schemes = {
-            "submit_only",
-            "submit_and_slurm_head",
-    };
+    std::set<std::string> implemented_compute_service_schemes = {"all_bare_metal","batch_only", "htcondor_batch"};
+    std::set<std::string> implemented_storage_service_schemes = {"submit_only","submit_and_slurm_head"};
+    std::set<std::string> implemented_network_topology_schemes = {"one_link","two_links","many_links"};
 
     // Create and initialize simulation
     auto simulation = wrench::Simulation::createSimulation();
@@ -76,9 +70,17 @@ int main(int argc, char **argv) {
 
     if (std::string(argv[1]) == "--help") {
         std::cerr << "Usage: " << argv[0] << " <json input file>" << std::endl;
-        std::cerr << "  Implemented compute service types:\n";
-        for (auto const &type : implemented_compute_service_schemes) {
-            std::cerr << "    - " << type << "\n";
+        std::cerr << "  Implemented compute service schemes:\n";
+        for (auto const &scheme : implemented_compute_service_schemes) {
+            std::cerr << "    - " << scheme << "\n";
+        }
+        std::cerr << "  Implemented storage service schemes:\n";
+        for (auto const &scheme : implemented_storage_service_schemes) {
+            std::cerr << "    - " << scheme << "\n";
+        }
+        std::cerr << "  Implemented network topology schemes:\n";
+        for (auto const &scheme : implemented_network_topology_schemes) {
+            std::cerr << "    - " << scheme << "\n";
         }
         exit(0);
     }
@@ -104,8 +106,6 @@ int main(int argc, char **argv) {
     if (implemented_compute_service_schemes.find(compute_service_scheme) == implemented_compute_service_schemes.end()) {
         std::cerr << "Error: unknown or unimplemented compute service scheme " << compute_service_scheme << "\n";
     }
-
-    // Storage service scheme
     try {
         storage_service_scheme = boost::json::value_to<std::string>(json_input["storage_service_scheme"]);
     } catch (std::exception &e) {
@@ -115,17 +115,20 @@ int main(int argc, char **argv) {
     if (implemented_storage_service_schemes.find(storage_service_scheme) == implemented_storage_service_schemes.end()) {
         std::cerr << "Error: unknown or unimplemented storage service scheme " << storage_service_scheme << "\n";
     }
+    try {
+        network_topology_scheme = boost::json::value_to<std::string>(json_input["network_topology_scheme"]);
+    } catch (std::exception &e) {
+        std::cerr << "Error: Invalid or missing network_topology_scheme specification in JSON input (" << e.what() <<  ")\n";
+        exit(1);
+    }
+    if (implemented_network_topology_schemes.find(network_topology_scheme) == implemented_network_topology_schemes.end()) {
+        std::cerr << "Error: unknown or unimplemented network topology scheme " << network_topology_scheme << "\n";
+    }
 
     // Instantiating the simulated platform
     try {
-        std::string platform_file;
-        try {
-            platform_file = boost::json::value_to<std::string>(json_input["platform"].as_object()["file"]);
-        } catch (std::exception &e) {
-            std::cerr << "Error: Invalid or missing platform file specification in JSON input (" << e.what() <<  ")\n";
-            exit(1);
-        }
-        simulation->instantiatePlatform(platform_file);
+        PlatformCreator platform_creator(json_input);
+        simulation->instantiatePlatform(platform_creator);
     } catch (std::invalid_argument &e) {
         std::cerr << "Error: " << e.what() << "\n";
         exit(1);

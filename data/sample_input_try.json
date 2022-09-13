@@ -81,15 +81,15 @@
         "submit_only": {
             "bandwidth_submit_disk_read": "100MBps",
             "bandwidth_submit_disk_write": "10MBps",
-            "bandwidth_submit_properties": {
+            "submit_properties": {
             },
-            "bandwidth_submit_payloads": {
+            "submit_payloads": {
             }
         },
         "submit_and_slurm_head": {
             "bandwidth_submit_disk_read": "100MBps",
             "bandwidth_submit_disk_write": "10MBps",
-            "bandwidth_submit_properties": {
+            "submit_properties": {
                 "StorageServiceProperty": {
                     "BUFFER_SIZE": "1048576"
                 },
@@ -97,11 +97,11 @@
                     "MAX_NUM_CONCURRENT_DATA_CONNECTIONS": "8"
                 }
             },
-            "bandwidth_submit_payloads": {
+            "submit_payloads": {
             },
-            "bandwidth_slurm_head_disk_read": "100MBps",
-            "bandwidth_slurm_head_disk_write": "10MBps",
-            "bandwidth_slurm_head_properties": {
+            "slurm_head_disk_read": "100MBps",
+            "slurm_head_disk_write": "10MBps",
+            "slurm_head_properties": {
                 "StorageServiceProperty": {
                     "BUFFER_SIZE": "1048576"
                 },
@@ -109,7 +109,7 @@
                     "MAX_NUM_CONCURRENT_DATA_CONNECTIONS": "8"
                 }
             },
-            "bandwidth_slurm_head_payloads": {
+            "slurm_head_payloads": {
             }
         }
     },
