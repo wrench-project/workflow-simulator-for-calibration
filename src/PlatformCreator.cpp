@@ -347,7 +347,6 @@ void PlatformCreator::create_platform() {
                             {network_link_in_route_2});
         }
 
-
     } else {
         throw std::invalid_argument("Invalid 'network_topology_scheme' value");
     }

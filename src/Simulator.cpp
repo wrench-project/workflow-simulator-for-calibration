@@ -11,6 +11,16 @@
 #include <boost/json.hpp>
 #include <PlatformCreator.h>
 
+
+/**
+ * All implemented schemes as ugly globals
+ */
+std::set<std::string> implemented_compute_service_schemes = {"all_bare_metal","batch_only", "htcondor_batch"};
+std::set<std::string> implemented_storage_service_schemes = {"submit_only","submit_and_slurm_head"};
+std::set<std::string> implemented_network_topology_schemes = {"one_link","two_links","many_links"};
+
+
+
 /**
  * @brief Helper function to read a JSON object from a file
  * @param filepath: the file path
@@ -45,6 +55,78 @@ boost::json::object readJSONFromFile(const std::string& filepath) {
     return p.release().as_object();
 }
 
+void display_help(char *executable_name) {
+    std::cerr << "Usage: " << executable_name << " <json input file>" << std::endl;
+    std::cerr << "  Implemented compute service schemes:\n";
+    for (auto const &scheme : implemented_compute_service_schemes) {
+        std::cerr << "    - " << scheme << std::endl;
+    }
+    std::cerr << "  Implemented storage service schemes:\n";
+    for (auto const &scheme : implemented_storage_service_schemes) {
+        std::cerr << "    - " << scheme << std::endl;
+    }
+    std::cerr << "  Implemented network topology schemes:\n";
+    for (auto const &scheme : implemented_network_topology_schemes) {
+        std::cerr << "    - " << scheme << std::endl;
+    }
+}
+
+void determine_all_schemes(boost::json::object &json_input,
+                           std::string &compute_service_scheme,
+                           std::string &storage_service_scheme,
+                           std::string &network_topology_scheme) {
+    try {
+        compute_service_scheme = boost::json::value_to<std::string>(json_input["compute_service_scheme"]);
+    } catch (std::exception &e) {
+        throw std::invalid_argument("Invalid or missing compute_service_scheme specification in JSON input (" + std::string(e.what()) + ")");
+        exit(1);
+    }
+    if (implemented_compute_service_schemes.find(compute_service_scheme) == implemented_compute_service_schemes.end()) {
+        throw std::invalid_argument("unknown or unimplemented compute service scheme " + compute_service_scheme);
+    }
+    try {
+        storage_service_scheme = boost::json::value_to<std::string>(json_input["storage_service_scheme"]);
+    } catch (std::exception &e) {
+        throw std::invalid_argument("Invalid or missing storage_service_scheme specification in JSON input (" + std::string(e.what()) +")");
+        exit(1);
+    }
+    if (implemented_storage_service_schemes.find(storage_service_scheme) == implemented_storage_service_schemes.end()) {
+        throw std::invalid_argument("unknown or unimplemented storage service scheme " + storage_service_scheme + ")");
+    }
+    try {
+        network_topology_scheme = boost::json::value_to<std::string>(json_input["network_topology_scheme"]);
+    } catch (std::exception &e) {
+        throw std::invalid_argument("Invalid or missing network_topology_scheme specification in JSON input (" + std::string(e.what()) + ")");
+        exit(1);
+    }
+    if (implemented_network_topology_schemes.find(network_topology_scheme) == implemented_network_topology_schemes.end()) {
+        throw std::invalid_argument("unknown or unimplemented network topology scheme " + network_topology_scheme);
+    }
+}
+
+std::shared_ptr<wrench::Workflow> create_workflow(boost::json::object &json_input, double *observed_real_makespan) {
+    std::string workflow_file;
+    std::string reference_flops;
+    try {
+        workflow_file = boost::json::value_to<std::string>(json_input["workflow"].as_object()["file"]);
+        reference_flops = boost::json::value_to<std::string>(json_input["workflow"].as_object()["reference_flops"]);
+    } catch (std::exception &e) {
+        throw std::invalid_argument("Invalid or missing workflow file or reference_flops specification in JSON input (" +
+                                    std::string(e.what()) + ")");
+    }
+
+    // Parse the workflow's JSON file to find the real observed makespan
+    boost::json::object json_workflow;
+    try {
+        json_workflow = readJSONFromFile(workflow_file);
+        *observed_real_makespan = boost::json::value_to<double>(json_workflow["workflow"].as_object()["makespan"]);
+    } catch (std::exception &e) {
+        throw;
+    }
+
+    return wrench::WfCommonsWorkflowParser::createWorkflowFromJSON(workflow_file, reference_flops);
+}
+
 /**
  * @brief The Simulator's main function
  *
@@ -54,105 +136,43 @@ boost::json::object readJSONFromFile(const std::string& filepath) {
  */
 int main(int argc, char **argv) {
 
-    std::set<std::string> implemented_compute_service_schemes = {"all_bare_metal","batch_only", "htcondor_batch"};
-    std::set<std::string> implemented_storage_service_schemes = {"submit_only","submit_and_slurm_head"};
-    std::set<std::string> implemented_network_topology_schemes = {"one_link","two_links","many_links"};
 
     // Create and initialize simulation
     auto simulation = wrench::Simulation::createSimulation();
     simulation->init(&argc, argv);
 
-    // Parse command-line arguments
+    // Check command-line arguments
     if (argc != 2) {
         std::cerr << "Usage: " << argv[0] << " <json input file>" << std::endl;
         std::cerr << "       " << argv[0] << " --help" << std::endl;
         exit(1);
     }
 
+    // Display help message and exit is --help is the argument
     if (std::string(argv[1]) == "--help") {
-        std::cerr << "Usage: " << argv[0] << " <json input file>" << std::endl;
-        std::cerr << "  Implemented compute service schemes:\n";
-        for (auto const &scheme : implemented_compute_service_schemes) {
-            std::cerr << "    - " << scheme << "\n";
-        }
-        std::cerr << "  Implemented storage service schemes:\n";
-        for (auto const &scheme : implemented_storage_service_schemes) {
-            std::cerr << "    - " << scheme << "\n";
-        }
-        std::cerr << "  Implemented network topology schemes:\n";
-        for (auto const &scheme : implemented_network_topology_schemes) {
-            std::cerr << "    - " << scheme << "\n";
-        }
+        display_help(argv[0]);
         exit(0);
     }
 
-    // Parse the JSON input file
+    // Process necessary input
     boost::json::object json_input;
+    std::string compute_service_scheme, storage_service_scheme, network_topology_scheme;
+    std::shared_ptr<wrench::Workflow> workflow;
+    double observed_real_makespan;
     try {
+        // Read JSON input
         json_input = readJSONFromFile(argv[1]);
-    } catch (std::invalid_argument &e) {
-        std::cerr << "Error while reading JSON file " << argv[1] << ": " << e.what() << "\n";
-    }
-
-    // Determine all the schemes
-    std::string compute_service_scheme;
-    std::string storage_service_scheme;
-    std::string network_topology_scheme;
-    try {
-        compute_service_scheme = boost::json::value_to<std::string>(json_input["compute_service_scheme"]);
-    } catch (std::exception &e) {
-        std::cerr << "Error: Invalid or missing compute_service_scheme specification in JSON input (" << e.what() <<  ")\n";
-        exit(1);
-    }
-    if (implemented_compute_service_schemes.find(compute_service_scheme) == implemented_compute_service_schemes.end()) {
-        std::cerr << "Error: unknown or unimplemented compute service scheme " << compute_service_scheme << "\n";
-    }
-    try {
-        storage_service_scheme = boost::json::value_to<std::string>(json_input["storage_service_scheme"]);
-    } catch (std::exception &e) {
-        std::cerr << "Error: Invalid or missing storage_service_scheme specification in JSON input (" << e.what() <<  ")\n";
-        exit(1);
-    }
-    if (implemented_storage_service_schemes.find(storage_service_scheme) == implemented_storage_service_schemes.end()) {
-        std::cerr << "Error: unknown or unimplemented storage service scheme " << storage_service_scheme << "\n";
-    }
-    try {
-        network_topology_scheme = boost::json::value_to<std::string>(json_input["network_topology_scheme"]);
-    } catch (std::exception &e) {
-        std::cerr << "Error: Invalid or missing network_topology_scheme specification in JSON input (" << e.what() <<  ")\n";
-        exit(1);
-    }
-    if (implemented_network_topology_schemes.find(network_topology_scheme) == implemented_network_topology_schemes.end()) {
-        std::cerr << "Error: unknown or unimplemented network topology scheme " << network_topology_scheme << "\n";
-    }
-
-    // Instantiating the simulated platform
-    try {
+        // Determine schemes in use
+        determine_all_schemes(json_input, compute_service_scheme, storage_service_scheme, network_topology_scheme);
+        // Create the platform
         PlatformCreator platform_creator(json_input);
         simulation->instantiatePlatform(platform_creator);
+        // Create the workflow for the WRENCH simulation
+        workflow = create_workflow(json_input, &observed_real_makespan);
+
     } catch (std::invalid_argument &e) {
-        std::cerr << "Error: " << e.what() << "\n";
+        std::cerr << "Error: " << e.what() << std::endl;
         exit(1);
-    }
-
-    // Create the workflow
-    std::shared_ptr<wrench::Workflow> workflow;
-    std::string workflow_file;
-    try {
-        std::string reference_flops;
-        try {
-            workflow_file = boost::json::value_to<std::string>(json_input["workflow"].as_object()["file"]);
-            reference_flops = boost::json::value_to<std::string>(json_input["workflow"].as_object()["reference_flops"]);
-        } catch (std::exception &e) {
-            std::cerr << "Error: Invalid or missing workflow file or reference_flops specification in JSON input (" << e.what() <<  ")\n";
-            exit(1);
-        }
-        workflow = wrench::WfCommonsWorkflowParser::createWorkflowFromJSON(
-                workflow_file,
-                reference_flops);
-    } catch (std::invalid_argument &e) {
-        std::cerr << "Error: " << e.what() << "\n";
-
     }
 
     // Create Property Lists and Payload Lists for storage services
@@ -162,7 +182,7 @@ int main(int argc, char **argv) {
     if (json_input.find("storage_service_properties") != json_input.end()) {
         for (const auto &prop : json_input["storage_service_properties"].as_object()) {
             if (prop.value().as_object().size() != 1)  {
-                std::cerr << "Error: Invalid property specification in JSON input file for " << prop.key() << "\n";
+                std::cerr << "Error: Invalid property specification in JSON input file for " << prop.key() << std::endl;
                 exit(1);
             }
             for (const auto &spec : prop.value().as_object()) {
@@ -177,7 +197,7 @@ int main(int argc, char **argv) {
     if (json_input.find("storage_service_payloads") != json_input.end()) {
         for (const auto &pl : json_input["storage_service_payloads"].as_object()) {
             if (pl.value().as_object().size() != 1)  {
-                std::cerr << "Error: Invalid payload specification in JSON input file for " << pl.key() << "\n";
+                std::cerr << "Error: Invalid payload specification in JSON input file for " << pl.key() << std::endl;
                 exit(1);
             }
             for (const auto &spec : pl.value().as_object()) {
@@ -196,7 +216,7 @@ int main(int argc, char **argv) {
     if (json_input.find("compute_service_properties") != json_input.end()) {
         for (const auto &prop : json_input["compute_service_properties"].as_object()) {
             if (prop.value().as_object().size() != 1)  {
-                std::cerr << "Error: Invalid property specification in JSON input file for " << prop.key() << "\n";
+                std::cerr << "Error: Invalid property specification in JSON input file for " << prop.key() << std::endl;
                 exit(1);
             }
             for (const auto &spec : prop.value().as_object()) {
@@ -210,7 +230,7 @@ int main(int argc, char **argv) {
     if (json_input.find("compute_service_payloads") != json_input.end()) {
         for (const auto &pl : json_input["compute_service_payloads"].as_object()) {
             if (pl.value().as_object().size() != 1)  {
-                std::cerr << "Error: Invalid payload specification in JSON input file for " << pl.key() << "\n";
+                std::cerr << "Error: Invalid payload specification in JSON input file for " << pl.key() << std::endl;
                 exit(1);
             }
             for (const auto &spec : pl.value().as_object()) {
@@ -244,7 +264,7 @@ int main(int argc, char **argv) {
             }
         }
         if (std::string(h->get_property("type")) == "compute") {
-                slurm_compute_node_hostnames.emplace_back(h->get_cname());
+            slurm_compute_node_hostnames.emplace_back(h->get_cname());
         }
     }
     if (submit_node_hostname.empty()) {
@@ -362,20 +382,10 @@ int main(int argc, char **argv) {
         return 0;
     }
 
-    // Retrieve the observed execution time of the workflow on the actual platform
-    boost::json::object json_workflow;
-    try {
-        json_workflow = readJSONFromFile(workflow_file);
-    } catch (std::invalid_argument &e) {
-        std::cerr << "Error while reading JSON file " << workflow_file << ": " << e.what() << "\n";
-    }
-    
-    double observed_makespan = boost::json::value_to<double>(json_workflow["workflow"].as_object()["makespan"]);
-    // Get the makespan of the simulated workflow
-    double simu_makespan = workflow->getCompletionDate();
-    double err = observed_makespan - simu_makespan;
+    double simulated_makespan = workflow->getCompletionDate();
+    double err = std::fabs(observed_real_makespan - simulated_makespan) / simulated_makespan;
 
-    std::cout << simu_makespan << ":" << observed_makespan << ":" << std::fabs(err / simu_makespan) << std::endl;
+    std::cout << simulated_makespan << ":" << observed_real_makespan << ":" << err << std::endl;
 
     return 0;
 }
