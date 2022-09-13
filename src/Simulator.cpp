@@ -173,17 +173,9 @@ wrench::WRENCH_PROPERTY_COLLECTION_TYPE get_properties(boost::json::object &json
 
     if (specs.contains(properties_key)) {
         for (const auto &prop : specs[properties_key].as_object()) {
-            if (prop.value().as_object().size() != 1) {
-                throw std::invalid_argument("Error: Invalid " + properties_key + " specification in JSON input file for " +
-                                            prop.key().to_string());
-            }
-            for (const auto &spec : prop.value().as_object()) {
-                // This next line will not compile with Boost 1.79 (works with Boost 1.76)
-                auto property_name = prop.key().to_string() + "::" + spec.key().to_string();
-                auto property = wrench::ServiceProperty::translateString(property_name);
-                std::string property_value = boost::json::value_to<std::string>(spec.value());
-                property_list[property] = property_value;
-            }
+            auto property = wrench::ServiceProperty::translateString(prop.key().to_string());
+            std::string property_value = boost::json::value_to<std::string>(prop.value());
+            property_list[property] = property_value;
         }
     }
     return property_list;
@@ -199,18 +191,9 @@ wrench::WRENCH_MESSAGE_PAYLOADCOLLECTION_TYPE get_payloads(boost::json::object &
 
     if (specs.contains(payloads_key)) {
         for (const auto &pl : specs[payloads_key].as_object()) {
-            if (pl.value().as_object().size() != 1) {
-                throw std::invalid_argument("Error: Invalid " + payloads_key +
-                                            " specification in JSON input file for " +
-                                            pl.key().to_string());
-            }
-            for (const auto &spec : pl.value().as_object()) {
-                // This next line will not compile with Boost 1.79 (works with Boost 1.76)
-                auto payload_name = spec.key().to_string() + "::" + spec.key().to_string();
-                auto payload = wrench::ServiceMessagePayload::translateString(payload_name);
-                double payload_value = spec.value().as_double();
-                payload_list[payload] = payload_value;
-            }
+            auto payload = wrench::ServiceMessagePayload::translateString(pl.key().to_string());
+            double payload_value =  std::strtod(boost::json::value_to<std::string>(pl.value()).c_str(), nullptr);
+            payload_list[payload] = payload_value;
         }
     }
     return payload_list;
@@ -269,62 +252,6 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    // Create Property Lists and Payload Lists for storage services
-//    wrench::WRENCH_PROPERTY_COLLECTION_TYPE storage_service_property_list;
-//    wrench::WRENCH_MESSAGE_PAYLOADCOLLECTION_TYPE storage_service_messagepayload_list;
-//
-//    wrench::WRENCH_PROPERTY_COLLECTION_TYPE storage_service_property_listget_storage_service_properties(json_input, storage_service_scheme);
-
-//
-//    if (json_input.find("storage_service_payloads") != json_input.end()) {
-//        for (const auto &pl : json_input["storage_service_payloads"].as_object()) {
-//            if (pl.value().as_object().size() != 1)  {
-//                std::cerr << "Error: Invalid payload specification in JSON input file for " << pl.key() << std::endl;
-//                exit(1);
-//            }
-//            for (const auto &spec : pl.value().as_object()) {
-//                auto payload_name = pl.key().to_string() + "::" + spec.key().to_string();
-//                auto payload = wrench::StorageServiceMessagePayload::translateString(payload_name);
-//                double payload_value = spec.value().as_double();
-//                storage_service_messagepayload_list[payload] = payload_value;
-//            }
-//        }
-//    }
-//
-//    // Create Property Lists and Payload Lists for compute services
-//    wrench::WRENCH_PROPERTY_COLLECTION_TYPE compute_service_property_list;
-//    wrench::WRENCH_MESSAGE_PAYLOADCOLLECTION_TYPE compute_service_messagepayload_list;
-//
-//    if (json_input.find("compute_service_properties") != json_input.end()) {
-//        for (const auto &prop : json_input["compute_service_properties"].as_object()) {
-//            if (prop.value().as_object().size() != 1)  {
-//                std::cerr << "Error: Invalid property specification in JSON input file for " << prop.key() << std::endl;
-//                exit(1);
-//            }
-//            for (const auto &spec : prop.value().as_object()) {
-//                auto property_name = prop.key().to_string() + "::" + spec.key().to_string();
-//                auto property = wrench::ComputeServiceProperty::translateString(property_name);
-//                std::string property_value = boost::json::value_to<std::string>(spec.value());
-//                compute_service_property_list[property] = property_value;
-//            }
-//        }
-//    }
-//    if (json_input.find("compute_service_payloads") != json_input.end()) {
-//        for (const auto &pl : json_input["compute_service_payloads"].as_object()) {
-//            if (pl.value().as_object().size() != 1)  {
-//                std::cerr << "Error: Invalid payload specification in JSON input file for " << pl.key() << std::endl;
-//                exit(1);
-//            }
-//            for (const auto &spec : pl.value().as_object()) {
-//                auto payload_name = pl.key().to_string() + "::" + spec.key().to_string();
-//                auto payload = wrench::ComputeServiceMessagePayload::translateString(payload_name);
-//                double payload_value = spec.value().as_double();
-//                compute_service_messagepayload_list[payload] = payload_value;
-//            }
-//        }
-//    }
-
-
     // Create relevant storage services
 
     // There is always a storage service on the submit_node
@@ -341,26 +268,33 @@ int main(int argc, char **argv) {
                                  storage_service_scheme,
                                  "submit_payloads")));
 
-    for (auto const &p:     submit_node_storage_service->getPropertyList()) {
-        std::cerr << p.first << " " << wrench::ServiceProperty::translatePropertyType(p.first) << " " << p.second << "\n";
-    }
+//    for (auto const &p:     submit_node_storage_service->getPropertyList()) {
+//        std::cerr << p.first << " " << wrench::ServiceProperty::translatePropertyType(p.first) << " " << p.second << "\n";
+//    }
+//
+//    for (auto const &p: submit_node_storage_service->getMessagePayloadList()) {
+//        std::cerr << p.first << " " << wrench::ServiceMessagePayload::translatePayloadType(p.first) << " " << p.second << "\n";
+//    }
 
-    for (auto const &p: submit_node_storage_service->getMessagePayloadList()) {
-        std::cerr << p.first << " " << wrench::ServiceMessagePayload::translatePayloadType(p.first) << " " << p.second << "\n";
-    }
-
-#if 0
 
     // There may be a storage service on the slurm head node
     std::shared_ptr<wrench::StorageService> slurm_head_node_storage_service = nullptr;
     if (storage_service_scheme == "submit_and_slurm_head") {
         slurm_head_node_storage_service =
                 simulation->add(new wrench::SimpleStorageService(
-                        slurm_head_node_hostname,
+                        slurm_head_host_name,
                         {{"/"}},
-                        storage_service_property_list,
-                        storage_service_messagepayload_list)));
+                        get_properties(json_input,
+                                       "storage_service_scheme_parameters",
+                                       storage_service_scheme,
+                                       "slurm_head_properties"),
+                        get_payloads(json_input,
+                                     "storage_service_scheme_parameters",
+                                     storage_service_scheme,
+                                     "slurm_head_payloads")));
     }
+
+#if 0
 
     // Create relevant compute services
 
