@@ -71,12 +71,13 @@
                 "speed": "423Gf"
             },
             "batch_properties": {
-
             },
             "batch_payloads": {
             },
             "htcondor_properties": {
-
+                "HTCondorComputeServiceProperty::NEGOTIATOR_OVERHEAD": "1.0",
+                "HTCondorComputeServiceProperty::GRID_PRE_EXECUTION_DELAY": "10.0",
+                "HTCondorComputeServiceProperty::GRID_POST_EXECUTION_DELAY": "10.0"
             },
             "htcondor_payloads": {
             }

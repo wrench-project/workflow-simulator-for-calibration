@@ -331,29 +331,40 @@ int main(int argc, char **argv) {
                         get_payloads(json_input,
                                      "compute_service_scheme_parameters",
                                      compute_service_scheme,
-                                     "payloads")))));
+                                     "payloads"))));
 
     } else if (compute_service_scheme == "htcondor_batch") {
         // Create a batch compute service that manages all compute nodes
         auto batch = simulation->add(
                 new wrench::BatchComputeService(
-                        slurm_head_node_hostname,
-                        slurm_compute_node_hostnames,
+                        slurm_head_host_name,
+                        compute_host_names,
                         "",
-                        compute_service_property_list,
-                        compute_service_messagepayload_list));
+                        get_properties(json_input,
+                                       "compute_service_scheme_parameters",
+                                       compute_service_scheme,
+                                       "batch_properties"),
+                        get_payloads(json_input,
+                                     "compute_service_scheme_parameters",
+                                     compute_service_scheme,
+                                     "batch_payloads")));
+
         // Create a top-level HTCondor compute service
         // TODO: EXPOSE THE PROPERTIES IN THE JSON
         compute_services.insert(simulation->add(
                 new wrench::HTCondorComputeService(
-                        submit_node_hostname,
+                        submit_host_name,
                         {batch},
-                        {{wrench::HTCondorComputeServiceProperty::NEGOTIATOR_OVERHEAD, "1.0"},
-                         {wrench::HTCondorComputeServiceProperty::GRID_PRE_EXECUTION_DELAY, "10.0"},
-                         {wrench::HTCondorComputeServiceProperty::GRID_POST_EXECUTION_DELAY, "10.0"},
-                         {wrench::HTCondorComputeServiceProperty::NON_GRID_PRE_EXECUTION_DELAY, "5.0"},
-                         {wrench::HTCondorComputeServiceProperty::NON_GRID_POST_EXECUTION_DELAY, "5.0"}},
-                        {})));
+                        get_properties(json_input,
+                                       "compute_service_scheme_parameters",
+                                       compute_service_scheme,
+                                       "htcondor_properties"),
+                        get_payloads(json_input,
+                                     "compute_service_scheme_parameters",
+                                     compute_service_scheme,
+                                     "htcondor_payloads")));
+
+
     }
 
     // Instantiate a Controller on the submit_host
