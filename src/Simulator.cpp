@@ -350,7 +350,6 @@ int main(int argc, char **argv) {
                                      "batch_payloads")));
 
         // Create a top-level HTCondor compute service
-        // TODO: EXPOSE THE PROPERTIES IN THE JSON
         compute_services.insert(simulation->add(
                 new wrench::HTCondorComputeService(
                         submit_host_name,
@@ -362,8 +361,7 @@ int main(int argc, char **argv) {
                         get_payloads(json_input,
                                      "compute_service_scheme_parameters",
                                      compute_service_scheme,
-                                     "htcondor_payloads")));
-
+                                     "htcondor_payloads"))));
 
     }
 
@@ -384,7 +382,7 @@ int main(int argc, char **argv) {
                                    submit_node_storage_service,
                                    slurm_head_node_storage_service,
                                    scheduling_overhead,
-                                   submit_node_hostname));
+                                   submit_host_name));
 
     // Create each file ab-initio on the storage service (no file registry service)
     for (auto const &f: workflow->getInputFiles()) {
