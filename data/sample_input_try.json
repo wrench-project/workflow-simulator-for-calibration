@@ -79,7 +79,7 @@
     "storage_service_scheme": "submit_only",
     "storage_service_scheme_parameters": {
         "submit_only": {
-            "bandwidth_submit_disk_read": "100MBps",
+            "bandwidth_submit_disk_read": "100MiBps",
             "bandwidth_submit_disk_write": "10MBps",
             "submit_properties": {
             },

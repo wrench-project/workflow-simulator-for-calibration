@@ -42,6 +42,7 @@
     public:
         static double parse_size(const std::string &string);
         static double parse_compute_speed(const std::string &string);
+        static double parse_bandwidth(const std::string &string);
     };
 
     /***********************/

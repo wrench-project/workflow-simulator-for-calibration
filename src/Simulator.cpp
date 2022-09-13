@@ -154,30 +154,6 @@ int main(int argc, char **argv) {
 
     }
 
-    // Compute service scheme
-    std::string compute_service_scheme;
-    try {
-        compute_service_scheme = boost::json::value_to<std::string>(json_input["compute_service_scheme"]);
-    } catch (std::exception &e) {
-        std::cerr << "Error: Invalid or missing compute_service_scheme specification in JSON input (" << e.what() <<  ")\n";
-        exit(1);
-    }
-    if (implemented_compute_service_schemes.find(compute_service_scheme) == implemented_compute_service_schemes.end()) {
-        std::cerr << "Error: unknown or unimplemented compute service scheme " << compute_service_scheme << "\n";
-    }
-
-    // Storage service scheme
-    std::string storage_service_scheme;
-    try {
-        storage_service_scheme = boost::json::value_to<std::string>(json_input["storage_service_scheme"]);
-    } catch (std::exception &e) {
-        std::cerr << "Error: Invalid or missing storage_service_scheme specification in JSON input (" << e.what() <<  ")\n";
-        exit(1);
-    }
-    if (implemented_storage_service_schemes.find(storage_service_scheme) == implemented_storage_service_schemes.end()) {
-        std::cerr << "Error: unknown or unimplemented storage service scheme " << storage_service_scheme << "\n";
-    }
-
     // Create Property Lists and Payload Lists for storage services
     wrench::WRENCH_PROPERTY_COLLECTION_TYPE storage_service_property_list;
     wrench::WRENCH_MESSAGE_PAYLOADCOLLECTION_TYPE storage_service_messagepayload_list;

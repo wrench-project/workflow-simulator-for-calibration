@@ -14,6 +14,7 @@
 #include <vector>
 #include <cerrno>
 #include <stdlib.h>
+#include <iostream>
 #include "UnitParser.h"
 
     /**
@@ -115,5 +116,27 @@
         }
         return compute_speed;
     }
+
+/**
+ * @brief Given a string bandwidth specification with units (e.g., "3Mbps", "40MiBps") return the size in bytes
+ * @param string: the bandwidth specification
+ * @return the bandwidth in byte/sec
+ *
+ * @throws std::invalid_argument
+ */
+double UnitParser::parse_bandwidth(const std::string &string) {
+    static const UnitParser::unit_scale units{std::make_tuple("bps", 0.125, 2, true),
+                                              std::make_tuple("bps", 0.125, 10, true),
+                                              std::make_tuple("Bps", 1.0, 2, true),
+                                              std::make_tuple("Bps", 1.0, 10, true)};
+    double bandwidth;
+    try {
+        bandwidth = parseValueWithUnit(string, units, "bps");// default: bits
+    } catch (std::runtime_error &e) {
+        throw std::invalid_argument(e.what());
+    }
+    return bandwidth;
+}
+
 
 
