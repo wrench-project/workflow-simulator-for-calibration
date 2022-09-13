@@ -21,8 +21,8 @@
                 "num_cores": "10",
                 "speed": "423Gf"
             },
-            "compute_hosts":
-            {
+            "compute_hosts": {
+                "num_hosts": 4,
                 "num_cores": "10",
                 "speed": "423Gf"
             },
@@ -45,6 +45,7 @@
             },
             "compute_hosts":
             {
+                "num_hosts": 4,
                 "num_cores": "10",
                 "speed": "423Gf"
             },
@@ -65,6 +66,7 @@
             },
             "compute_hosts":
             {
+                "num_hosts": 4,
                 "num_cores": "10",
                 "speed": "423Gf"
             },

@@ -64,7 +64,6 @@ void PlatformCreator::create_platform() {
     submit_host_disk->set_property("size", "5000GiB");
     submit_host_disk->set_property("mount", "/");
 
-
     // Create the slurm head host
     if (not host_specs.contains("slurm_head_host")) {
         throw std::invalid_argument("Missing or invalid value for 'slurm_head_host'");
@@ -111,6 +110,8 @@ void PlatformCreator::create_platform() {
     } else if (disk_specs.contains("slurm_head_disk_read") or disk_specs.contains("slurm_head_disk_write")) {
         throw std::invalid_argument("Both 'slurm_head_disk_read' and 'slurm_head_disk_write' must be specified");
     }
+
+    // Create all compute nodes
 
 #if 0
     // Create a ComputeHost
