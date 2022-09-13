@@ -114,8 +114,8 @@
         }
     },
 
-    "platform_topology_scheme": "one_link",
-    "platform_topology_scheme_parameters": {
+    "network_topology_scheme": "one_link",
+    "network_topology_scheme_parameters": {
         "one_link": {
             "bandwidth": "40GBs",
             "latency": "10us"
