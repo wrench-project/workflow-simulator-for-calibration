@@ -119,19 +119,19 @@
     "network_topology_scheme": "one_link",
     "network_topology_scheme_parameters": {
         "one_link": {
-            "bandwidth": "40GBs",
+            "bandwidth": "40GBps",
             "latency": "10us"
         },
         "two_links": {
-            "bandwidth_submit_to_slurm_head": "40GBs",
+            "bandwidth_submit_to_slurm_head": "40GBps",
             "latency_submit_to_slurm_head": "10us",
-            "bandwidth_slurm_head_to_compute_hosts": "40GBs",
+            "bandwidth_slurm_head_to_compute_hosts": "40GBps",
             "latency_slurm_head_to_compute_hosts": "10us" 
         },
         "many_links": {
-            "bandwidth_submit_to_slurm_head": "40GBs",
+            "bandwidth_submit_to_slurm_head": "40GBps",
             "latency_submit_to_slurm_head": "10us",
-            "bandwidth_slurm_head_to_compute_hosts": "40GBs",
+            "bandwidth_slurm_head_to_compute_hosts": "40GBps",
             "latency_slurm_head_to_compute_hosts": "10us"
         }
     }

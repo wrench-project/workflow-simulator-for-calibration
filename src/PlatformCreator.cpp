@@ -181,24 +181,26 @@ void PlatformCreator::create_platform() {
     }
     auto link_specs = this->json_spec["network_topology_scheme_parameters"].as_object()[topology_scheme].as_object();
 
+    std::cerr << "LINK_SPECS: " << link_specs << "\n";
+
     if (topology_scheme == "one_link") {
         double bandwidth;
         try {
             bandwidth = UnitParser::parse_bandwidth(
-                    boost::json::value_to<std::string>(compute_hosts_spec["bandwidth"]));
+                    boost::json::value_to<std::string>(link_specs["bandwidth"]));
         } catch (std::exception  &e) {
             throw std::invalid_argument("Missing or invalid 'bandwidth' value for 'one_link' scheme");
         }
         double latency;
         try {
             latency = UnitParser::parse_time(
-                    boost::json::value_to<std::string>(compute_hosts_spec["latency"]));
+                    boost::json::value_to<std::string>(link_specs["latency"]));
             std::cerr << "LATENCY: " << latency << "\n";
         } catch (std::exception  &e) {
             throw std::invalid_argument("Missing or invalid 'latency' value for 'one_link' scheme");
         }
-        auto network_link = zone->create_link("network_link", bandwidth)->set_latency(
-                boost::json::value_to<std::string>(compute_hosts_spec["latency"]));
+//        auto network_link = zone->create_link("network_link", bandwidth)->set_latency(
+//                boost::json::value_to<std::string>(compute_hosts_spec["latency"]));
 
 
     } else if (topology_scheme == "two_links") {
