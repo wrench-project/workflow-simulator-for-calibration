@@ -118,7 +118,7 @@
         }
     },
 
-    "network_topology_scheme": "one_link",
+    "network_topology_scheme": "many_links",
     "network_topology_scheme_parameters": {
         "one_link": {
             "bandwidth": "40GBps",

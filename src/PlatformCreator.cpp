@@ -107,9 +107,9 @@ void PlatformCreator::create_platform() {
         throw std::invalid_argument("Missing or invalid value for the slurm head host's 'num_cores'");
     }
 
-    auto slurm_head = zone->create_host("slurm_head", slurm_head_speed);
-    slurm_head->set_core_count(slurm_head_num_cores);
-    slurm_head->set_property("type", "slurm_head");
+    auto slurm_head_host = zone->create_host("slurm_head_host", slurm_head_speed);
+    slurm_head_host->set_core_count(slurm_head_num_cores);
+    slurm_head_host->set_property("type", "slurm_head");
 
     // Create the disk on the slurm head host, if need be
     if (disk_specs.contains("slurm_head_disk_read") and disk_specs.contains("slurm_head_disk_write")) {
@@ -124,11 +124,11 @@ void PlatformCreator::create_platform() {
             throw std::invalid_argument("Missing or invalid 'slurm_head_disk_write' value");
         }
 
-        auto slurm_head_disk = slurm_head->create_disk("slurm_head_hard_drive",
-                                                       boost::json::value_to<std::string>(
-                                                               disk_specs["slurm_head_disk_read"]),
-                                                       boost::json::value_to<std::string>(
-                                                               disk_specs["slurm_head_disk_write"]));
+        auto slurm_head_disk = slurm_head_host->create_disk("slurm_head_hard_drive",
+                                                            boost::json::value_to<std::string>(
+                                                                    disk_specs["slurm_head_disk_read"]),
+                                                            boost::json::value_to<std::string>(
+                                                                    disk_specs["slurm_head_disk_write"]));
         slurm_head_disk->set_property("size", "5000GiB");
         slurm_head_disk->set_property("mount", "/");
     } else if (disk_specs.contains("slurm_head_disk_read") or disk_specs.contains("slurm_head_disk_write")) {
@@ -197,31 +197,156 @@ void PlatformCreator::create_platform() {
         } catch (std::exception  &e) {
             throw std::invalid_argument("Missing or invalid 'latency' value for 'one_link' scheme");
         }
-        auto network_link = zone->create_link("network_link", bandwidth)->set_latency(
-                boost::json::value_to<std::string>(link_specs["latency"]));
 
-        // Create all routes
-        {
-            sg4::LinkInRoute network_link_in_route{network_link};
+        auto network_link = zone->create_link("network_link", bandwidth)->set_latency(
+                boost::json::value_to<std::string>(link_specs["latency"]))->seal();
+
+        sg4::LinkInRoute network_link_in_route{network_link};
+        zone->add_route(submit_host->get_netpoint(),
+                        slurm_head_host->get_netpoint(),
+                        nullptr,
+                        nullptr,
+                        {network_link_in_route}, true);
+
+        for (auto const &h : compute_hosts) {
             zone->add_route(submit_host->get_netpoint(),
-                            slurm_head->get_netpoint(),
+                            h->get_netpoint(),
                             nullptr,
                             nullptr,
-                            {network_link_in_route});
-            for (auto const &h : compute_hosts) {
-                zone->add_route(submit_host->get_netpoint(),
-                                h->get_netpoint(),
-                                nullptr,
-                                nullptr,
-                                {network_link_in_route});
-            }
+                            {network_link_in_route}, true);
         }
 
     } else if (topology_scheme == "two_links") {
-        throw std::runtime_error("TWO_LINKS scheme not implemented yet");
+
+        // Create network submit_to_slurm_head network link
+        double bandwidth_submit_to_slurm_head;
+        try {
+            bandwidth_submit_to_slurm_head = UnitParser::parse_bandwidth(
+                    boost::json::value_to<std::string>(link_specs["bandwidth_submit_to_slurm_head"]));
+        } catch (std::exception  &e) {
+            throw std::invalid_argument("Missing or invalid 'bandwidth_submit_to_slurm_head' value for 'two_links' scheme");
+        }
+        try {
+            UnitParser::parse_time(
+                    boost::json::value_to<std::string>(link_specs["latency_submit_to_slurm_head"]));
+        } catch (std::exception  &e) {
+            throw std::invalid_argument("Missing or invalid 'latency_submit_to_slurm_head' value for 'two_links' scheme");
+        }
+        auto network_link_submit_to_slurm_head = zone->create_link("network_link_submit_to_slurm_head", bandwidth_submit_to_slurm_head)->set_latency(
+                boost::json::value_to<std::string>(link_specs["latency_submit_to_slurm_head"]))->seal();
+
+        // Create network slurm_head_to_compute_hosts network link
+        double bandwidth_slurm_head_to_compute_hosts;
+        try {
+            bandwidth_slurm_head_to_compute_hosts = UnitParser::parse_bandwidth(
+                    boost::json::value_to<std::string>(link_specs["bandwidth_slurm_head_to_compute_hosts"]));
+        } catch (std::exception  &e) {
+            throw std::invalid_argument("Missing or invalid 'bandwidth_slurm_head_to_compute_hosts' value for 'two_links' scheme");
+        }
+        try {
+            UnitParser::parse_time(
+                    boost::json::value_to<std::string>(link_specs["latency_slurm_head_to_compute_hosts"]));
+        } catch (std::exception  &e) {
+            throw std::invalid_argument("Missing or invalid 'latency_slurm_head_to_compute_hosts' value for 'two_links' scheme");
+        }
+        auto network_link_slurm_head_to_compute_hosts = zone->create_link("network_link_slurm_head_to_compute_hosts", bandwidth_slurm_head_to_compute_hosts)->set_latency(
+                boost::json::value_to<std::string>(link_specs["latency_slurm_head_to_compute_hosts"]))->seal();
+
+        // Create all routes
+        sg4::LinkInRoute network_link_in_route_1{network_link_submit_to_slurm_head};
+        sg4::LinkInRoute network_link_in_route_2{network_link_slurm_head_to_compute_hosts};
+
+        zone->add_route(submit_host->get_netpoint(),
+                        slurm_head_host->get_netpoint(),
+                        nullptr,
+                        nullptr,
+                        {network_link_in_route_1});
+
+        for (auto const &h : compute_hosts) {
+            zone->add_route(submit_host->get_netpoint(),
+                            h->get_netpoint(),
+                            nullptr,
+                            nullptr,
+                            {network_link_in_route_1, network_link_in_route_2});
+
+            zone->add_route(slurm_head_host->get_netpoint(),
+                            h->get_netpoint(),
+                            nullptr,
+                            nullptr,
+                            {network_link_in_route_2});
+        }
+
 
     } else if (topology_scheme == "many_links") {
-        throw std::runtime_error("MANU_LINKS scheme not implemented yet");
+
+        // Create submit_to_slurm_head network link
+        double bandwidth_submit_to_slurm_head;
+        try {
+            bandwidth_submit_to_slurm_head = UnitParser::parse_bandwidth(
+                    boost::json::value_to<std::string>(link_specs["bandwidth_submit_to_slurm_head"]));
+        } catch (std::exception &e) {
+            throw std::invalid_argument(
+                    "Missing or invalid 'bandwidth_submit_to_slurm_head' value for 'many_links' scheme");
+        }
+        try {
+            UnitParser::parse_time(
+                    boost::json::value_to<std::string>(link_specs["latency_submit_to_slurm_head"]));
+        } catch (std::exception &e) {
+            throw std::invalid_argument(
+                    "Missing or invalid 'latency_submit_to_slurm_head' value for 'many_links' scheme");
+        }
+        auto network_link_submit_to_slurm_head = zone->create_link("network_link_submit_to_slurm_head",
+                                                                   bandwidth_submit_to_slurm_head)->set_latency(
+                boost::json::value_to<std::string>(link_specs["latency_submit_to_slurm_head"]))->seal();
+
+        // Create all slurm_head_to_compute_host_* network links
+        double bandwidth_slurm_head_to_compute_hosts;
+        try {
+            bandwidth_slurm_head_to_compute_hosts = UnitParser::parse_bandwidth(
+                    boost::json::value_to<std::string>(link_specs["bandwidth_slurm_head_to_compute_hosts"]));
+        } catch (std::exception &e) {
+            throw std::invalid_argument(
+                    "Missing or invalid 'bandwidth_slurm_head_to_compute_hosts' value for 'many_links' scheme");
+        }
+        try {
+            UnitParser::parse_time(
+                    boost::json::value_to<std::string>(link_specs["latency_slurm_head_to_compute_hosts"]));
+        } catch (std::exception &e) {
+            throw std::invalid_argument(
+                    "Missing or invalid 'latency_slurm_head_to_compute_hosts' value for 'many_links' scheme");
+        }
+        std::vector<sg4::Link *> network_links_slurm_head_to_compute_hosts;
+        for (int i = 0; i < num_compute_hosts; i++) {
+            auto link = zone->create_link("network_link_slurm_head_to_compute_host_" + std::to_string(i),
+                                          bandwidth_slurm_head_to_compute_hosts)->set_latency(
+                    boost::json::value_to<std::string>(link_specs["latency_slurm_head_to_compute_hosts"]))->seal();
+            network_links_slurm_head_to_compute_hosts.emplace_back(link);
+        }
+
+        // Create all routes
+        sg4::LinkInRoute network_link_in_route_1{network_link_submit_to_slurm_head};
+
+        zone->add_route(submit_host->get_netpoint(),
+                        slurm_head_host->get_netpoint(),
+                        nullptr,
+                        nullptr,
+                        {network_link_in_route_1});
+
+        for (int i=0; i < compute_hosts.size(); i++) {
+            sg4::LinkInRoute network_link_in_route_2{network_links_slurm_head_to_compute_hosts.at(i)};
+            zone->add_route(submit_host->get_netpoint(),
+                            compute_hosts.at(i)->get_netpoint(),
+                            nullptr,
+                            nullptr,
+                            {network_link_in_route_1, network_link_in_route_2});
+
+            zone->add_route(slurm_head_host->get_netpoint(),
+                            compute_hosts.at(i)->get_netpoint(),
+                            nullptr,
+                            nullptr,
+                            {network_link_in_route_2});
+        }
+
 
     } else {
         throw std::invalid_argument("Invalid 'network_topology_scheme' value");
