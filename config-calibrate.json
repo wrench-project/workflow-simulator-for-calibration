@@ -1,4 +1,21 @@
 {
     "simulator": "workflow-simulator-for-calibration",
-    "config": "data/sample_input.json"
+    "config": "data/sample_input.json",
+    "calibration_ranges": {
+        "platform": {
+            "scheduling_overhead": [0, 6],
+            "reference_flops": [3, 8],
+            "speed": [3, 8],
+            "read_bw": [6, 10],
+            "write_bw": [6,10],
+            "bandwidth": [6, 17],
+            "latency": [0, 12]
+        },
+        "payloads": [0, 20],
+        "properties": {
+            "batch_scheduling_algorithm" : ["fcfs", "conservative_bf", "conservative_bf_core_level"],
+            "max_num_concurrent_data_connections": [1, 64],
+            "buffer_size": [20, 30]
+        }
+    }
 }

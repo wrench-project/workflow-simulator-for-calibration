@@ -51,8 +51,8 @@ MIN_PAYLOADS_VAL = 0   # min is 2^0 = 1 B
 MAX_PAYLOADS_VAL = 20  # max is 2^20 = 1024 KB
 ########## Properties-related parameters ##########
 SCHEDULING_ALGO = ["fcfs", "conservative_bf", "conservative_bf_core_level"]
-TASK_SELECTION_ALGORITHM = ["maximum_flops",
-                            "maximum_minimum_cores", "minimum_top_level"]
+# TASK_SELECTION_ALGORITHM = ["maximum_flops",
+#                             "maximum_minimum_cores", "minimum_top_level"]
 # # Warning: only makes sense if SCHEDULING_ALGO = "fcfs" (cf WRENCH documentation)
 # HOST_SELECTION_ALGORITHM = ["FIRSTFIT", "BESTFIT", "ROUNDROBIN"]
 ###################################################
@@ -244,12 +244,11 @@ def worker(config: Dict) -> float:
         print(f"[Error] Try to run: {' '.join(cmd)}")
         raise e
     finally:
-        if "cleanup" in config and config["cleanup"]:
-            try:
-                os.remove(config_path)
-                os.remove(wrench_conf["platform"])
-            except OSError as e:
-                exit(-1)
+        try:
+            os.remove(config_path)
+            os.remove(wrench_conf["platform"]["file"])
+        except OSError as e:
+            exit(-1)
 
     return -(err**2)
 
@@ -418,8 +417,8 @@ class Calibrator(object):
                     for property in self.simulator_config[key][service]:
                         if property == "BATCH_SCHEDULING_ALGORITHM":
                             self.problem.add_hyperparameter(SCHEDULING_ALGO, key+"::"+service+"::"+property)
-                        elif property == "TASK_SELECTION_ALGORITHM":
-                            self.problem.add_hyperparameter(TASK_SELECTION_ALGORITHM, key+"::"+service+"::"+property)
+                        # elif property == "TASK_SELECTION_ALGORITHM":
+                        #     self.problem.add_hyperparameter(TASK_SELECTION_ALGORITHM, key+"::"+service+"::"+property)
                         elif property == "BUFFER_SIZE":
                             # Model the concurrent access/buffer size with two variables:
                             # - inf or not inf
@@ -475,23 +474,6 @@ class Calibrator(object):
         with open(path, 'w') as f:
             json_data = json.dumps(data, indent=4)
             f.write(json_data)
-
-    # """
-    #     Pull Docker image.
-    # """
-
-    # def _docker_pull_image(self, container: str) -> Tuple[bool, str]:
-
-    #     try:
-    #         simulation = subprocess.run(
-    #             ["docker", "pull", container],
-    #             capture_output=True, text=True, check=True
-    #         )
-    #     except (subprocess.CalledProcessError, FileNotFoundError) as e:
-    #         self.logger.error(f"{e}")
-    #         return (False, e)
-    #     else:
-    #         return (True, simulation.stdout)
 
     """
         Get CSV Header.
@@ -642,8 +624,8 @@ if __name__ == "__main__":
                         help='Number of iterations for DeepHyper'
                         )
 
-    parser.add_argument('--benchmarks', '-b', action='store_true',
-                        help='Perform a comparitive benchmark by running the \
+    parser.add_argument('--all', '-a', action='store_true',
+                        help='Perform a benchmark by running the \
                             same auto-calibration procedure using Bayesian Optimization \
                             and Random Search'
                         )
@@ -706,7 +688,7 @@ if __name__ == "__main__":
     }
     )
 
-    if args.benchmarks:
+    if args.all:
         baseline = Calibrator(
             config=args.conf,
             random_search=True,
@@ -738,14 +720,14 @@ if __name__ == "__main__":
     print(f"Best error:")
     print("\tBayesian Optimization    (BO): {:.3%}".format(
         min(df['err_bo'])))
-    if args.benchmarks:
+    if args.all:
         print("\tRandom Search - baseline (RS): {:.3%}".format(
             min(df['err_rs'])))
 
-    # # Plot
-    # plot(df*100, output=f"{exp_id}/results.pdf",
-    #      plot_rs=args.benchmarks, show=False)
-    # # Save data
-    # df.to_csv(f"{exp_id}/global-results.csv", index=False)
+    # Plot
+    plot(df*100, output=f"{exp_id}/results.pdf",
+         plot_rs=args.all, show=False)
+    # Save data
+    df.to_csv(f"{exp_id}/global-results.csv", index=False)
 
     print(f"================================================")
