@@ -294,7 +294,6 @@ int main(int argc, char **argv) {
                                      "slurm_head_payloads")));
     }
 
-
     // Create relevant compute services
 
     std::set<std::shared_ptr<wrench::ComputeService>> compute_services;
@@ -335,6 +334,15 @@ int main(int argc, char **argv) {
 
     } else if (compute_service_scheme == "htcondor_batch") {
         // Create a batch compute service that manages all compute nodes
+        get_properties(json_input,
+                       "compute_service_scheme_parameters",
+                       compute_service_scheme,
+                       "batch_properties");
+        get_payloads(json_input,
+                     "compute_service_scheme_parameters",
+                     compute_service_scheme,
+                     "batch_payloads");
+
         auto batch = simulation->add(
                 new wrench::BatchComputeService(
                         slurm_head_host_name,
@@ -362,6 +370,7 @@ int main(int argc, char **argv) {
                                      "compute_service_scheme_parameters",
                                      compute_service_scheme,
                                      "htcondor_payloads"))));
+
 
     }
 

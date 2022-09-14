@@ -50,8 +50,8 @@
                 "speed": "423Gf"
             },
             "properties": {
-                "wrench::BatchComputeServiceProperty::THREAD_STARTUP_OVERHEAD": "1ms",
-                "wrench::BatchComputeServiceProperty::BATCH_SCHEDULING_ALGORITHM": "fcfs"
+                "BatchComputeServiceProperty::THREAD_STARTUP_OVERHEAD": "1",
+                "BatchComputeServiceProperty::BATCH_SCHEDULING_ALGORITHM": "fcfs"
             },
             "payloads": {
             }
@@ -72,8 +72,8 @@
                 "speed": "423Gf"
             },
             "batch_properties": {
-                "wrench::BatchComputeServiceProperty::THREAD_STARTUP_OVERHEAD": "1",
-                "wrench::BatchComputeServiceProperty::BATCH_SCHEDULING_ALGORITHM": "fcfs"
+                "BatchComputeServiceProperty::THREAD_STARTUP_OVERHEAD": "1",
+                "BatchComputeServiceProperty::BATCH_SCHEDULING_ALGORITHM": "fcfs"
             },
             "batch_payloads": {
             },
@@ -104,7 +104,7 @@
             "bandwidth_submit_disk_read": "100MBps",
             "bandwidth_submit_disk_write": "10MBps",
             "submit_properties": {
-                "StorageServiceProperty::BUFFER_SIZE": "4231",
+                "StorageServiceProperty::BUFFER_SIZE": "42000000",
                 "SimpleStorageServiceProperty::MAX_NUM_CONCURRENT_DATA_CONNECTIONS": "8"
             },
             "submit_payloads": {
