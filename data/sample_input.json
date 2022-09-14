@@ -29,14 +29,14 @@
                 "speed": "423Gf"
             },
             "properties": {
-                "BareMetalComputeServiceProperty::THREAD_STARTUP_OVERHEAD": "42"
+                "BareMetalComputeServiceProperty::THREAD_STARTUP_OVERHEAD": "42s"
             },
             "payloads": {
             }
         },
         "batch_only": {
             "submit_host": {
-                "num_cores": "1231",
+                "num_cores": "12",
                 "speed": "123Gf"
             },
             "slurm_head_host": {
@@ -50,7 +50,7 @@
                 "speed": "423Gf"
             },
             "properties": {
-                "wrench::BatchComputeServiceProperty::THREAD_STARTUP_OVERHEAD": "1",
+                "wrench::BatchComputeServiceProperty::THREAD_STARTUP_OVERHEAD": "1ms",
                 "wrench::BatchComputeServiceProperty::BATCH_SCHEDULING_ALGORITHM": "fcfs"
             },
             "payloads": {
@@ -78,8 +78,8 @@
             "batch_payloads": {
             },
             "htcondor_properties": {
-                "HTCondorComputeServiceProperty::NEGOTIATOR_OVERHEAD": "1.0",
-                "HTCondorComputeServiceProperty::GRID_PRE_EXECUTION_DELAY": "10.0",
+                "HTCondorComputeServiceProperty::NEGOTIATOR_OVERHEAD": "1.0ms",
+                "HTCondorComputeServiceProperty::GRID_PRE_EXECUTION_DELAY": "10.0s",
                 "HTCondorComputeServiceProperty::GRID_POST_EXECUTION_DELAY": "10.0"
             },
             "htcondor_payloads": {
@@ -93,7 +93,7 @@
             "bandwidth_submit_disk_read": "100MBps",
             "bandwidth_submit_disk_write": "10MBps",
             "submit_properties": {
-                "StorageServiceProperty::BUFFER_SIZE": "4200000",
+                "StorageServiceProperty::BUFFER_SIZE": "42MB",
                 "SimpleStorageServiceProperty::MAX_NUM_CONCURRENT_DATA_CONNECTIONS": "8"
             },
             "submit_payloads": {
@@ -104,7 +104,7 @@
             "bandwidth_submit_disk_read": "100MBps",
             "bandwidth_submit_disk_write": "10MBps",
             "submit_properties": {
-                "StorageServiceProperty::BUFFER_SIZE": "4200000",
+                "StorageServiceProperty::BUFFER_SIZE": "4231",
                 "SimpleStorageServiceProperty::MAX_NUM_CONCURRENT_DATA_CONNECTIONS": "8"
             },
             "submit_payloads": {
