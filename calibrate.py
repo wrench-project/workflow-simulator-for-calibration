@@ -6,20 +6,20 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-
 from __future__ import annotations
-import warnings
-import xml.etree.ElementTree as ET
-import pandas as pd
-import argparse
-import os
-import uuid
-import pathlib
-import logging
-import subprocess
+
 import json
-import psutil
-import shutil
+import logging
+import os
+import pathlib
+import pandas as pd
+from psutil import cpu_count
+from shutil import copyfile
+from functools import reduce
+from subprocess import run, CalledProcessError
+from uuid import uuid4
+from argparse import ArgumentParser
+from warnings import filterwarnings
 from typing import Dict, List, Any, Union, Type, Tuple
 from deephyper.search.hps import AMBS
 from deephyper.evaluator.callback import LoggerCallback
@@ -29,19 +29,32 @@ import ConfigSpace as CS
 import ConfigSpace.hyperparameters as CSH
 import matplotlib.pyplot as plt
 
+plt.rcParams.update({
+    "text.usetex": True,
+    "font.family": "serif",
+    "font.serif": ["sans-serif"],
+})
+
+SCHEMES = {"error": "error_computation_scheme",
+           "compute": "compute_service_scheme",
+           "storage": "storage_service_scheme",
+           "network": "network_topology_scheme"}
+
 # Some values are expressed as power of 2 to reduce the space of solutions:
 #   if MAX_PAYLOADS_VAL = 5 and MIN_PAYLOADS_VAL=0 then we the space explored will consist of [1, 2, 4, 8, 16, 32]
 
 ########### General parameters ###########
 MIN_REF_FLOPS = 3      # min is 2^3 = 8 Gflops
 MAX_REF_FLOPS = 8      # max is 2^8 = 256 Gflops
-MIN_SCHED_OVER = 0     # min is 2^0 = 1 seconde
-MAX_SCHED_OVER = 6     # max is 2^6 = 32 secondes
+MIN_SCHED_OVER = 0     # min is 2^0 = 1 ms
+MAX_SCHED_OVER = 10    # max is 2^10 = 1024 ms
 ########### Platform-related parameters ###########
+MIN_CORES = 0          # min is 2^3 = 1 core/host
+MAX_CORES = 8          # max is 2^8 = 256 core/host
+MIN_HOSTS = 0          # min is 2^3 = 1 host
+MAX_HOSTS = 7          # max is 2^8 = 256 hosts
 MIN_PROC_SPEED = 3     # min is 2^3 = 8 Gflops
 MAX_PROC_SPEED = 8     # max is 2^8 = 256 Gflops
-MIN_DISK_IO = 6        # min is 2^6 = 64 MBps
-MAX_DISK_IO = 10       # max is 2^10 = 1024 MBps
 MIN_BANDWIDTH = 6      # min is 2^6 = 64 MBps
 MAX_BANDWIDTH = 17     # max is 2^17 = 128 GBps
 MIN_LATENCY = 0        # min is 2^0 = 1 us
@@ -51,8 +64,10 @@ MIN_PAYLOADS_VAL = 0   # min is 2^0 = 1 B
 MAX_PAYLOADS_VAL = 20  # max is 2^20 = 1024 KB
 ########## Properties-related parameters ##########
 SCHEDULING_ALGO = ["fcfs", "conservative_bf", "conservative_bf_core_level"]
-# TASK_SELECTION_ALGORITHM = ["maximum_flops",
-#                             "maximum_minimum_cores", "minimum_top_level"]
+MIN_BUFFER_SIZE = 20
+MAX_BUFFER_SIZE = 30
+MIN_CONCURRENT_DATA_CONNECTIONS = 1
+MAX_CONCURRENT_DATA_CONNECTIONS = 64
 # # Warning: only makes sense if SCHEDULING_ALGO = "fcfs" (cf WRENCH documentation)
 # HOST_SELECTION_ALGORITHM = ["FIRSTFIT", "BESTFIT", "ROUNDROBIN"]
 ###################################################
@@ -62,49 +77,7 @@ SAMPLING = "uniform"
 JSON = Union[Dict[str, Any], List[Any], int, str, float, bool, Type[None]]
 
 # To shutdown  FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.
-warnings.filterwarnings("ignore", category=FutureWarning)
-
-plt.rcParams.update({
-    "text.usetex": True,
-    "font.family": "serif",
-    "font.serif": ["sans-serif"],
-})
-
-"""
-    Produce a figure of the error in function of the iterations for different methods
-"""
-
-
-def plot(df: pd.DataFrame, output: str, plot_rs: bool = True, show: bool = False):
-    plt.plot(df.err_bo,
-             label='Bayesian Optimization',
-             marker='o',
-             color="blue",
-             lw=1)
-
-    if plot_rs:
-        plt.plot(df.err_rs,
-                 label='Random Search',
-                 marker='x',
-                 color="red",
-                 lw=1)
-
-    filename = str(pathlib.Path(output).stem)
-    if filename[-1] == '.':
-        filename = filename + "pdf"
-    else:
-        filename = filename + ".pdf"
-
-    path = pathlib.Path(output).parent / pathlib.Path(filename)
-
-    plt.grid(True)
-    plt.xlabel("Iterations")
-    plt.ylabel("Error (\%)")
-    plt.legend()
-    plt.savefig(path)
-    if show:
-        plt.show()
-
+filterwarnings("ignore", category=FutureWarning)
 
 def configure_logger(level: int = logging.INFO) -> logging.Logger:
     logger = logging.getLogger(__name__)
@@ -120,101 +93,63 @@ def configure_logger(level: int = logging.INFO) -> logging.Logger:
     logger.setLevel(level)
     return logger
 
+def get_nested_default(d: dict, path: str):
+    return reduce(lambda d, k: d.setdefault(k, {}), path, d)
 
-def create_platform(xml_file: str, config: Dict, new_xml: str) -> None:
-    data = ET.parse(xml_file)
-    for elem in data.getroot()[0]:
-        if elem.tag == 'host':
-            elem.attrib["speed"] = config["speed"]
-            for prop in elem:
-                if prop.tag == 'disk':
-                    prop.attrib["read_bw"] = config["read_bw"]
-                    prop.attrib["write_bw"] = config["write_bw"]
-        elif elem.tag == 'link':
-            elem.attrib["bandwidth"] = config["bandwidth"]
-            elem.attrib["latency"] = config["latency"]
+def set_nested(d: dict, path :str, value: str):
+    get_nested_default(d, path[:-1])[path[-1]] = value
 
-    with open(new_xml, 'wb') as f:
-        f.write('<?xml version="1.0"?>\n<!DOCTYPE platform SYSTEM "http://simgrid.gforge.inria.fr/simgrid/simgrid.dtd" >\n'.encode('utf8'))
-        data.write(f, 'utf-8')
+
+def get_val_with_unit(path: List[str], val: any) -> str:
+    updated_val = str(val)
+    if path[-1] == "speed":
+        updated_val = str(2**int(val))+"Gf"
+    elif "bandwidth" in path[-1] or "disk" in path[-1]:
+        updated_val = str(2**int(val))+"MBps"
+    elif "latency" in path[-1]:
+        updated_val = str(2**int(val))+"us"
+    elif "OVERHEAD" in path[-1] or "DELAY" in path[-1]:
+        updated_val = str(2**int(val))+"ms"
+    elif "BUFFER_SIZE" in path[-1]:
+        updated_val = "infinity" if val == "nan" else str(2**int(val))
+    elif "MAX_NUM_CONCURRENT_DATA_CONNECTIONS" in path[-1]:
+        updated_val = "infinity" if val == "nan" else str(int(val))
+    else:
+        try:
+            updated_val = str(2**int(val))
+        except ValueError as e:
+            pass
+    return updated_val
 
 """
     Create a platform file and a WRENCH configuration based on what DeepHyper picked.
 """
 
-
 def setup_configuration(config: Dict) -> Dict:
+
     wrench_conf = {}
+    param_names = [x+"_parameters" for x in SCHEMES.values()]
 
     wrench_conf["workflow"] = {}
     wrench_conf["workflow"]["file"] = config["workflow"]
     wrench_conf["workflow"]["reference_flops"] = str(
-        2**int(config["speed"]))+"Gf"
+        2**int(config["reference_flops"]))+"Gf"
 
-    wrench_conf["platform"] = {}
-    wrench_conf["platform"]["file"] = config["platform"]
+    wrench_conf["scheduling_overhead"] = str(
+        2**int(config["scheduling_overhead"]))+"ms"
 
-    wrench_conf["compute_service_scheme"] = config["compute_service_scheme"]
-    wrench_conf["storage_service_scheme"] = config["storage_service_scheme"]
+    for val in SCHEMES.values():
+        wrench_conf[val] = config[val]
+        wrench_conf[val+"_parameters"] = {}
+        wrench_conf[val+"_parameters"][config[val]] = {}
+    
+    for key, val in config.items():
+        path = key.split('-')
+        if path[0] in param_names:
+            updated_val = get_val_with_unit(path, val)
+            set_nested(wrench_conf, path, updated_val)
 
-    wrench_conf["scheduling_overhead"] = float(2**int(config["latency"]))
-
-    if "calib_platform" in config:
-        platform_path = pathlib.Path(
-            f"{config['output_dir']}/platform-{config['id']}.xml").resolve()
-
-        platform_config = {}
-        platform_config["speed"]     = str(2**int(config["speed"]))+"Gf"
-        platform_config["read_bw"]   = str(2**int(config["read_bw"]))+"MBps"
-        platform_config["write_bw"]  = str(2**int(config["write_bw"]))+"MBps"
-        platform_config["bandwidth"] = str(2**int(config["bandwidth"]))+"GBps"
-        platform_config["latency"]   = str(2**int(config["latency"]))+"us"
-        create_platform(
-            xml_file = config["platform"],
-            config = platform_config,
-            new_xml = str(platform_path)
-        )
-        wrench_conf["platform"]["file"] = str(platform_path)
-
-    possible_payloads_keys = ["compute_service_message_payloads",
-                         "storage_service_message_payloads"]
-    for key in possible_payloads_keys:
-        wrench_conf[key] = {}
-
-    possible_properties_keys = ["compute_service_properties",
-                         "storage_service_properties"]
-    for key in possible_properties_keys:
-        wrench_conf[key] = {}
-
-    if "calib_properties" in config:
-        for k, val in config.items():
-            l = k.split('::')
-            for key in possible_properties_keys:
-                if key == l[0]:
-                    if l[1] not in wrench_conf[key]:
-                        wrench_conf[key][l[1]] = {}
-                    if l[2] == "MAX_NUM_CONCURRENT_DATA_CONNECTIONS":
-                        if config["MAX_NUM_CONCURRENT_CAT"] == "infinity":
-                            wrench_conf[key][l[1]][l[2]] = "infinity"
-                        else:
-                            wrench_conf[key][l[1]][l[2]] = str(int(val))
-                    elif l[2] == "BUFFER_SIZE":
-                        #TODO: # check if val is nan !
-                        if config["BUFFER_SIZE_CAT"] == "infinity":
-                            wrench_conf[key][l[1]][l[2]] = "infinity"
-                        else:
-                            wrench_conf[key][l[1]][l[2]] = str(2**int(val))
-                    else:
-                        wrench_conf[key][l[1]][l[2]] = str(2**int(val))
-
-    if "calib_payloads" in config:
-        for k, val in config.items():
-            l = k.split('::')
-            for key in possible_payloads_keys:
-                if key == l[0]:
-                    if l[1] not in wrench_conf[key]:
-                        wrench_conf[key][l[1]] = {}
-                    wrench_conf[key][l[1]][l[2]] = float(2**int(val))
+    # print(json.dumps(wrench_conf, indent=4))
 
     return wrench_conf
 
@@ -229,7 +164,7 @@ def worker(config: Dict) -> float:
         f"{config['output_dir']}/config-{config['id']}.json").resolve()
     wrench_conf: Dict = setup_configuration(config)
 
-    # if config['id'] == '1':
+    # if config['id'] == 1:
     #     print(json.dump(wrench_conf))
 
     with open(config_path, 'w') as temp_config:
@@ -237,18 +172,17 @@ def worker(config: Dict) -> float:
         temp_config.write(json_config)
     try:
         cmd = [config["simulator"], str(config_path)]
-        simulation = subprocess.run(
+        simulation = run(
             cmd, capture_output=True, text=True, check=True)
         err = float(simulation.stdout.strip().split(':')[2])
-    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+    except (CalledProcessError, FileNotFoundError) as e:
         print(f"[Error] Try to run: {' '.join(cmd)}")
         raise e
-    finally:
-        try:
-            os.remove(config_path)
-            os.remove(wrench_conf["platform"]["file"])
-        except OSError as e:
-            exit(-1)
+    # finally:
+    #     try:
+    #         os.remove(config_path)
+    #     except OSError as e:
+    #         exit(-1)
 
     return -(err**2)
 
@@ -278,9 +212,9 @@ class Calibrator(object):
 
         self.func = worker
         self.num_cpus = min(self.max_evals, int(
-            psutil.cpu_count(logical=False)))
+            cpu_count(logical=False)))
         self.num_cpus_per_task = int(
-            psutil.cpu_count() // psutil.cpu_count(logical=False)
+            cpu_count() // cpu_count(logical=False)
         )
         self.backend = "ray"
         # Number of jobs used to compute the surrogate model ( -1 means max possible)
@@ -301,11 +235,11 @@ class Calibrator(object):
         
         self.simulator_config: JSON = self._load_json(self.config["config"])
 
+        self.schemes: Dict = SCHEMES
+
         self.workflow: pathlib.Path = pathlib.Path(
             self.simulator_config["workflow"]["file"]).resolve()
-        self.platform: pathlib.Path = pathlib.Path(
-            self.simulator_config["platform"]["file"]).resolve()
-
+        
         self.df: pd.DataFrame = {}  # Result
         if self.output_dir:
             self.csv_output: pathlib.Path = pathlib.Path(self.output_dir)
@@ -313,16 +247,15 @@ class Calibrator(object):
             self.output_dir = '.'
 
         self.problem = HpProblem()
-        self.add_basic_parameters()
-        self.add_platform_parameters()
+        self.add_parameters()
 
         self.consider_payloads = consider_payloads
         self.consider_properties = consider_properties
-        # Add  parameters to the search space
-        if self.consider_payloads:
-            self.add_payloads_parameters()
-        if self.consider_properties:
-            self.add_properties_parameters()
+        # # Add  parameters to the search space
+        # if self.consider_payloads:
+        #     self.add_payloads_parameters()
+        # if self.consider_properties:
+        #     self.add_properties_parameters()
 
         # define the evaluator to distribute the computation
         self.evaluator = Evaluator.create(
@@ -357,91 +290,90 @@ class Calibrator(object):
                 log_dir=self.output_dir
             )
 
-    def add_basic_parameters(self):
-        # For convenience (not real hyperparameter)
-        # We add them to the hyperparameter dict so we can have access to these variables inside each worker
+    def _add_parameter(self, name: str) -> None:
+        line = name.split("-")
+        if "core" in line[2]:
+            self.problem.add_hyperparameter((MIN_CORES, MAX_CORES, SAMPLING),name)
+        elif "host" in line[2]:
+            self.problem.add_hyperparameter(
+                (MIN_HOSTS, MAX_HOSTS, SAMPLING), name)
+        elif "speed" in line[2]:
+            self.problem.add_hyperparameter((MIN_PROC_SPEED, MAX_PROC_SPEED, SAMPLING),name)
+        elif "bandwidth" in line[2]:
+            self.problem.add_hyperparameter(
+                (MIN_BANDWIDTH, MAX_BANDWIDTH, SAMPLING), name)
+        elif "disk" in line[2]:
+            self.problem.add_hyperparameter(
+                (MIN_BANDWIDTH, MAX_BANDWIDTH, SAMPLING), name)
+        elif "payload" in line[2]:
+            self.problem.add_hyperparameter(
+                (MIN_PAYLOADS_VAL, MAX_PAYLOADS_VAL, SAMPLING), name)
+        elif "latency" in line[2]:
+            self.problem.add_hyperparameter(
+                (MIN_LATENCY, MAX_LATENCY, SAMPLING), name)
+        elif "properties" in line[2]:
+            l = name.split('::')
+            if "OVERHEAD" in l[-1] or "DELAY" in l[-1]:
+                self.problem.add_hyperparameter(
+                    (MIN_SCHED_OVER, MAX_SCHED_OVER, SAMPLING), name)
+            elif "BATCH_SCHEDULING_ALGORITHM" == l[-1]:
+                self.problem.add_hyperparameter(SCHEDULING_ALGO,name)
+            elif "BUFFER_SIZE" == l[-1]:
+                # Model the concurrent access/buffer size with two variables:
+                # - inf or not inf
+                #   - if not inf we pick a discrete value between MIN and MAX
+                buffer_size_categorical = CSH.CategoricalHyperparameter(
+                    "CAT_"+name, choices=["infinity", "finite"])
+                # Express as power of 2^x : if range goes to 8 to 10 then the values will range from 2^8 to 2^10
+                buffer_size_discrete = CSH.UniformIntegerHyperparameter(
+                    name, lower=MIN_BUFFER_SIZE, upper=MAX_BUFFER_SIZE, log=False)
+                self.problem.add_hyperparameter(
+                    buffer_size_categorical)
+                self.problem.add_hyperparameter(
+                    buffer_size_discrete)
+                # If we choose "finite" then we sample a discrete value for the buffer size
+                self.problem.add_condition(CS.EqualsCondition(
+                    buffer_size_discrete, buffer_size_categorical, "finite"))
+            elif "MAX_NUM_CONCURRENT_DATA_CONNECTIONS" == l[-1]:
+                conc_conn_categorical = CSH.CategoricalHyperparameter(
+                    "CAT_"+name, choices=["infinity", "finite"])
+                conc_conn_discrete = CSH.UniformIntegerHyperparameter(
+                    name, lower=MIN_CONCURRENT_DATA_CONNECTIONS, upper=MAX_CONCURRENT_DATA_CONNECTIONS, log=False)
+                self.problem.add_hyperparameter(conc_conn_categorical)
+                self.problem.add_hyperparameter(conc_conn_discrete)
+                self.problem.add_condition(CS.EqualsCondition(
+                    conc_conn_discrete, conc_conn_categorical, "finite"))
+        else:
+            print(f"Warning: did not find how to add parameter {name}")
+            return None
+        #print(f"Added parameter {name} for calibration.")
+
+    def add_parameters(self):
         self.problem.add_hyperparameter([str(self.simulator)], "simulator")
         self.problem.add_hyperparameter([str(self.workflow)], "workflow")
-        self.problem.add_hyperparameter([str(self.platform)], "platform")
         self.problem.add_hyperparameter([str(self.output_dir)], "output_dir")
-        self.problem.add_hyperparameter(
-            [self.simulator_config["compute_service_scheme"]], "compute_service_scheme")
-        self.problem.add_hyperparameter(
-            [self.simulator_config["storage_service_scheme"]], "storage_service_scheme")
+
+        for scheme in self.schemes.values():
+            self.problem.add_hyperparameter(
+                [self.simulator_config[scheme]], scheme)
 
         self.problem.add_hyperparameter(
             (MIN_REF_FLOPS, MAX_REF_FLOPS, SAMPLING), "reference_flops")
         self.problem.add_hyperparameter(
             (MIN_SCHED_OVER, MAX_SCHED_OVER, SAMPLING), "scheduling_overhead")
 
-    def add_platform_parameters(self):
-        self.problem.add_hyperparameter([True], "calib_platform")
+        for _, name_scheme in self.schemes.items():
+            cs_scheme = self.simulator_config[name_scheme]
+            cs_parameter = name_scheme+"_parameters"
 
-        self.problem.add_hyperparameter(
-            (MIN_PROC_SPEED, MAX_PROC_SPEED, SAMPLING),
-            "speed")
-        self.problem.add_hyperparameter(
-            (MIN_BANDWIDTH, MAX_BANDWIDTH, SAMPLING),
-            "bandwidth")
-        self.problem.add_hyperparameter(
-            (MIN_LATENCY, MAX_LATENCY, SAMPLING),
-            "latency")
-        self.problem.add_hyperparameter(
-            (MIN_DISK_IO, MAX_DISK_IO, SAMPLING),
-            "read_bw")
-        self.problem.add_hyperparameter(
-            (MIN_DISK_IO, MAX_DISK_IO, SAMPLING),
-            "write_bw")
-
-    def add_payloads_parameters(self):
-        self.problem.add_hyperparameter([True], "calib_payloads")
-        # Payload messages (discrete variables)
-        possible_keys = ["compute_service_message_payloads",
-                         "storage_service_message_payloads"]
-        for key in possible_keys:
-            if key in self.simulator_config:
-                for service in self.simulator_config[key]:
-                    for payloads in self.simulator_config[key][service]:
-                        self.problem.add_hyperparameter(
-                            (MIN_PAYLOADS_VAL, MAX_PAYLOADS_VAL, SAMPLING), key+"::"+service+"::"+payloads)
-
-    def add_properties_parameters(self):
-        # Properties (categorical variables)
-        self.problem.add_hyperparameter([True], "calib_properties")
-
-        possible_keys = ["compute_service_properties",
-                         "storage_service_properties"]
-        for key in possible_keys:
-            if key in self.simulator_config:
-                for service in self.simulator_config[key]:
-                    for property in self.simulator_config[key][service]:
-                        if property == "BATCH_SCHEDULING_ALGORITHM":
-                            self.problem.add_hyperparameter(SCHEDULING_ALGO, key+"::"+service+"::"+property)
-                        # elif property == "TASK_SELECTION_ALGORITHM":
-                        #     self.problem.add_hyperparameter(TASK_SELECTION_ALGORITHM, key+"::"+service+"::"+property)
-                        elif property == "BUFFER_SIZE":
-                            # Model the concurrent access/buffer size with two variables:
-                            # - inf or not inf
-                            #   - if not inf we pick a discrete value between MIN and MAX
-                            buffer_size_categorical = CSH.CategoricalHyperparameter(
-                                "BUFFER_SIZE_CAT", choices=["infinity", "finite"])
-                            # Express as power of 2^x : if range goes to 8 to 10 then the values will range from 2^8 to 2^10
-                            buffer_size_discrete = CSH.UniformIntegerHyperparameter(
-                                key+"::"+service+"::"+property, lower=20, upper=30, log=False)
-                            self.problem.add_hyperparameter(buffer_size_categorical)
-                            self.problem.add_hyperparameter(buffer_size_discrete)
-                            # If we choose "finite" then we sample a discrete value for the buffer size
-                            self.problem.add_condition(CS.EqualsCondition(
-                                buffer_size_discrete, buffer_size_categorical, "finite"))
-                        elif property == "MAX_NUM_CONCURRENT_DATA_CONNECTIONS":
-                            conc_conn_categorical = CSH.CategoricalHyperparameter(
-                                "MAX_NUM_CONCURRENT_CAT", choices=["infinity", "finite"])
-                            conc_conn_discrete = CSH.UniformIntegerHyperparameter(
-                                key+"::"+service+"::"+property, lower=1, upper=64, log=False)
-                            self.problem.add_hyperparameter(conc_conn_categorical)
-                            self.problem.add_hyperparameter(conc_conn_discrete)
-                            self.problem.add_condition(CS.EqualsCondition(
-                                conc_conn_discrete, conc_conn_categorical, "finite"))
+            for elem in self.simulator_config[cs_parameter][cs_scheme]:
+                if isinstance(self.simulator_config[cs_parameter][cs_scheme][elem], dict):
+                    for item in self.simulator_config[cs_parameter][cs_scheme][elem]:
+                        name = cs_parameter+"-"+cs_scheme+"-"+elem+"-"+item
+                        self._add_parameter(name)
+                else:
+                    name = cs_parameter+"-"+cs_scheme+"-"+elem
+                    self._add_parameter(name)
 
     """
         Test the simulator to make sure it exists and that's a valid WRENCH simulator
@@ -450,10 +382,10 @@ class Calibrator(object):
     def _test_simulator(self) -> Tuple[bool, str]:
         cmd = [self.simulator, "--version"]
         try:
-            test_simu = subprocess.run(
+            test_simu = run(
                 cmd, capture_output=True, text=True, check=True
             )
-        except (subprocess.CalledProcessError, FileNotFoundError) as e:
+        except (CalledProcessError, FileNotFoundError) as e:
             return (False, e)
         else:
             return (True, test_simu.stdout)
@@ -476,36 +408,6 @@ class Calibrator(object):
             f.write(json_data)
 
     """
-        Get CSV Header.
-    """
-
-    def _get_header(self, config: JSON) -> Tuple[bool, str]:
-
-        config_path = pathlib.Path(f"header.json").resolve()
-
-        # We first have to write a temp JSON
-        with open(config_path, 'w') as temp_config:
-            json_config = json.dumps(config, indent=4)
-            temp_config.write(json_config)
-
-        try:
-            simulation = subprocess.run(
-                [self.simulator, "--config", str(config_path), "--csv-header"],
-                capture_output=True, text=True, check=True
-            )
-        except (subprocess.CalledProcessError, FileNotFoundError) as e:
-            self.logger.error(f"{e}")
-            return (False, e)
-        else:
-            return (True, simulation.stdout)
-        finally:
-            try:
-                os.remove(config_path)
-            except OSError as e:
-                self.logger.error(f"{e}")
-                return (False, e)
-
-    """
         Launch the search.
     """
 
@@ -513,25 +415,14 @@ class Calibrator(object):
         self.df = self.search.search(max_evals=self.max_evals, timeout=self.timeout)
 
         # Clean the dataframe and re-ordering the columns
-        self.df["platform"] = self.df.apply(lambda row: pathlib.Path(
-            pathlib.Path(row["platform"]).name).stem, axis=1)
         self.df["workflow"] = self.df.apply(lambda row: pathlib.Path(
             pathlib.Path(row["workflow"]).name).stem, axis=1)
 
         self.df = self.df.drop(self.df.filter(
-            regex='BUFFER_SIZE_CAT|MAX_NUM_CONCURRENT_CAT|container|simulator|calib_platform|calib_properties|calib_payloads').columns, axis=1)
+            regex='BUFFER_SIZE_CAT|MAX_NUM_CONCURRENT_CAT|simulator').columns, axis=1)
 
         cols = self.df.columns.tolist()
 
-        # if self.consider_payloads:
-        #     cols = cols[-4:] + cols[:-4]
-        # elif self.consider_properties:
-        #     self.df["wrench::SimpleStorageServiceProperty::BUFFER_SIZE"] = self.df["wrench::SimpleStorageServiceProperty::BUFFER_SIZE"].fillna(
-        #         "infinity")
-        #     self.df["wrench::SimpleStorageServiceProperty::MAX_NUM_CONCURRENT_DATA_CONNECTIONS"] = self.df["wrench::SimpleStorageServiceProperty::MAX_NUM_CONCURRENT_DATA_CONNECTIONS"].fillna(
-        #         "infinity")
-        #     cols = cols[-4:] + cols[:-4]
-        # else:
         cols = cols[-4:] + cols[:-4]
 
         self.df = self.df[cols]
@@ -609,11 +500,45 @@ class Calibrator(object):
         if show:
             plt.show()
 
+"""
+    Produce a figure of the error in function of the iterations for different methods
+"""
+
+def plot(df: pd.DataFrame, output: str, plot_rs: bool = True, show: bool = False):
+    plt.plot(df.err_bo,
+             label='Bayesian Optimization',
+             marker='o',
+             color="blue",
+             lw=1)
+
+    if plot_rs:
+        plt.plot(df.err_rs,
+                 label='Random Search',
+                 marker='x',
+                 color="red",
+                 lw=1)
+
+    filename = str(pathlib.Path(output).stem)
+    if filename[-1] == '.':
+        filename = filename + "pdf"
+    else:
+        filename = filename + ".pdf"
+
+    path = pathlib.Path(output).parent / pathlib.Path(filename)
+
+    plt.grid(True)
+    plt.xlabel("Iterations")
+    plt.ylabel("Error (\%)")
+    plt.legend()
+    plt.savefig(path)
+    if show:
+        plt.show()
+
 
 if __name__ == "__main__":
     logger = configure_logger(level=logging.INFO)
 
-    parser = argparse.ArgumentParser(
+    parser = ArgumentParser(
         description='Calibrate a WRENCH simulator using DeepHyper.')
     parser.add_argument('--config', '-c', dest='conf', action='store',
                         type=pathlib.Path, required=True,
@@ -649,7 +574,7 @@ if __name__ == "__main__":
 
 
     # We use shorter UUID for clarity
-    exp_id = "exp-"+str(uuid.uuid4()).split('-')[-1]
+    exp_id = "exp-"+str(uuid4()).split('-')[-1]
 
     try:
         os.mkdir(exp_id)
@@ -658,7 +583,7 @@ if __name__ == "__main__":
         exit(1)
 
     # Copy the configuration used
-    shutil.copyfile(args.conf, f"{exp_id}/setup.json")
+    copyfile(args.conf, f"{exp_id}/setup.json")
 
     bayesian = Calibrator(
         config=args.conf,
@@ -672,11 +597,11 @@ if __name__ == "__main__":
     )
 
     bayesian.launch()
-    # # bayesian.plot(show=False)
+    # # # bayesian.plot(show=False)
     df_bayesian = bayesian.get_dataframe()
-    # # print(df_bayesian)
-    # best_config = bayesian.get_best_config()
-    # print(best_config)
+    # # # print(df_bayesian)
+    # # best_config = bayesian.get_best_config()
+    # # print(best_config)
 
     # bayesian.write_json(best_config, f"{exp_id}/best-bo.json")
 
@@ -724,10 +649,10 @@ if __name__ == "__main__":
         print("\tRandom Search - baseline (RS): {:.3%}".format(
             min(df['err_rs'])))
 
-    # Plot
-    plot(df*100, output=f"{exp_id}/results.pdf",
-         plot_rs=args.all, show=False)
-    # Save data
-    df.to_csv(f"{exp_id}/global-results.csv", index=False)
+    # # Plot
+    # plot(df*100, output=f"{exp_id}/results.pdf",
+    #      plot_rs=args.all, show=False)
+    # # Save data
+    # df.to_csv(f"{exp_id}/global-results.csv", index=False)
 
     print(f"================================================")
