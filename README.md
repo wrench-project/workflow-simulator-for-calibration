@@ -7,15 +7,15 @@ This simulator takes as input a single JSON file. The file `data/sample_input.js
 The calibration is compatible with `Python <= 3.9`. Your first need to install DeepHyper:
 
 ```bash
-python3.9 -m pip install deephyper
+python3.9 -m pip install -r calibration/requirements.txt
 ```
 
 > Note that Python 3.10 breaks several things and is not yet supported.
 
-Then, to launch a simple exploration with 10 iterations, using a [Ray](https://www.ray.io/) backend, you can run:
+To launch a simple exploration with `10` iterations, using [Ray](https://www.ray.io/) as distributed backend, you can run:
 
 ```bash
-./calibration/calibrate.py --config calibration/config.json --iter 10 --all
+./calibration/calibrate.py --config calibration/config.json --iter 10
 ```
 
 > By default, the script will detect the number of _physical_ cores and use that number to set up the number of workers.
@@ -34,7 +34,7 @@ Best error:
 ================================================
 ```
 
-The script `calibrate.py` creates a directory named `exp-{ID}` (`ID` is a random UUID) that contains several files:
+`calibrate.py` creates a directory named `exp-{ID}` (`ID` is a random UUID) that contains several files:
 
 + **results.csv**: This file contains a summary of the _error_ reached for each method used. You also have a PDF plot with the same name;
 + **best-bo.json**:  The best configuration found by the Bayesian Optimization process as a JSON;

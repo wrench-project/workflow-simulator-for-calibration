@@ -543,7 +543,7 @@ if __name__ == "__main__":
                         type=pathlib.Path, required=True,
                         help='Path for the JSON configuration file')
 
-    parser.add_argument('--iterations', '-i', dest='iter', action='store',
+    parser.add_argument('--iter', '-i', dest='iter', action='store',
                         type=int, default=1,
                         help='Number of iterations for DeepHyper'
                         )
