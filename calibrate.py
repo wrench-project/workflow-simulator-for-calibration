@@ -10,9 +10,10 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import pathlib
 import pandas as pd
+from os import mkdir, remove
+from math import isnan
 from psutil import cpu_count
 from shutil import copyfile
 from functools import reduce
@@ -21,12 +22,12 @@ from uuid import uuid4
 from argparse import ArgumentParser
 from warnings import filterwarnings
 from typing import Dict, List, Any, Union, Type, Tuple
-from deephyper.search.hps import AMBS
-from deephyper.evaluator.callback import LoggerCallback
+from deephyper.search.hps import CBO
+from deephyper.evaluator.callback import TqdmCallback, LoggerCallback
 from deephyper.evaluator import Evaluator
 from deephyper.problem import HpProblem
-import ConfigSpace as CS
-import ConfigSpace.hyperparameters as CSH
+from ConfigSpace import EqualsCondition
+from ConfigSpace.hyperparameters import CategoricalHyperparameter, UniformIntegerHyperparameter
 import matplotlib.pyplot as plt
 
 plt.rcParams.update({
@@ -111,9 +112,9 @@ def get_val_with_unit(path: List[str], val: any) -> str:
     elif "OVERHEAD" in path[-1] or "DELAY" in path[-1]:
         updated_val = str(2**int(val))+"ms"
     elif "BUFFER_SIZE" in path[-1]:
-        updated_val = "infinity" if val == "nan" else str(2**int(val))
+        updated_val = "infinity" if isnan(val) else str(2**int(val))
     elif "MAX_NUM_CONCURRENT_DATA_CONNECTIONS" in path[-1]:
-        updated_val = "infinity" if val == "nan" else str(int(val))
+        updated_val = "infinity" if isnan(val) else str(int(val))
     else:
         try:
             updated_val = str(2**int(val))
@@ -161,11 +162,8 @@ def setup_configuration(config: Dict) -> Dict:
 def worker(config: Dict) -> float:
     err = 0.0
     config_path = pathlib.Path(
-        f"{config['output_dir']}/config-{config['id']}.json").resolve()
+        f"{config['output_dir']}/config-{config['job_id']}.json").resolve()
     wrench_conf: Dict = setup_configuration(config)
-
-    # if config['id'] == 1:
-    #     print(json.dump(wrench_conf))
 
     with open(config_path, 'w') as temp_config:
         json_config = json.dumps(wrench_conf, indent=4)
@@ -178,11 +176,11 @@ def worker(config: Dict) -> float:
     except (CalledProcessError, FileNotFoundError) as e:
         print(f"[Error] Try to run: {' '.join(cmd)}")
         raise e
-    # finally:
-    #     try:
-    #         os.remove(config_path)
-    #     except OSError as e:
-    #         exit(-1)
+    finally:
+        try:
+            remove(config_path)
+        except OSError as e:
+            exit(-1)
 
     return -(err**2)
 
@@ -251,11 +249,6 @@ class Calibrator(object):
 
         self.consider_payloads = consider_payloads
         self.consider_properties = consider_properties
-        # # Add  parameters to the search space
-        # if self.consider_payloads:
-        #     self.add_payloads_parameters()
-        # if self.consider_properties:
-        #     self.add_properties_parameters()
 
         # define the evaluator to distribute the computation
         self.evaluator = Evaluator.create(
@@ -264,7 +257,7 @@ class Calibrator(object):
             method_kwargs={
                 "num_cpus": self.num_cpus,
                 "num_cpus_per_task": self.num_cpus_per_task,
-                "callbacks": [LoggerCallback()]
+                "callbacks": [LoggerCallback(), TqdmCallback()]
             },
         )
         self.logger.info(
@@ -275,7 +268,7 @@ class Calibrator(object):
 
         if self.random_search:
             # When surrogate_model=DUMMY it performs a Random Search
-            self.search = AMBS(
+            self.search = CBO(
                 problem=self.problem,
                 evaluator=self.evaluator,
                 n_jobs=self.n_jobs,
@@ -283,7 +276,7 @@ class Calibrator(object):
                 log_dir=self.output_dir
             )
         else:
-            self.search = AMBS(
+            self.search = CBO(
                 problem=self.problem,
                 evaluator=self.evaluator,
                 n_jobs=self.n_jobs,
@@ -322,31 +315,33 @@ class Calibrator(object):
                 # Model the concurrent access/buffer size with two variables:
                 # - inf or not inf
                 #   - if not inf we pick a discrete value between MIN and MAX
-                buffer_size_categorical = CSH.CategoricalHyperparameter(
+                buffer_size_categorical = CategoricalHyperparameter(
                     "CAT_"+name, choices=["infinity", "finite"])
                 # Express as power of 2^x : if range goes to 8 to 10 then the values will range from 2^8 to 2^10
-                buffer_size_discrete = CSH.UniformIntegerHyperparameter(
+                buffer_size_discrete = UniformIntegerHyperparameter(
                     name, lower=MIN_BUFFER_SIZE, upper=MAX_BUFFER_SIZE, log=False)
                 self.problem.add_hyperparameter(
                     buffer_size_categorical)
                 self.problem.add_hyperparameter(
                     buffer_size_discrete)
                 # If we choose "finite" then we sample a discrete value for the buffer size
-                self.problem.add_condition(CS.EqualsCondition(
+                self.problem.add_condition(EqualsCondition(
                     buffer_size_discrete, buffer_size_categorical, "finite"))
             elif "MAX_NUM_CONCURRENT_DATA_CONNECTIONS" == l[-1]:
-                conc_conn_categorical = CSH.CategoricalHyperparameter(
+                conc_conn_categorical = CategoricalHyperparameter(
                     "CAT_"+name, choices=["infinity", "finite"])
-                conc_conn_discrete = CSH.UniformIntegerHyperparameter(
+                conc_conn_discrete = UniformIntegerHyperparameter(
                     name, lower=MIN_CONCURRENT_DATA_CONNECTIONS, upper=MAX_CONCURRENT_DATA_CONNECTIONS, log=False)
                 self.problem.add_hyperparameter(conc_conn_categorical)
                 self.problem.add_hyperparameter(conc_conn_discrete)
-                self.problem.add_condition(CS.EqualsCondition(
+                self.problem.add_condition(EqualsCondition(
                     conc_conn_discrete, conc_conn_categorical, "finite"))
         else:
-            print(f"Warning: did not find how to add parameter {name}")
+            logger.warn(f"Did not find how to add parameter {name}")
             return None
-        #print(f"Added parameter {name} for calibration.")
+        
+        logger.info(f"Added parameter {line[-1]} for calibration.")
+
 
     def add_parameters(self):
         self.problem.add_hyperparameter([str(self.simulator)], "simulator")
@@ -415,11 +410,11 @@ class Calibrator(object):
         self.df = self.search.search(max_evals=self.max_evals, timeout=self.timeout)
 
         # Clean the dataframe and re-ordering the columns
-        self.df["workflow"] = self.df.apply(lambda row: pathlib.Path(
-            pathlib.Path(row["workflow"]).name).stem, axis=1)
+        # self.df["workflow"] = self.df.apply(lambda row: pathlib.Path(
+        #     pathlib.Path(row["workflow"]).name).stem, axis=1)
 
         self.df = self.df.drop(self.df.filter(
-            regex='BUFFER_SIZE_CAT|MAX_NUM_CONCURRENT_CAT|simulator').columns, axis=1)
+            regex='CAT.*|simulator').columns, axis=1)
 
         cols = self.df.columns.tolist()
 
@@ -438,38 +433,36 @@ class Calibrator(object):
         return self.df
 
     """
-        Return the best payloads configurations found
+        Return the best configuration
     """
 
-    def get_best_config(self) -> JSON:
+    def get_best_row(self) -> pd.DataFrame | None:
         if self.df.empty:
             return None
 
         i_max = self.df.objective.argmax()
-        best_config = {}
-        best_config["wrench"] = {}
-        best_config["property"] = {}
 
-        for k, val in self.df.iloc[i_max].to_dict().items():
-            l = k.split('::')
-            if l[0] in ["platform", "workflow", "simulator", "container"]:
-                best_config[l[0]] = str(val)
-            elif l[0] == "wrench":
-                if 'ServiceMessagePayload' in l[1]:
-                    if l[1] not in best_config["wrench"]:
-                        best_config["wrench"][l[1]] = {}
-                    best_config["wrench"][l[1]][l[2]] = str(2**int(val))
-                elif 'ServiceProperty' in l[1]:
-                    if l[1] not in best_config["property"]:
-                        best_config["property"][l[1]] = {}
-                    if pd.isna(val) or val == "infinity":
-                        best_config["property"][l[1]][l[2]] = "infinity"
-                    elif 'BATCH_SCHEDULING_ALGORITHM' in l[2] or 'TASK_SELECTION_ALGORITHM' in l[2]:
-                        best_config["property"][l[1]][l[2]] = val
-                    else:
-                        best_config["property"][l[1]][l[2]] = str(2**int(val))
+        return self.df.iloc[i_max]
 
-        return best_config
+    """
+        Return the best configuration found as a JSON
+    """
+
+    def get_best_config_json(self) -> JSON:
+        if self.df.empty:
+            return None
+
+        i_max = self.df.objective.argmax()
+        data = self.df.iloc[i_max].to_dict()
+
+        conf = setup_configuration(data)
+
+        conf["calibration"] = {}
+        conf["calibration"]["objective"] = str(abs(data["objective"])**0.5)
+        conf["calibration"]["timestamp_submit"] = str(data["timestamp_submit"])
+        conf["calibration"]["timestamp_gather"] = str(data["timestamp_gather"])
+
+        return conf
 
     """
         Write the data frame into a CSV
@@ -486,11 +479,13 @@ class Calibrator(object):
     """
 
     def plot(self, show: bool = False):
-        plt.plot(self.df.objective,
-                 label='Objective',
-                 marker='o',
-                 color="blue",
-                 lw=2)
+        plt.plot(
+            self.df.objective,
+            label='Objective',
+            marker='o',
+            color="blue",
+            lw=2
+        )
 
         plt.grid(True)
         plt.xlabel("Iterations")
@@ -505,18 +500,22 @@ class Calibrator(object):
 """
 
 def plot(df: pd.DataFrame, output: str, plot_rs: bool = True, show: bool = False):
-    plt.plot(df.err_bo,
-             label='Bayesian Optimization',
-             marker='o',
-             color="blue",
-             lw=1)
+    plt.plot(
+        df.err_bo,
+        label='Bayesian Optimization',
+        marker='o',
+        color="blue",
+        lw=1
+    )
 
     if plot_rs:
-        plt.plot(df.err_rs,
-                 label='Random Search',
-                 marker='x',
-                 color="red",
-                 lw=1)
+        plt.plot(
+            df.err_rs,
+            label='Random Search',
+            marker='x',
+            color="red",
+            lw=1
+        )
 
     filename = str(pathlib.Path(output).stem)
     if filename[-1] == '.':
@@ -572,12 +571,11 @@ if __name__ == "__main__":
         logger.error(f"Configuration file '{args.conf}' is a directory.")
         exit(1)
 
-
     # We use shorter UUID for clarity
     exp_id = "exp-"+str(uuid4()).split('-')[-1]
 
     try:
-        os.mkdir(exp_id)
+        mkdir(exp_id)
     except OSError as e:
         print(e)
         exit(1)
@@ -600,17 +598,16 @@ if __name__ == "__main__":
     # # # bayesian.plot(show=False)
     df_bayesian = bayesian.get_dataframe()
     # # # print(df_bayesian)
-    # # best_config = bayesian.get_best_config()
-    # # print(best_config)
+    best_config = bayesian.get_best_config_json()
+    bayesian.write_json(best_config, f"{exp_id}/best-bo.json")
 
-    # bayesian.write_json(best_config, f"{exp_id}/best-bo.json")
-
-    df = pd.DataFrame({
-        'exp': exp_id,
-        'id': df_bayesian["id"],
-        'worklow': df_bayesian['workflow'][0],
-        'err_bo': df_bayesian["objective"].abs()
-    }
+    df = pd.DataFrame(
+        {
+            'exp_id': exp_id,
+            'job_id': df_bayesian['job_id'],
+            'worklow': df_bayesian['workflow'][0],
+            'err_bo': df_bayesian["objective"].abs()**0.5
+        }
     )
 
     if args.all:
@@ -627,19 +624,20 @@ if __name__ == "__main__":
 
         baseline.launch()
         df_baseline = baseline.get_dataframe()
-        # best_config = baseline.get_best_config()
-        # baseline.write_json(best_config, f"{exp_id}/best-rs.json")
+        best_config = baseline.get_best_config_json()
+        baseline.write_json(best_config, f"{exp_id}/best-rs.json")
 
-        df = pd.DataFrame({
-            'exp': exp_id,
-            'id': df_bayesian["id"],
-            'worklow': df_bayesian['workflow'][0],
-            'err_bo': df_bayesian["objective"].abs(),
-            'err_rs': df_baseline["objective"].abs()
-        }
+        df = pd.DataFrame(
+            {
+                'exp_id': exp_id,
+                'job_id': df_bayesian["job_id"],
+                'worklow': df_bayesian['workflow'][0],
+                'err_bo': df_bayesian["objective"].abs()**0.5,
+                'err_rs': df_baseline["objective"].abs()**0.5,
+            }
         )
 
-    print(f"================================================")
+    print(f"\n================================================")
     print(f"=============== {exp_id} ===============")
     print(f"================================================")
     print(f"Best error:")
@@ -649,10 +647,10 @@ if __name__ == "__main__":
         print("\tRandom Search - baseline (RS): {:.3%}".format(
             min(df['err_rs'])))
 
-    # # Plot
-    # plot(df*100, output=f"{exp_id}/results.pdf",
-    #      plot_rs=args.all, show=False)
-    # # Save data
-    # df.to_csv(f"{exp_id}/global-results.csv", index=False)
+    # Plot
+    plot(df*100, output=f"{exp_id}/results.pdf",
+         plot_rs=args.all, show=False)
+    # Save data
+    df.to_csv(f"{exp_id}/global-results.csv", index=False)
 
     print(f"================================================")
