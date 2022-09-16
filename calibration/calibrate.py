@@ -44,9 +44,7 @@ SCHEMES = {"error": "error_computation_scheme",
 # Some values are expressed as power of 2 to reduce the space of solutions:
 #   if MAX_PAYLOADS_VAL = 5 and MIN_PAYLOADS_VAL=0 then we the space explored will consist of [1, 2, 4, 8, 16, 32]
 
-########### General parameters ###########
-MIN_REF_FLOPS = 3      # min is 2^3 = 8 Gflops
-MAX_REF_FLOPS = 8      # max is 2^8 = 256 Gflops
+########### General parameters ###################
 MIN_SCHED_OVER = 0     # min is 2^0 = 1 ms
 MAX_SCHED_OVER = 10    # max is 2^10 = 1024 ms
 ########### Platform-related parameters ###########
@@ -69,8 +67,6 @@ MIN_BUFFER_SIZE = 20
 MAX_BUFFER_SIZE = 30
 MIN_CONCURRENT_DATA_CONNECTIONS = 1
 MAX_CONCURRENT_DATA_CONNECTIONS = 64
-# # Warning: only makes sense if SCHEDULING_ALGO = "fcfs" (cf WRENCH documentation)
-# HOST_SELECTION_ALGORITHM = ["FIRSTFIT", "BESTFIT", "ROUNDROBIN"]
 ###################################################
 SAMPLING = "uniform"
 ###################################################
@@ -133,8 +129,7 @@ def setup_configuration(config: Dict) -> Dict:
 
     wrench_conf["workflow"] = {}
     wrench_conf["workflow"]["file"] = config["workflow"]
-    wrench_conf["workflow"]["reference_flops"] = str(
-        2**int(config["reference_flops"]))+"Gf"
+    wrench_conf["workflow"]["reference_flops"] = str(config["reference_flops"])
 
     wrench_conf["scheduling_overhead"] = str(
         2**int(config["scheduling_overhead"]))+"ms"
@@ -352,8 +347,7 @@ class Calibrator(object):
             self.problem.add_hyperparameter(
                 [self.simulator_config[scheme]], scheme)
 
-        self.problem.add_hyperparameter(
-            (MIN_REF_FLOPS, MAX_REF_FLOPS, SAMPLING), "reference_flops")
+        self.problem.add_hyperparameter([str(self.simulator_config["workflow"]["reference_flops"])], "reference_flops")
         self.problem.add_hyperparameter(
             (MIN_SCHED_OVER, MAX_SCHED_OVER, SAMPLING), "scheduling_overhead")
 
