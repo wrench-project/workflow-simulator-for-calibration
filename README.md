@@ -12,7 +12,7 @@ python3.9 -m pip install -r calibration/requirements.txt
 
 > Note that Python 3.10 breaks several things and is not yet supported.
 
-To launch a simple exploration with `10` iterations, using [Ray](https://www.ray.io/) as distributed backend, you can run:
+To launch a simple exploration with `10` iterations, using [Ray](https://www.ray.io/) as distributed back-end, you can run:
 
 ```bash
 ./calibration/calibrate.py --config calibration/config.json --iter 10
@@ -20,7 +20,7 @@ To launch a simple exploration with `10` iterations, using [Ray](https://www.ray
 
 > By default, the script will detect the number of _physical_ cores and use that number to set up the number of workers.
 
-Note that, when providing the flag `--all`, the script `calibrate.py` will perform two consecutives calibrations, one using **bayesian optimization (BO)** and one using a naive **random search (RS)** approach.
+Note that, when providing the flag `--all`, the script `calibrate.py` will perform two consecutive calibrations, one using **Bayesian optimization (BO)** and one using a naive **random search (RS)** approach.
 
 As result, you should get something similar to this:
 
