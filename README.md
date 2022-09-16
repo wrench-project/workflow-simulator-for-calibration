@@ -40,5 +40,6 @@ Best error:
 + **best-bo.json**:  The best configuration found by the Bayesian Optimization process as a JSON;
 + **bo.csv**:  This CSV file contains a line for each iteration ran by DeepHyper when using _Bayesian Optimization_ with the objective function value (i.e., simulator makespan) and the parameters values (payloads and properties);
 + **rs.csv**: This file is similar to **bo.csv** except that it contains data from the exploration when using _Random Search_. You have to use the flag `--all` to generate this file. This method is used as baseline comparison for other methods.
++ **best-rs.json**:  The best configuration found by the _Random Search_ process as a JSON;
 
 > Note that you can re-run the simulator with the best configuration found by DeepHyper with `./workflow-simulator-for-calibration exp-{ID}/best-bo.json`.
