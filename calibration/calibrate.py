@@ -1,4 +1,5 @@
-#!/usr/bin/env python3.9
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2022. Loïc Pottier <lpottier@isi.edu>
 #
@@ -7,6 +8,12 @@
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 from __future__ import annotations
+import sys
+
+if sys.version_info[0] != 3 or sys.version_info[1] >= 10:
+    print(
+        f"ERROR: This script requires Python <3.10, >=3.7. You are using Python {sys.version_info[0]}.{sys.version_info[1]}")
+    sys.exit(-1)
 
 import json
 import logging
@@ -529,6 +536,7 @@ def plot(df: pd.DataFrame, output: str, plot_rs: bool = True, show: bool = False
 
 
 if __name__ == "__main__":
+
     logger = configure_logger(level=logging.INFO)
 
     parser = ArgumentParser(
