@@ -123,7 +123,6 @@ namespace wrench {
                 }
 
                 if (!target_cs) {
-                    std::cerr << "COULDN'T FIND A RESOURCE FOR THIS TASK\n";
                     break; // couldn't schedule the task, for whatever reason
                 }
 
