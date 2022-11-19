@@ -12,7 +12,7 @@
 
     "scheduling_overhead": "10ms",
 
-    "compute_service_scheme": "htcondor_batch",
+    "compute_service_scheme": "all_bare_metal",
     "compute_service_scheme_parameters": {
         "all_bare_metal": {
             "submit_host": {
@@ -25,7 +25,7 @@
             },
             "compute_hosts": {
                 "num_hosts": "4",
-                "num_cores": "10",
+                "num_cores": "4",
                 "speed": "423Gf"
             },
             "properties": {

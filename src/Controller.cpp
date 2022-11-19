@@ -82,6 +82,14 @@ namespace wrench {
 
             // Submit each ready task as a single job
             auto ready_tasks = this->workflow->getReadyTasks();
+            std::sort(ready_tasks.begin(), ready_tasks.end(),
+                      [](const std::shared_ptr<wrench::WorkflowTask> &a, const std::shared_ptr<wrench::WorkflowTask> &b) -> bool {
+                if (a->getID() == b->getID()) {
+                    return (a.get() > b.get());
+                } else {
+                    return (a->getID() > b->getID());
+                }
+            });
 
             for (auto const &ready_task: ready_tasks) {
 
