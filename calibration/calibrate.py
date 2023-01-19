@@ -228,9 +228,8 @@ class Calibrator(object):
         if simu_ok[0]:
             self.logger.info(f"Success")
         else:
-            self.logger.error(f"Failed to run the simulator \
-                (make sure \'poseidon-sim\' exists, is in the $PATH \
-                    or that Docker is running)")
+            simu_name = self.config["simulator"]
+            self.logger.error(f"Failed to run the simulator (make sure that the simulator '{simu_name}' exists and is in the $PATH or that Docker is running)")
             exit(1)
         
         self.simulator_config: JSON = self._load_json(self.config["config"])

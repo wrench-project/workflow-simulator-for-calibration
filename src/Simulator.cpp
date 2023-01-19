@@ -173,7 +173,7 @@ wrench::WRENCH_PROPERTY_COLLECTION_TYPE get_properties(boost::json::object &json
 
     if (specs.contains(properties_key)) {
         for (const auto &prop : specs[properties_key].as_object()) {
-            auto property = wrench::ServiceProperty::translateString(prop.key().to_string());
+            auto property = wrench::ServiceProperty::translateString(prop.key());
             std::string property_value = boost::json::value_to<std::string>(prop.value());
             property_list[property] = property_value;
         }
@@ -191,7 +191,7 @@ wrench::WRENCH_MESSAGE_PAYLOADCOLLECTION_TYPE get_payloads(boost::json::object &
 
     if (specs.contains(payloads_key)) {
         for (const auto &pl : specs[payloads_key].as_object()) {
-            auto payload = wrench::ServiceMessagePayload::translateString(pl.key().to_string());
+            auto payload = wrench::ServiceMessagePayload::translateString(pl.key());
             double payload_value =  std::strtod(boost::json::value_to<std::string>(pl.value()).c_str(), nullptr);
             payload_list[payload] = payload_value;
         }
