@@ -111,7 +111,6 @@ def get_nested_default(d: dict, path: str):
 def set_nested(d: dict, path :str, value: str):
     get_nested_default(d, path[:-1])[path[-1]] = value
 
-
 def get_val_with_unit(path: List[str], val: any) -> str:
     updated_val = str(val)
     if path[-1] == "speed":
@@ -565,9 +564,9 @@ if __name__ == "__main__":
                         help='Path to the workflow (override the path in the config file)'
     )
 
-    parser.add_argument('--iter', '-i', dest='iter', action='store',
+    parser.add_argument('--iterations', '-i', dest='iter', action='store',
                         type=int, default=1,
-                        help='Number of iterations for DeepHyper'
+                        help='Number of iterations executed by DeepHyper'
     )
 
     parser.add_argument('--all', '-a', action='store_true',

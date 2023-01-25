@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 ###############################################################################
 #
-# Author: Loic Pottier <pottier1@llnl.gov>
+# Author: Loïc Pottier <pottier1@llnl.gov>
 #
 # This script takes a directory containing Pegasus submit dirs and convert all
 # Pegasus workflows into JSON representations compatible with WRENCH
@@ -14,9 +14,13 @@
 #           level_DEPTH/ -> the pegasus submit dir
 ###############################################################################
 
+usage() { 
+  echo "Usage: $0 [-d <path>]" 1>&2
+  exit 1
+}
+
 EXE="pegasus-submit-to-json.py"
 PYTHON="python3"
-DATA_ROOT_DIR="../../data"
 DEPTH="4"
 
 RED='\033[0;31m'
@@ -25,6 +29,32 @@ NC='\033[0m' # No Color
 
 i=1
 k=1
+
+while getopts ":d:" arg; do
+  case "${arg}" in
+    d)
+      DATA_ROOT_DIR=${OPTARG}
+      ;;
+    *)
+      usage
+      ;;
+  esac
+done
+
+shift $((OPTIND-1))
+if [ -z "${DATA_ROOT_DIR}" ]; then
+  usage
+fi
+
+echo -n "Directory: ${DATA_ROOT_DIR}"
+if [ -d "$DATA_ROOT_DIR" ]; then
+  echo -e " [ ${GREEN}OK${NC} ]"
+else
+  echo -ne " [${RED}FAIL${NC}]"
+  echo -e "\t -> This directory does not exist."
+  exit
+fi
+
 # We need that dependency
 ${PYTHON} -m pip --disable-pip-version-check -q install wfcommons
 
