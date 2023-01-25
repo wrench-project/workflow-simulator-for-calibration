@@ -19,8 +19,8 @@ if sys.version_info[0] != 3 or sys.version_info[1] >= 10:
 
 import json
 import logging
-import pathlib
 import pandas as pd
+from pathlib import Path
 import matplotlib.pyplot as plt
 
 from os import mkdir, remove
@@ -170,7 +170,9 @@ def setup_configuration(config: Dict) -> Dict:
 
 def worker(config: Dict) -> float:
     err = 0.0
-    config_path = pathlib.Path(
+    logger = logging.getLogger(__name__)
+
+    config_path = Path(
         f"{config['output_dir']}/config-{config['job_id']}.json").resolve()
     wrench_conf: Dict = setup_configuration(config)
 
@@ -179,17 +181,23 @@ def worker(config: Dict) -> float:
         temp_config.write(json_config)
     try:
         cmd = [config["simulator"], str(config_path)]
-        simulation = run(
-            cmd, capture_output=True, text=True, check=True)
+        simulation = run(cmd, capture_output=True, text=True)
+
+        if simulation.stderr != '' or simulation.stdout == '':
+            raise CalledProcessError(simulation.returncode, simulation.args)
+        simulation.check_returncode()
+
         err = float(simulation.stdout.strip().split(':')[2])
     except (CalledProcessError, FileNotFoundError) as e:
-        print(f"[Error] Try to run: {' '.join(cmd)}")
+        error = simulation.stderr.strip()
+        logger.error(error)
+        logger.error(f"To reproduce that error you can run: {' '.join(cmd)}")
         raise e
-    finally:
+    else:
         try:
             remove(config_path)
         except OSError as e:
-            exit(-1)
+            raise e
 
     return -(err**2)
 
@@ -200,8 +208,8 @@ class Calibrator(object):
     """
 
     def __init__(self,
-                 config: pathlib.Path,
-                 workflow: pathlib.Path = None,
+                 config: Path,
+                 workflow: Path = None,
                  random_search: bool = False,
                  max_evals: int = 100,
                  cores: int = None,
@@ -230,7 +238,7 @@ class Calibrator(object):
         # Number of jobs used to compute the surrogate model ( -1 means max possible)
         self.n_jobs = -1
 
-        self.simulator: pathlib.Path = pathlib.Path(self.config["simulator"]).resolve()
+        self.simulator: Path = Path(self.config["simulator"]).resolve()
 
         self.logger.info(f"Trying to run {self.simulator} --version...")
         simu_ok = self._test_simulator()
@@ -248,14 +256,19 @@ class Calibrator(object):
 
         # we can override the workflow in the config with --workflow
         if workflow:
-            self.workflow: pathlib.Path = pathlib.Path(workflow).resolve()
+            self.workflow: Path = Path(workflow).resolve()
         else:
-            self.workflow: pathlib.Path = pathlib.Path(self.simulator_config["workflow"]["file"]).resolve()
-        self.logger.info(f"Calibrating {self.workflow}")
+            self.workflow: Path = Path(self.simulator_config["workflow"]["file"]).resolve()
         
+        if Path.is_file(self.workflow):
+            self.logger.info(f"Calibrating {self.workflow}")
+        else:
+            self.logger.error(f"The file {self.workflow} does not exist.")
+            exit(1)
+
         self.df: pd.DataFrame = {}  # Result
         if self.output_dir:
-            self.csv_output: pathlib.Path = pathlib.Path(self.output_dir)
+            self.csv_output: Path = Path(self.output_dir)
         else:
             self.output_dir = '.'
 
@@ -404,7 +417,7 @@ class Calibrator(object):
         Load the JSON file that define the experiments
     """
 
-    def _load_json(self, path: pathlib.Path) -> JSON:
+    def _load_json(self, path: Path) -> JSON:
         with open(path, 'r') as stream:
             return json.load(stream)
 
@@ -412,7 +425,7 @@ class Calibrator(object):
         Write a dict in a JSON file
     """
 
-    def write_json(self, data: JSON, path: pathlib.Path) -> None:
+    def write_json(self, data: JSON, path: Path) -> None:
         with open(path, 'w') as f:
             json_data = json.dumps(data, indent=4)
             f.write(json_data)
@@ -425,8 +438,8 @@ class Calibrator(object):
         self.df = self.search.search(max_evals=self.max_evals, timeout=self.timeout)
 
         # Clean the dataframe and re-ordering the columns
-        # self.df["workflow"] = self.df.apply(lambda row: pathlib.Path(
-        #     pathlib.Path(row["workflow"]).name).stem, axis=1)
+        # self.df["workflow"] = self.df.apply(lambda row: Path(
+        #     Path(row["workflow"]).name).stem, axis=1)
 
         self.df = self.df.drop(self.df.filter(
             regex='CAT.*|simulator').columns, axis=1)
@@ -532,13 +545,13 @@ def plot(df: pd.DataFrame, output: str, plot_rs: bool = True, show: bool = False
             lw=1
         )
 
-    filename = str(pathlib.Path(output).stem)
+    filename = str(Path(output).stem)
     if filename[-1] == '.':
         filename = filename + "pdf"
     else:
         filename = filename + ".pdf"
 
-    path = pathlib.Path(output).parent / pathlib.Path(filename)
+    path = Path(output).parent / Path(filename)
 
     plt.grid(True)
     plt.xlabel("Iterations")
@@ -555,12 +568,12 @@ if __name__ == "__main__":
 
     parser = ArgumentParser(description='Calibrate a WRENCH simulator using DeepHyper.')
     parser.add_argument('--config', '-c', dest='conf', action='store',
-                        type=pathlib.Path, required=True,
+                        type=Path, required=True,
                         help='Path to the JSON configuration file'
     )
 
     parser.add_argument('--workflow', '-w', dest='workflow', action='store',
-                        type=pathlib.Path, required=False,
+                        type=Path, required=False,
                         help='Path to the workflow (override the path in the config file)'
     )
 
