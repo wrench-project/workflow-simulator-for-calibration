@@ -1,6 +1,11 @@
 # Workflow-execution simulator used for simulation calibration experiments
 
-This simulator takes as input a single JSON file. The file `data/sample_input.json` for and example input.
+This simulator takes as input a single JSON file. The file `data/sample_input.json` is a good example. For example:
+```bash
+./workflow-simulator-for-calibration data/sample_input.json
+```
+which should return 3 numbers formatted as `A:B:C`, where `A` is the simulated makespan computed by the simulator (in secondes),
+`B` is the real makepsan of the workflow, observed on a real platform (see `data/sample_workflow.json`), finally `C` is the relative error between `A` and `B` computed as $C=\frac{\left| A - B \right|}{B}$.
 
 ## How to calibrate a simulator
 
@@ -22,15 +27,15 @@ To launch a simple exploration with `10` iterations, using [Ray](https://www.ray
 
 Note that, when providing the flag `--all`, the script `calibrate.py` will perform two consecutive calibrations, one using **Bayesian optimization (BO)** and one using a naive **random search (RS)** approach.
 
-As result, you should get something similar to this:
+As result, you should get an output similar to this:
 
 ```bash
 ================================================
 =============== exp-b823c6aaee73 ===============
 ================================================
 Best error:
-        Bayesian Optimization    (BO): 12.693%
-        Random Search - baseline (RS): 5.059%
+        Bayesian Optimization    (BO): 5.059%
+        Random Search - baseline (RS): 12.693%
 ================================================
 ```
 
