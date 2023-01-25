@@ -1,6 +1,6 @@
 {
     "workflow": {
-        "file": "/tmp/sample_workflow.json",
+        "file": "data/sample_workflow.json",
         "reference_flops": "100Mf"
     },
 

@@ -1,24 +1,28 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2022. Loïc Pottier <lpottier@isi.edu>
+# Copyright (c) 2022. Loïc Pottier <pottier1@llnl.gov>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
+
 from __future__ import annotations
 import sys
 
 if sys.version_info[0] != 3 or sys.version_info[1] >= 10:
     print(
-        f"ERROR: This script requires Python <3.10, >=3.7. You are using Python {sys.version_info[0]}.{sys.version_info[1]}")
+        f"ERROR: This script requires Python <3.10, >=3.7. \
+        You are using Python {sys.version_info[0]}.{sys.version_info[1]}")
     sys.exit(-1)
 
 import json
 import logging
 import pathlib
 import pandas as pd
+import matplotlib.pyplot as plt
+
 from os import mkdir, remove
 from math import isnan
 from psutil import cpu_count
@@ -29,13 +33,13 @@ from uuid import uuid4
 from argparse import ArgumentParser
 from warnings import filterwarnings
 from typing import Dict, List, Any, Union, Type, Tuple
+
 from deephyper.search.hps import CBO
-from deephyper.evaluator.callback import TqdmCallback, LoggerCallback
+from deephyper.evaluator.callback import LoggerCallback
 from deephyper.evaluator import Evaluator
 from deephyper.problem import HpProblem
 from ConfigSpace import EqualsCondition
 from ConfigSpace.hyperparameters import CategoricalHyperparameter, UniformIntegerHyperparameter
-import matplotlib.pyplot as plt
 
 plt.rcParams.update({
     "text.usetex": True,
@@ -49,38 +53,42 @@ SCHEMES = {"error": "error_computation_scheme",
            "network": "network_topology_scheme"}
 
 # Some values are expressed as power of 2 to reduce the space of solutions:
-#   if MAX_PAYLOADS_VAL = 5 and MIN_PAYLOADS_VAL=0 then we the space explored will consist of [1, 2, 4, 8, 16, 32]
+#   if MAX_PAYLOADS_VAL = 5 and MIN_PAYLOADS_VAL=0 then we the space explored 
+#   will consist of [1, 2, 4, 8, 16, 32]
 
-########### General parameters ###################
-MIN_SCHED_OVER = 0     # min is 2^0 = 1 ms
-MAX_SCHED_OVER = 10    # max is 2^10 = 1024 ms
-########### Platform-related parameters ###########
-MIN_CORES = 0          # min is 2^3 = 1 core/host
-MAX_CORES = 8          # max is 2^8 = 256 core/host
-MIN_HOSTS = 0          # min is 2^3 = 1 host
-MAX_HOSTS = 7          # max is 2^8 = 256 hosts
-MIN_PROC_SPEED = 3     # min is 2^3 = 8 Gflops
-MAX_PROC_SPEED = 8     # max is 2^8 = 256 Gflops
-MIN_BANDWIDTH = 6      # min is 2^6 = 64 MBps
-MAX_BANDWIDTH = 17     # max is 2^17 = 128 GBps
-MIN_LATENCY = 0        # min is 2^0 = 1 us
-MAX_LATENCY = 12       # max is 2^12 = 4096 us
-########### Payloads-related parameters ###########
-MIN_PAYLOADS_VAL = 0   # min is 2^0 = 1 B
-MAX_PAYLOADS_VAL = 20  # max is 2^20 = 1024 KB
-########## Properties-related parameters ##########
-SCHEDULING_ALGO = ["fcfs", "conservative_bf", "conservative_bf_core_level"]
-MIN_BUFFER_SIZE = 20
-MAX_BUFFER_SIZE = 30
+######################## General parameters ###########################
+MIN_SCHED_OVER                  = 0        # min is 2^0 = 1 ms
+MAX_SCHED_OVER                  = 10       # max is 2^10 = 1024 ms
+#################### Platform-related parameters ######################
+MIN_CORES                       = 0        # min is 2^3 = 1 core/host
+MAX_CORES                       = 8        # max is 2^8 = 256 core/host
+MIN_HOSTS                       = 0        # min is 2^3 = 1 host
+MAX_HOSTS                       = 7        # max is 2^8 = 256 hosts
+MIN_PROC_SPEED                  = 3        # min is 2^3 = 8 Gflops
+MAX_PROC_SPEED                  = 8        # max is 2^8 = 256 Gflops
+MIN_BANDWIDTH                   = 6        # min is 2^6 = 64 MBps
+MAX_BANDWIDTH                   = 17       # max is 2^17 = 128 GBps
+MIN_LATENCY                     = 0        # min is 2^0 = 1 us
+MAX_LATENCY                     = 12       # max is 2^12 = 4096 us
+#################### Payloads-related parameters ######################
+MIN_PAYLOADS_VAL                = 0        # min is 2^0 = 1 B
+MAX_PAYLOADS_VAL                = 20       # max is 2^20 = 1024 KB
+#################### Properties-related parameters ####################
+SCHEDULING_ALGO                 = ["fcfs", 
+                                   "conservative_bf", 
+                                   "conservative_bf_core_level"]
+MIN_BUFFER_SIZE                 = 20
+MAX_BUFFER_SIZE                 = 30
 MIN_CONCURRENT_DATA_CONNECTIONS = 1
 MAX_CONCURRENT_DATA_CONNECTIONS = 64
-###################################################
+#######################################################################
 SAMPLING = "uniform"
-###################################################
+#######################################################################
 
 JSON = Union[Dict[str, Any], List[Any], int, str, float, bool, Type[None]]
 
-# To shutdown  FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.
+# To shutdown  FutureWarning: The frame.append method is deprecated 
+# and will be removed from pandas in a future version. Use pandas.concat instead.
 filterwarnings("ignore", category=FutureWarning)
 
 def configure_logger(level: int = logging.INFO) -> logging.Logger:
@@ -258,7 +266,7 @@ class Calibrator(object):
             method_kwargs={
                 "num_cpus": self.num_cpus,
                 "num_cpus_per_task": self.num_cpus_per_task,
-                "callbacks": [LoggerCallback(), TqdmCallback()]
+                "callbacks": [LoggerCallback()] #, TqdmCallback()
             },
         )
         self.logger.info(
@@ -281,6 +289,7 @@ class Calibrator(object):
                 problem=self.problem,
                 evaluator=self.evaluator,
                 n_jobs=self.n_jobs,
+                surrogate_model="RF",
                 log_dir=self.output_dir
             )
 

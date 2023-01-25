@@ -407,7 +407,7 @@ int main(int argc, char **argv) {
     }
 
     double simulated_makespan = workflow->getCompletionDate();
-    double err = std::fabs(observed_real_makespan - simulated_makespan) / simulated_makespan;
+    double err = std::fabs(observed_real_makespan - simulated_makespan) / observed_real_makespan;
 
     std::cout << simulated_makespan << ":" << observed_real_makespan << ":" << err << std::endl;
 
