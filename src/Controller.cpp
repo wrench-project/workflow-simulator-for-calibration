@@ -100,15 +100,29 @@ namespace wrench {
                 std::map<std::string, std::string> service_specific_arguments;
 
                 if (this->compute_service_scheme == "all_bare_metal") {
+                    std::vector<std::shared_ptr<wrench::ComputeService>> possibles;
                     for (auto const &avail : this->core_availability) {
                         auto cs = avail.first;
                         auto count = avail.second;
                         if (count > 0) {
                             core_availability[cs] = count - 1;
-                            target_cs = cs;
-                            break;
+                            possibles.push_back(cs);
                         }
                     }
+                    std::sort(possibles.begin(), possibles.end(),
+                              [](const std::shared_ptr<wrench::ComputeService> &a, const std::shared_ptr<wrench::ComputeService> &b) -> bool {
+                                  if (a->getName() == b->getName()) {
+                                      return (a.get() > b.get());
+                                  } else {
+                                      return (a->getName() > b->getName());
+                                  }
+                              });
+                    if (possibles.empty()) {
+                        target_cs = nullptr;
+                    } else {
+                        target_cs = possibles.at(0);
+                    }
+
                     // Force on-core executions, just in case
                     service_specific_arguments[ready_task->getID()] = "1";
 
