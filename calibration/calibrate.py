@@ -1,24 +1,28 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2022. Loïc Pottier <lpottier@isi.edu>
+# Copyright (c) 2022. Loïc Pottier <pottier1@llnl.gov>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
+
 from __future__ import annotations
 import sys
 
 if sys.version_info[0] != 3 or sys.version_info[1] >= 10:
     print(
-        f"ERROR: This script requires Python <3.10, >=3.7. You are using Python {sys.version_info[0]}.{sys.version_info[1]}")
+        f"ERROR: This script requires Python <3.10, >=3.7. \
+        You are using Python {sys.version_info[0]}.{sys.version_info[1]}")
     sys.exit(-1)
 
 import json
 import logging
-import pathlib
 import pandas as pd
+from pathlib import Path
+import matplotlib.pyplot as plt
+
 from os import mkdir, remove
 from math import isnan
 from psutil import cpu_count
@@ -29,13 +33,13 @@ from uuid import uuid4
 from argparse import ArgumentParser
 from warnings import filterwarnings
 from typing import Dict, List, Any, Union, Type, Tuple
+
 from deephyper.search.hps import CBO
-from deephyper.evaluator.callback import TqdmCallback, LoggerCallback
+from deephyper.evaluator.callback import LoggerCallback
 from deephyper.evaluator import Evaluator
 from deephyper.problem import HpProblem
 from ConfigSpace import EqualsCondition
 from ConfigSpace.hyperparameters import CategoricalHyperparameter, UniformIntegerHyperparameter
-import matplotlib.pyplot as plt
 
 plt.rcParams.update({
     "text.usetex": True,
@@ -49,38 +53,42 @@ SCHEMES = {"error": "error_computation_scheme",
            "network": "network_topology_scheme"}
 
 # Some values are expressed as power of 2 to reduce the space of solutions:
-#   if MAX_PAYLOADS_VAL = 5 and MIN_PAYLOADS_VAL=0 then we the space explored will consist of [1, 2, 4, 8, 16, 32]
+#   if MAX_PAYLOADS_VAL = 5 and MIN_PAYLOADS_VAL=0 then we the space explored 
+#   will consist of [1, 2, 4, 8, 16, 32]
 
-########### General parameters ###################
-MIN_SCHED_OVER = 0     # min is 2^0 = 1 ms
-MAX_SCHED_OVER = 10    # max is 2^10 = 1024 ms
-########### Platform-related parameters ###########
-MIN_CORES = 0          # min is 2^3 = 1 core/host
-MAX_CORES = 8          # max is 2^8 = 256 core/host
-MIN_HOSTS = 0          # min is 2^3 = 1 host
-MAX_HOSTS = 7          # max is 2^8 = 256 hosts
-MIN_PROC_SPEED = 3     # min is 2^3 = 8 Gflops
-MAX_PROC_SPEED = 8     # max is 2^8 = 256 Gflops
-MIN_BANDWIDTH = 6      # min is 2^6 = 64 MBps
-MAX_BANDWIDTH = 17     # max is 2^17 = 128 GBps
-MIN_LATENCY = 0        # min is 2^0 = 1 us
-MAX_LATENCY = 12       # max is 2^12 = 4096 us
-########### Payloads-related parameters ###########
-MIN_PAYLOADS_VAL = 0   # min is 2^0 = 1 B
-MAX_PAYLOADS_VAL = 20  # max is 2^20 = 1024 KB
-########## Properties-related parameters ##########
-SCHEDULING_ALGO = ["fcfs", "conservative_bf", "conservative_bf_core_level"]
-MIN_BUFFER_SIZE = 20
-MAX_BUFFER_SIZE = 30
+######################## General parameters ###########################
+MIN_SCHED_OVER                  = 0        # min is 2^0 = 1 ms
+MAX_SCHED_OVER                  = 10       # max is 2^10 = 1024 ms
+#################### Platform-related parameters ######################
+MIN_CORES                       = 0        # min is 2^3 = 1 core/host
+MAX_CORES                       = 8        # max is 2^8 = 256 core/host
+MIN_HOSTS                       = 0        # min is 2^3 = 1 host
+MAX_HOSTS                       = 7        # max is 2^8 = 256 hosts
+MIN_PROC_SPEED                  = 3        # min is 2^3 = 8 Gflops
+MAX_PROC_SPEED                  = 8        # max is 2^8 = 256 Gflops
+MIN_BANDWIDTH                   = 6        # min is 2^6 = 64 MBps
+MAX_BANDWIDTH                   = 17       # max is 2^17 = 128 GBps
+MIN_LATENCY                     = 0        # min is 2^0 = 1 us
+MAX_LATENCY                     = 12       # max is 2^12 = 4096 us
+#################### Payloads-related parameters ######################
+MIN_PAYLOADS_VAL                = 0        # min is 2^0 = 1 B
+MAX_PAYLOADS_VAL                = 20       # max is 2^20 = 1024 KB
+#################### Properties-related parameters ####################
+SCHEDULING_ALGO                 = ["fcfs", 
+                                   "conservative_bf", 
+                                   "conservative_bf_core_level"]
+MIN_BUFFER_SIZE                 = 20
+MAX_BUFFER_SIZE                 = 30
 MIN_CONCURRENT_DATA_CONNECTIONS = 1
 MAX_CONCURRENT_DATA_CONNECTIONS = 64
-###################################################
+#######################################################################
 SAMPLING = "uniform"
-###################################################
+#######################################################################
 
 JSON = Union[Dict[str, Any], List[Any], int, str, float, bool, Type[None]]
 
-# To shutdown  FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.
+# To shutdown  FutureWarning: The frame.append method is deprecated 
+# and will be removed from pandas in a future version. Use pandas.concat instead.
 filterwarnings("ignore", category=FutureWarning)
 
 def configure_logger(level: int = logging.INFO) -> logging.Logger:
@@ -102,7 +110,6 @@ def get_nested_default(d: dict, path: str):
 
 def set_nested(d: dict, path :str, value: str):
     get_nested_default(d, path[:-1])[path[-1]] = value
-
 
 def get_val_with_unit(path: List[str], val: any) -> str:
     updated_val = str(val)
@@ -163,7 +170,9 @@ def setup_configuration(config: Dict) -> Dict:
 
 def worker(config: Dict) -> float:
     err = 0.0
-    config_path = pathlib.Path(
+    logger = logging.getLogger(__name__)
+
+    config_path = Path(
         f"{config['output_dir']}/config-{config['job_id']}.json").resolve()
     wrench_conf: Dict = setup_configuration(config)
 
@@ -172,17 +181,23 @@ def worker(config: Dict) -> float:
         temp_config.write(json_config)
     try:
         cmd = [config["simulator"], str(config_path)]
-        simulation = run(
-            cmd, capture_output=True, text=True, check=True)
+        simulation = run(cmd, capture_output=True, text=True)
+
+        if simulation.stderr != '' or simulation.stdout == '':
+            raise CalledProcessError(simulation.returncode, simulation.args)
+        simulation.check_returncode()
+
         err = float(simulation.stdout.strip().split(':')[2])
     except (CalledProcessError, FileNotFoundError) as e:
-        print(f"[Error] Try to run: {' '.join(cmd)}")
+        error = simulation.stderr.strip()
+        logger.error(error)
+        logger.error(f"To reproduce that error you can run: {' '.join(cmd)}")
         raise e
-    finally:
+    else:
         try:
             remove(config_path)
         except OSError as e:
-            exit(-1)
+            raise e
 
     return -(err**2)
 
@@ -193,15 +208,16 @@ class Calibrator(object):
     """
 
     def __init__(self,
-                 config: pathlib.Path,
+                 config: Path,
+                 workflow: Path = None,
                  random_search: bool = False,
                  max_evals: int = 100,
+                 cores: int = None,
                  timeout: int = None,
                  consider_properties: bool = False,
                  consider_payloads: bool = False,
                  output_dir: str = None,
-                 logger: logging.Logger = None
-                 ) -> None:
+                 logger: logging.Logger = None) -> None:
 
         self.logger = logger if logger else logging.getLogger(__name__)
         self.config: JSON = self._load_json(config)
@@ -211,16 +227,18 @@ class Calibrator(object):
         self.output_dir = output_dir
 
         self.func = worker
-        self.num_cpus = min(self.max_evals, int(
-            cpu_count(logical=False)))
-        self.num_cpus_per_task = int(
-            cpu_count() // cpu_count(logical=False)
-        )
+        if cores:
+            self.num_cpus = cores
+            self.num_cpus_per_task = 1
+        else:
+            self.num_cpus = min(self.max_evals, int(cpu_count(logical=False)))
+            self.num_cpus_per_task = int(cpu_count() // int(cpu_count(logical=False)))
+
         self.backend = "ray"
         # Number of jobs used to compute the surrogate model ( -1 means max possible)
         self.n_jobs = -1
 
-        self.simulator: pathlib.Path = pathlib.Path(self.config["simulator"]).resolve()
+        self.simulator: Path = Path(self.config["simulator"]).resolve()
 
         self.logger.info(f"Trying to run {self.simulator} --version...")
         simu_ok = self._test_simulator()
@@ -228,21 +246,29 @@ class Calibrator(object):
         if simu_ok[0]:
             self.logger.info(f"Success")
         else:
-            self.logger.error(f"Failed to run the simulator \
-                (make sure \'poseidon-sim\' exists, is in the $PATH \
-                    or that Docker is running)")
+            simu_name = self.config["simulator"]
+            self.logger.error(f"Failed to run the simulator (make sure that the simulator '{simu_name}' exists and is in the $PATH or that Docker is running)")
             exit(1)
         
         self.simulator_config: JSON = self._load_json(self.config["config"])
 
         self.schemes: Dict = SCHEMES
 
-        self.workflow: pathlib.Path = pathlib.Path(
-            self.simulator_config["workflow"]["file"]).resolve()
+        # we can override the workflow in the config with --workflow
+        if workflow:
+            self.workflow: Path = Path(workflow).resolve()
+        else:
+            self.workflow: Path = Path(self.simulator_config["workflow"]["file"]).resolve()
         
+        if Path.is_file(self.workflow):
+            self.logger.info(f"Calibrating {self.workflow}")
+        else:
+            self.logger.error(f"The file {self.workflow} does not exist.")
+            exit(1)
+
         self.df: pd.DataFrame = {}  # Result
         if self.output_dir:
-            self.csv_output: pathlib.Path = pathlib.Path(self.output_dir)
+            self.csv_output: Path = Path(self.output_dir)
         else:
             self.output_dir = '.'
 
@@ -259,7 +285,7 @@ class Calibrator(object):
             method_kwargs={
                 "num_cpus": self.num_cpus,
                 "num_cpus_per_task": self.num_cpus_per_task,
-                "callbacks": [LoggerCallback(), TqdmCallback()]
+                "callbacks": [LoggerCallback()] #, TqdmCallback()
             },
         )
         self.logger.info(
@@ -282,6 +308,7 @@ class Calibrator(object):
                 problem=self.problem,
                 evaluator=self.evaluator,
                 n_jobs=self.n_jobs,
+                surrogate_model="RF",
                 log_dir=self.output_dir
             )
 
@@ -390,7 +417,7 @@ class Calibrator(object):
         Load the JSON file that define the experiments
     """
 
-    def _load_json(self, path: pathlib.Path) -> JSON:
+    def _load_json(self, path: Path) -> JSON:
         with open(path, 'r') as stream:
             return json.load(stream)
 
@@ -398,7 +425,7 @@ class Calibrator(object):
         Write a dict in a JSON file
     """
 
-    def write_json(self, data: JSON, path: pathlib.Path) -> None:
+    def write_json(self, data: JSON, path: Path) -> None:
         with open(path, 'w') as f:
             json_data = json.dumps(data, indent=4)
             f.write(json_data)
@@ -411,8 +438,8 @@ class Calibrator(object):
         self.df = self.search.search(max_evals=self.max_evals, timeout=self.timeout)
 
         # Clean the dataframe and re-ordering the columns
-        # self.df["workflow"] = self.df.apply(lambda row: pathlib.Path(
-        #     pathlib.Path(row["workflow"]).name).stem, axis=1)
+        # self.df["workflow"] = self.df.apply(lambda row: Path(
+        #     Path(row["workflow"]).name).stem, axis=1)
 
         self.df = self.df.drop(self.df.filter(
             regex='CAT.*|simulator').columns, axis=1)
@@ -459,7 +486,7 @@ class Calibrator(object):
         conf = setup_configuration(data)
 
         conf["calibration"] = {}
-        conf["calibration"]["objective"] = str(abs(data["objective"])**0.5)
+        conf["calibration"]["error"] = str(abs(data["objective"])**0.5)
         conf["calibration"]["timestamp_submit"] = str(data["timestamp_submit"])
         conf["calibration"]["timestamp_gather"] = str(data["timestamp_gather"])
 
@@ -518,13 +545,13 @@ def plot(df: pd.DataFrame, output: str, plot_rs: bool = True, show: bool = False
             lw=1
         )
 
-    filename = str(pathlib.Path(output).stem)
+    filename = str(Path(output).stem)
     if filename[-1] == '.':
         filename = filename + "pdf"
     else:
         filename = filename + ".pdf"
 
-    path = pathlib.Path(output).parent / pathlib.Path(filename)
+    path = Path(output).parent / Path(filename)
 
     plt.grid(True)
     plt.xlabel("Iterations")
@@ -539,30 +566,40 @@ if __name__ == "__main__":
 
     logger = configure_logger(level=logging.INFO)
 
-    parser = ArgumentParser(
-        description='Calibrate a WRENCH simulator using DeepHyper.')
+    parser = ArgumentParser(description='Calibrate a WRENCH simulator using DeepHyper.')
     parser.add_argument('--config', '-c', dest='conf', action='store',
-                        type=pathlib.Path, required=True,
-                        help='Path for the JSON configuration file')
+                        type=Path, required=True,
+                        help='Path to the JSON configuration file'
+    )
 
-    parser.add_argument('--iter', '-i', dest='iter', action='store',
+    parser.add_argument('--workflow', '-w', dest='workflow', action='store',
+                        type=Path, required=False,
+                        help='Path to the workflow (override the path in the config file)'
+    )
+
+    parser.add_argument('--iterations', '-i', dest='iter', action='store',
                         type=int, default=1,
-                        help='Number of iterations for DeepHyper'
-                        )
+                        help='Number of iterations executed by DeepHyper'
+    )
 
     parser.add_argument('--all', '-a', action='store_true',
                         help='Perform a benchmark by running the \
                             same auto-calibration procedure using Bayesian Optimization \
                             and Random Search'
-                        )
+    )
 
-    parser.add_argument('--properties', action='store_true',
+    parser.add_argument('--cores', '-x', dest='cores', action='store',
+                        type=int, required=False,
+                        help='Number of cores to use (by default all available)'
+    )
+
+    parser.add_argument('--properties', action='store_true', default=True,
                         help='Calibrate the simulator with properties.'
-                        )
+    )
 
-    parser.add_argument('--payloads', action='store_true',
+    parser.add_argument('--payloads', action='store_true', default=True,
                         help='Calibrate the simulator with payloads.'
-                        )
+    )
 
     args = parser.parse_args()
 
@@ -587,9 +624,11 @@ if __name__ == "__main__":
 
     bayesian = Calibrator(
         config=args.conf,
+        workflow=args.workflow,
         random_search=False,
         max_evals=args.iter,
         timeout=300,  # 5 min timeout
+        cores=args.cores,
         consider_payloads=args.payloads,
         consider_properties=args.properties,
         output_dir=exp_id,
@@ -597,9 +636,7 @@ if __name__ == "__main__":
     )
 
     bayesian.launch()
-    # # # bayesian.plot(show=False)
     df_bayesian = bayesian.get_dataframe()
-    # # # print(df_bayesian)
     best_config = bayesian.get_best_config_json()
     bayesian.write_json(best_config, f"{exp_id}/best-bo.json")
 
@@ -615,9 +652,11 @@ if __name__ == "__main__":
     if args.all:
         baseline = Calibrator(
             config=args.conf,
+            workflow=args.workflow,
             random_search=True,
             max_evals=args.iter,
             timeout=300,  # 5 min timeout
+            cores=args.cores,
             consider_payloads=args.payloads,
             consider_properties=args.properties,
             output_dir=exp_id,
