@@ -256,7 +256,7 @@ int main(int argc, char **argv) {
 
     // There is always a storage service on the submit_node
     auto submit_node_storage_service =
-            simulation->add(new wrench::SimpleStorageService(
+            simulation->add(wrench::SimpleStorageService::createSimpleStorageService(
                     submit_host_name,
                     {{"/"}},
                     get_properties(json_input,
@@ -281,7 +281,7 @@ int main(int argc, char **argv) {
     std::shared_ptr<wrench::StorageService> slurm_head_node_storage_service = nullptr;
     if (storage_service_scheme == "submit_and_slurm_head") {
         slurm_head_node_storage_service =
-                simulation->add(new wrench::SimpleStorageService(
+                simulation->add(wrench::SimpleStorageService::createSimpleStorageService(
                         slurm_head_host_name,
                         {{"/"}},
                         get_properties(json_input,

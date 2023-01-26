@@ -154,31 +154,30 @@ namespace wrench {
                 // Create the job info
                 std::vector<std::shared_ptr<WorkflowTask>> tasks = {ready_task};
                 std::map<std::shared_ptr<DataFile>, std::shared_ptr<FileLocation>> file_locations;
-                std::vector<std::tuple<std::shared_ptr<DataFile>, std::shared_ptr<FileLocation>, std::shared_ptr<FileLocation>>> pre_file_copies;
-                std::vector<std::tuple<std::shared_ptr<DataFile>, std::shared_ptr<FileLocation>, std::shared_ptr<FileLocation>>> post_file_copies;
-                std::vector<std::tuple<std::shared_ptr<DataFile>, std::shared_ptr<FileLocation>>> cleanup_file_deletions;
+                std::vector<std::tuple<std::shared_ptr<FileLocation>, std::shared_ptr<FileLocation>>> pre_file_copies;
+                std::vector<std::tuple<std::shared_ptr<FileLocation>, std::shared_ptr<FileLocation>>> post_file_copies;
+                std::vector<std::shared_ptr<FileLocation>> cleanup_file_deletions;
 
                 // Set up all data stuff
                 if (storage_service_scheme == "submit_only") {
                     for (auto const &f: ready_task->getInputFiles()) {
-                        file_locations[f] = FileLocation::LOCATION(this->submit_node_storage_service);
+                        file_locations[f] = FileLocation::LOCATION(this->submit_node_storage_service, f);
                     }
                     for (auto const &f: ready_task->getOutputFiles()) {
-                        file_locations[f] = FileLocation::LOCATION(this->submit_node_storage_service);
+                        file_locations[f] = FileLocation::LOCATION(this->submit_node_storage_service, f);
                     }
 
                 } else if (storage_service_scheme == "submit_and_slurm_head") {
                     for (auto const &f: ready_task->getInputFiles()) {
-                        file_locations[f] = FileLocation::LOCATION(this->slurm_head_node_storage_service);
-                        pre_file_copies.emplace_back(f,
-                                                     FileLocation::LOCATION(this->submit_node_storage_service),
-                                                     FileLocation::LOCATION(this->slurm_head_node_storage_service));
+                        file_locations[f] = FileLocation::LOCATION(this->slurm_head_node_storage_service, f);
+                        pre_file_copies.emplace_back(std::make_tuple(FileLocation::LOCATION(this->submit_node_storage_service, f),
+                                                     FileLocation::LOCATION(this->slurm_head_node_storage_service, f)));
                     }
                     for (auto const &f: ready_task->getOutputFiles()) {
-                        file_locations[f] = FileLocation::LOCATION(this->slurm_head_node_storage_service);
-                        post_file_copies.emplace_back(f,
-                                                      FileLocation::LOCATION(this->slurm_head_node_storage_service),
-                                                      FileLocation::LOCATION(this->submit_node_storage_service));
+                        file_locations[f] = FileLocation::LOCATION(this->slurm_head_node_storage_service, f);
+                        post_file_copies.emplace_back(std::make_tuple(
+                                                      FileLocation::LOCATION(this->slurm_head_node_storage_service, f),
+                                                      FileLocation::LOCATION(this->submit_node_storage_service, f)));
                     }
 
                 }   else {
