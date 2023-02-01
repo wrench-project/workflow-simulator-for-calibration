@@ -1,5 +1,13 @@
 # Workflow-execution simulator used for simulation calibration experiments
 
+Code tested with:
+ - SimGrid master commit ID: `d685808894710dda03e4734a9e39f617adda0508`
+ - WRENCH master commit ID: `1c77d7c0070262cb5356e169e42c009b46369155`
+ - Wfcommons master commit ID: `29c69989fe5701bc07eb66c0077531f60e8a4414`
+ - Boost: `1.80`
+ - Python: `3.9`
+---
+
 This simulator takes as input a single JSON file. The file `data/sample_input.json` is a good example. For example:
 ```bash
 ./workflow-simulator-for-calibration data/sample_input.json
