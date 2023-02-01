@@ -9,13 +9,13 @@ which should return 3 numbers formatted as `A:B:C`, where `A` is the simulated m
 
 ## How to calibrate a simulator
 
-The calibration is compatible with `Python <= 3.9`. Your first need to install DeepHyper:
+The calibration script is compatible with `Python <= 3.9`. Your first need to install DeepHyper:
 
 ```bash
 python3.9 -m pip install -r calibration/requirements.txt
 ```
 
-> Note that Python 3.10 breaks several things and is not yet supported.
+> **Warning**: Python 3.10 breaks several things and is not yet supported.
 
 To launch a simple exploration with `10` iterations, using [Ray](https://www.ray.io/) as distributed back-end, you can run:
 
@@ -30,16 +30,13 @@ Note that, when providing the flag `--all`, the script `calibrate.py` will perfo
 As result, you should get an output similar to this:
 
 ```bash
-================================================
-=============== exp-b823c6aaee73 ===============
-================================================
+=============== exp-seismology-250-50-10-0-55eb0d10da07 ===============
 Best error:
-        Bayesian Optimization    (BO): 5.059%
-        Random Search - baseline (RS): 12.693%
-================================================
+	Bayesian Optimization    (BO): 1.375%
+	Random Search - baseline (RS): 0.180%
 ```
 
-`calibrate.py` creates a directory named `exp-{ID}` (`ID` is a random UUID) that contains several files:
+`calibrate.py` creates a directory named `exp-{workflow}-{ID}` (`ID` is a random UUID) that contains several files:
 
 + **results.csv**: This file contains a summary of the _error_ reached for each method used. You also have a PDF plot with the same name;
 + **best-bo.json**:  The best configuration found by the Bayesian Optimization process as a JSON;
@@ -48,3 +45,10 @@ Best error:
 + **best-rs.json**:  The best configuration found by the _Random Search_ process as a JSON;
 
 > Note that you can re-run the simulator with the best configuration found by DeepHyper with `./workflow-simulator-for-calibration exp-{ID}/best-bo.json`.
+
+## How to calibrate Pegasus Workflows
+
+You have three scripts under `utils/`:
+- `pegasus-submit-to-json.py`: takes on Pegasus submit directory (like `run0000/` etc) and produces workflow compatible with `calibrate.py` (JSON file)
+- `convert-submit-dirs.sh`: converts a directory `dir` containing Pegasus submit directories with `./convert-submit-dirs.sh -d dir`
+- `run-calibration.sh`: takes a directory `dir` containing workflows represented as JSON files and calibrate each of them
