@@ -35,7 +35,7 @@ from warnings import filterwarnings
 from typing import Dict, List, Any, Union, Type, Tuple
 
 from deephyper.search.hps import CBO
-from deephyper.evaluator.callback import LoggerCallback
+from deephyper.evaluator.callback import LoggerCallback, SearchEarlyStopping
 from deephyper.evaluator import Evaluator
 from deephyper.problem import HpProblem
 from ConfigSpace import EqualsCondition
@@ -83,6 +83,7 @@ MIN_CONCURRENT_DATA_CONNECTIONS = 1
 MAX_CONCURRENT_DATA_CONNECTIONS = 64
 #######################################################################
 SAMPLING = "uniform"
+EARLY_STOP = 20
 #######################################################################
 
 JSON = Union[Dict[str, Any], List[Any], int, str, float, bool, Type[None]]
@@ -181,7 +182,7 @@ def worker(config: Dict) -> float:
         temp_config.write(json_config)
     try:
         cmd = [config["simulator"], str(config_path)]
-        simulation = run(cmd, capture_output=True, text=True)
+        simulation = run(cmd, capture_output=True, text=True, timeout=int(config["timeout"]))
 
         if simulation.stderr != '' or simulation.stdout == '':
             raise CalledProcessError(simulation.returncode, simulation.args)
@@ -192,7 +193,10 @@ def worker(config: Dict) -> float:
         error = simulation.stderr.strip()
         logger.error(error)
         logger.error(f"To reproduce that error you can run: {' '.join(cmd)}")
-        raise e
+        return str('-inf')
+    except TimeoutExpired:
+        logger.error(f"Timeout, process got killed {config_path}")
+        return str('-inf')
     else:
         try:
             remove(config_path)
@@ -214,9 +218,10 @@ class Calibrator(object):
                  max_evals: int = 100,
                  cores: int = None,
                  timeout: int = None,
-                 consider_properties: bool = False,
-                 consider_payloads: bool = False,
+                 consider_properties: bool = True,
+                 consider_payloads: bool = True,
                  output_dir: str = None,
+                 early_stop: bool = True,
                  logger: logging.Logger = None) -> None:
 
         self.logger = logger if logger else logging.getLogger(__name__)
@@ -225,6 +230,7 @@ class Calibrator(object):
         self.max_evals = max_evals
         self.timeout = timeout
         self.output_dir = output_dir
+        self.early_stop = early_stop
 
         self.func = worker
         if cores:
@@ -278,6 +284,11 @@ class Calibrator(object):
         self.consider_payloads = consider_payloads
         self.consider_properties = consider_properties
 
+        callbacks = [LoggerCallback()]
+        # Stop after EARLY_STOP evaluations that did not improve the search
+        if self.early_stop:
+            callbacks.append(SearchEarlyStopping(patience=EARLY_STOP))
+
         # define the evaluator to distribute the computation
         self.evaluator = Evaluator.create(
             self.func,
@@ -285,7 +296,7 @@ class Calibrator(object):
             method_kwargs={
                 "num_cpus": self.num_cpus,
                 "num_cpus_per_task": self.num_cpus_per_task,
-                "callbacks": [LoggerCallback()] #, TqdmCallback()
+                "callbacks": callbacks
             },
         )
         self.logger.info(
@@ -376,6 +387,7 @@ class Calibrator(object):
         self.problem.add_hyperparameter([str(self.simulator)], "simulator")
         self.problem.add_hyperparameter([str(self.workflow)], "workflow")
         self.problem.add_hyperparameter([str(self.output_dir)], "output_dir")
+        self.problem.add_hyperparameter([str(self.timeout)], "timeout")
 
         for scheme in self.schemes.values():
             self.problem.add_hyperparameter(
@@ -590,28 +602,38 @@ if __name__ == "__main__":
 
     parser.add_argument('--cores', '-x', dest='cores', action='store',
                         type=int, required=False,
-                        help='Number of cores to use (by default all available)'
+                        help='Number of cores to use (by default all available on the machine)'
     )
 
-    parser.add_argument('--properties', action='store_true', default=True,
-                        help='Calibrate the simulator with properties.'
+    parser.add_argument('--no-properties', action='store_false',
+                        help='Calibrate the simulator without properties.'
     )
 
-    parser.add_argument('--payloads', action='store_true', default=True,
-                        help='Calibrate the simulator with payloads.'
+    parser.add_argument('--no-payloads', action='store_false',
+                        help='Calibrate the simulator without payloads.'
+    )
+
+    parser.add_argument('--no-early-stopping', '-e', action='store_false',
+                        help=f'Do not stop the search when it does not improve for a given \
+                        number (here {EARLY_STOP}) of evaluations. Keep doing all the iterations even \
+                        if it does not improve the objective.'
     )
 
     args = parser.parse_args()
 
-    if not args.conf.exists():
+    if not args.conf.is_file():
         logger.error(f"Configuration file '{args.conf}' does not exist.")
         exit(1)
-    if args.conf.is_dir():
-        logger.error(f"Configuration file '{args.conf}' is a directory.")
+
+    if args.workflow and not args.workflow.is_file():
+        logger.error(f"Workflow file '{args.workflow}' does not exist.")
         exit(1)
 
     # We use shorter UUID for clarity
-    exp_id = "exp-"+str(uuid4()).split('-')[-1]
+    if args.workflow:
+        exp_id = "exp-"+args.workflow.stem+"-"+str(uuid4()).split('-')[-1]
+    else:
+        exp_id = "exp-"+str(uuid4()).split('-')[-1]
 
     try:
         mkdir(exp_id)
@@ -629,9 +651,10 @@ if __name__ == "__main__":
         max_evals=args.iter,
         timeout=300,  # 5 min timeout
         cores=args.cores,
-        consider_payloads=args.payloads,
-        consider_properties=args.properties,
+        consider_payloads=args.no_payloads,
+        consider_properties=args.no_properties,
         output_dir=exp_id,
+        early_stop=args.no_early_stopping,
         logger=logger
     )
 
@@ -657,9 +680,10 @@ if __name__ == "__main__":
             max_evals=args.iter,
             timeout=300,  # 5 min timeout
             cores=args.cores,
-            consider_payloads=args.payloads,
-            consider_properties=args.properties,
+            consider_payloads=args.no_payloads,
+            consider_properties=args.no_properties,
             output_dir=exp_id,
+            early_stop=args.no_early_stopping,
             logger=logger
         )
 
@@ -678,9 +702,7 @@ if __name__ == "__main__":
             }
         )
 
-    print(f"\n================================================")
     print(f"=============== {exp_id} ===============")
-    print(f"================================================")
     print(f"Best error:")
     print("\tBayesian Optimization    (BO): {:.3%}".format(
         min(df['err_bo'])))
@@ -693,5 +715,3 @@ if __name__ == "__main__":
          plot_rs=args.all, show=False)
     # Save data
     df.to_csv(f"{exp_id}/global-results.csv", index=False)
-
-    print(f"================================================")
