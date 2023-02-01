@@ -80,12 +80,12 @@ SECONDS=0
 for workflow in $(find $DATA_ROOT_DIR -maxdepth $DEPTH -mindepth $DEPTH -type d); do
     json_output="$(basename $workflow).json"
     if [ ! -f "$json_output" ]; then
-        echo -en "[$i] Converting $workflow -> $json_output ..."
+        echo -en "[$i] Converting $workflow -> $json_output ...\t"
         if  ${PYTHON} ${EXE} -i $workflow -o $json_output 2> $(basename $workflow).err ; then
-          echo -e " [ ${GREEN}OK${NC} ]"
+          echo -e " [ ${GREEN}OK${NC} ]" | column -t -s $'\t'
           let k++
         else
-          echo -e " [${RED}FAIL${NC}]"
+          echo -e " [${RED}FAIL${NC}]" | column -t -s $'\t'
         fi
     else
         echo "[$i] Skipping $json_output ... (already exists)."
