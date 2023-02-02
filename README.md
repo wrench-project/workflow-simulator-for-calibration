@@ -110,3 +110,15 @@ The field **calibration_ranges** defines, for each variable that can be calibrat
 
 Once the path in your config file `config.json` are correct, you can run `./run-calibration.sh -d $(pwd) -c config.json`. By default, the process will run 300 iterations per workflow without early stopping (i.e., process will not stop even if the objective does not improve) and will use all cores available (can be change with `--cores X`).
 
+# TODO
+ - [ ] Loic: Adapt for multiple workflows (multiple workflows at the same time in DeepHyper)
+ - [ ] Loic: Add flags for `network_topology_scheme` and other `scheme`
+ - [ ] Loic: Create script to help Rafael to build the simulator
+ - [ ] Henri: Create a docker for everything (Python + workflow simulator)
+ - [ ] Rafael: Run more workflows, at least 5 per instance (10 if the variance is too high)
+
+Exp:
+ - [ ] Run configurations: `all_bare_metal`, `submit_only`, `one_link` or `many_link`
+ - [ ] Explore some easy configurations (among the 18 configurations possible)
+ - [ ] Explore new metrics for error (execution time distribution)
+ 
