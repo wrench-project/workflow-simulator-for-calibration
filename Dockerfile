@@ -1,4 +1,5 @@
 FROM amd64/ubuntu:jammy
+#FROM i386/ubuntu:focal
 
 LABEL org.opencontainers.image.authors="henric@hawaii.edu"
 
@@ -8,12 +9,15 @@ RUN apt-get update
 # set timezone
 RUN echo "America/Los_Angeles" > /etc/timezone && export DEBIAN_FRONTEND=noninteractive && apt-get install -y tzdata
 
-# build environment
-RUN apt-get -y install pkg-config git cmake cmake-data libboost-all-dev wget sudo curl
-RUN apt install -y vim emacs
-
 # install compiler
 RUN apt-get -y install gcc g++
+
+# build environment
+RUN apt-get -y install pkg-config git wget sudo curl vim make cmake cmake-data
+
+# latest cmake
+#RUN wget --no-check-certificate https://github.com/Kitware/CMake/releases/download/v3.25.2/cmake-3.25.2.tar.gz && tar -xzf cmake-3.25.2.tar.gz && cd cmake-3.25.2 && ./bootstrap -- -DCMAKE_USE_OPENSSL=OFF && make -j4 && make install && cd .. && rm -rf cmake-3.25.2.tar.gz && rm -rf cmake-3.25.2
+
 
 # install python 3.9
 RUN apt-get install -y software-properties-common
@@ -32,14 +36,14 @@ RUN apt-get install -y --reinstall python3.9-distutils
 ENV CXX="g++" CC="gcc"
 WORKDIR /tmp
 
-# install Boost 1.80
-RUN wget https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.tar.gz && tar -xvf boost_1_80_0.tar.gz && cd boost_1_80_0 && ./bootstrap.sh && ./b2 && ./b2 install && cd .. && rm -rf boost_1_80_0
+## install Boost 1.80
+RUN wget --no-check-certificate https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.tar.gz && tar -xvf boost_1_80_0.tar.gz && cd boost_1_80_0 && ./bootstrap.sh && ./b2 && ./b2 install && cd .. && rm -rf boost_1_80_0
 
 # install SimGrid master
-RUN git clone https://framagit.org/simgrid/simgrid.git && cd simgrid && git checkout d685808894710dda03e4734a9e39f617adda0508 && mkdir build && cd build && cmake .. && make -j12 && sudo make install && cd ../.. && rm -rf simgrid
+RUN git clone https://framagit.org/simgrid/simgrid.git && cd simgrid && git checkout d685808894710dda03e4734a9e39f617adda0508 && mkdir build && cd build && cmake .. && make -j4 && sudo make install && cd ../.. && rm -rf simgrid
 
 # install json for modern c++
-RUN wget https://github.com/nlohmann/json/archive/refs/tags/v3.10.5.tar.gz && tar -xf v3.10.5.tar.gz && cd json-3.10.5 && cmake . && make -j4 && make install && cd .. && rm -rf v3.10.5* json-3.10.5
+RUN wget --no-check-certificate https://github.com/nlohmann/json/archive/refs/tags/v3.10.5.tar.gz && tar -xf v3.10.5.tar.gz && cd json-3.10.5 && cmake . && make -j4 && make install && cd .. && rm -rf v3.10.5* json-3.10.5
 
 # install WRENCH
 RUN git clone https://github.com/wrench-project/wrench.git && cd wrench && git checkout 1c77d7c0070262cb5356e169e42c009b46369155 && mkdir build && cd build && cmake .. && make -j4 && make install && cd .. && rm -rf wrench
@@ -47,7 +51,11 @@ RUN git clone https://github.com/wrench-project/wrench.git && cd wrench && git c
 #################################################
 ## WfCommons
 #################################################
-RUN git clone https://github.com/wfcommons/wfcommons.git && cd wfcommons && git checkout 29c69989fe5701bc07eb66c0077531f60e8a4414 && pip install . && cd .. && rm -rf wfcommons
+
+RUN apt-get install -y gfortran
+RUN apt-get install -y libopenblas-dev
+
+RUN git clone https://github.com/wfcommons/wfcommons.git && cd wfcommons && git checkout 29c69989fe5701bc07eb66c0077531f60e8a4414 && python3 -m pip install . && cd .. && rm -rf wfcommons
 
 #################################################
 # Calibration repo
