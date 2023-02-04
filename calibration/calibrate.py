@@ -244,7 +244,8 @@ class Calibrator(object):
         # Number of jobs used to compute the surrogate model ( -1 means max possible)
         self.n_jobs = -1
 
-        self.simulator: Path = Path(self.config["simulator"]).resolve()
+        #self.simulator: Path = Path(self.config["simulator"]).resolve()
+        self.simulator = self.config["simulator"]
 
         self.logger.info(f"Trying to run {self.simulator} --version...")
         simu_ok = self._test_simulator()
