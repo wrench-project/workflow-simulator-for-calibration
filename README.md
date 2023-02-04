@@ -122,7 +122,7 @@ Once the path in your config file `config.json` are correct, you can run `./run-
  - [ ] Loic: Adapt for multiple workflows (multiple workflows at the same time in DeepHyper)
  - [ ] Loic: Add flags for `network_topology_scheme` and other `scheme`
  - [ ] Loic: Create script to help Rafael to build the simulator
- - [ ] Henri: Create a docker for everything (Python + workflow simulator)
+ - [X] Henri: Create a docker for everything (Python + workflow simulator)
  - [ ] Rafael: Run more workflows, at least 5 per instance (10 if the variance is too high)
 
 Exp:
