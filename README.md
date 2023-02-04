@@ -1,4 +1,5 @@
-# Workflow-execution simulator used for simulation calibration experiments
+## Workflow execution simulator used for simulation calibration experiments
+
 
 Code tested with:
  - SimGrid master commit ID: `d685808894710dda03e4734a9e39f617adda0508`
@@ -8,16 +9,23 @@ Code tested with:
  - Python: `3.9`
 ---
 
-This simulator takes as input a single JSON file. The file `data/sample_input.json` is a good example. For example:
+## How to invoke the simulator
+
+This simulator takes as input a single JSON file. An example input file
+is in `data/sample_input.json`. An invocation of the simulator could be:
 ```bash
 ./workflow-simulator-for-calibration data/sample_input.json
 ```
-which should return 3 numbers formatted as `A:B:C`, where `A` is the simulated makespan computed by the simulator (in secondes),
-`B` is the real makepsan of the workflow, observed on a real platform (see `data/sample_workflow.json`), finally `C` is the relative error between `A` and `B` computed as $C=\frac{\left| A - B \right|}{B}$.
+which will print three numbers of standard output formatted as `A:B:C`,
+where `A` is the simulated makespan computed by the simulator (in seconds),
+`B` is the actual makespan of the workflow, observed on a real platform (see
+`data/sample_workflow.json`), and `C` is the relative error between `A`
+and `B` computed as $C=\frac{\left| A - B \right|}{B}$.
 
-## How to calibrate a simulator
+## How to calibrate the simulator
 
-The calibration script is compatible with `Python <= 3.9`. Your first need to install DeepHyper:
+The calibration script is compatible with `Python <= 3.9`. Your first need
+to install DeepHyper:
 
 ```bash
 python3.9 -m pip install -r calibration/requirements.txt
@@ -31,11 +39,11 @@ To launch a simple exploration with `10` iterations, using [Ray](https://www.ray
 ./calibration/calibrate.py --config calibration/config.json --iter 10
 ```
 
-> By default, the script will detect the number of _physical_ cores and use that number to set up the number of workers.
+> By default, the script will detect the number of _physical_ cores and set up one worker per core. 
 
 Note that, when providing the flag `--all`, the script `calibrate.py` will perform two consecutive calibrations, one using **Bayesian optimization (BO)** and one using a naive **random search (RS)** approach.
 
-As result, you should get an output similar to this:
+The output should be similar to this:
 
 ```bash
 =============== exp-seismology-250-50-10-0-55eb0d10da07 ===============
@@ -56,8 +64,8 @@ Best error:
 
 ## How to calibrate Pegasus Workflows
 
-You have three scripts under `utils/`:
-- `pegasus-submit-to-json.py`: takes on Pegasus submit directory (like `run0000/` etc) and produces workflow compatible with `calibrate.py` (JSON file);
+There are three scripts under `utils/`:
+- `pegasus-submit-to-json.py`: takes a Pegasus submit directory path as input (like `run0000/` etc) and produces a workflow instance compatible with `calibrate.py` (JSON file);
 - `convert-submit-dirs.sh`: converts a directory `dir` containing Pegasus submit directories with `./convert-submit-dirs.sh -d dir`;
 - `run-calibration.sh`: takes a directory `dir` containing workflows represented as JSON files and calibrate each of them.
 
