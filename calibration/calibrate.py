@@ -23,7 +23,7 @@ import pandas as pd
 from pathlib import Path
 import matplotlib.pyplot as plt
 
-from os import mkdir, remove
+from os import mkdir, remove, environ
 from math import isnan
 from psutil import cpu_count
 from shutil import copyfile
@@ -46,6 +46,11 @@ plt.rcParams.update({
     "font.family": "serif",
     "font.serif": ["sans-serif"],
 })
+
+# Mandatory to load the simulator if SimGrid and WRENCH shared lib
+# are not located in /usr/local/lib
+if sys.platform == "darwin":
+    environ["DYLD_LIBRARY_PATH"] = environ["HOME"] + "/local/lib/"
 
 SCHEMES = {"error": "error_computation_scheme",
            "compute": "compute_service_scheme",
@@ -222,6 +227,9 @@ class Calibrator(object):
                  consider_payloads: bool = True,
                  output_dir: str = None,
                  early_stop: bool = True,
+                 compute_service_scheme: str = None,
+                 storage_service_scheme: str = None,
+                 network_topology_scheme: str = None,
                  logger: logging.Logger = None) -> None:
 
         self.logger = logger if logger else logging.getLogger(__name__)
@@ -231,6 +239,9 @@ class Calibrator(object):
         self.timeout = timeout
         self.output_dir = output_dir
         self.early_stop = early_stop
+        self.compute_service_scheme = compute_service_scheme
+        self.storage_service_scheme = storage_service_scheme
+        self.network_topology_scheme = network_topology_scheme
 
         self.func = worker
         if cores:
@@ -259,8 +270,6 @@ class Calibrator(object):
         
         self.simulator_config: JSON = self._load_json(self.config["config"])
 
-        self.schemes: Dict = SCHEMES
-
         # we can override the workflow in the config with --workflow
         if workflow:
             self.workflow: Path = Path(workflow).resolve()
@@ -272,6 +281,18 @@ class Calibrator(object):
         else:
             self.logger.error(f"The file {self.workflow} does not exist.")
             exit(1)
+
+        self.schemes: Dict = SCHEMES
+        # Override the schemes for compute, storage and topology (if needed)
+        if compute_service_scheme:
+            scheme_name = self.schemes["compute"]
+            self.simulator_config[scheme_name] = compute_service_scheme
+        if storage_service_scheme:
+            scheme_name = self.schemes["storage"]
+            self.simulator_config[scheme_name] = storage_service_scheme
+        if network_topology_scheme:
+            scheme_name = self.schemes["network"]
+            self.simulator_config[scheme_name] = network_topology_scheme
 
         self.df: pd.DataFrame = {}  # Result
         if self.output_dir:
@@ -620,6 +641,22 @@ if __name__ == "__main__":
                         if it does not improve the objective.'
     )
 
+    parser.add_argument('--compute-service-scheme', action='store', type=str,
+                        help=f'Specify the value of compute_service_scheme in \
+                        the configuration. Possible values: all_bare_metal, \
+                        batch_only, htcondor_batch .'
+    )
+
+    parser.add_argument('--storage-service-scheme', action='store', type=str,
+                        help=f'Specify the value of storage_service_scheme in \
+                        the configuration. Possible values: submit_only, submit_and_slurm_head .'
+    )
+
+    parser.add_argument('--network-topology-scheme', action='store', type=str,
+                        help=f'Specify the value of network_topology_scheme in \
+                        the configuration. Possible values: one_link, two_links, many_links'
+    )
+
     args = parser.parse_args()
 
     if not args.conf.is_file():
@@ -642,6 +679,10 @@ if __name__ == "__main__":
         print(e)
         exit(1)
 
+    assert args.compute_service_scheme in [None, "all_bare_metal", "batch_only", "htcondor_batch"]
+    assert args.storage_service_scheme in [None, "submit_only", "submit_and_slurm_head"]
+    assert args.network_topology_scheme in [None, "one_link", "two_links", "many_links"]
+
     # Copy the configuration used
     copyfile(args.conf, f"{exp_id}/setup.json")
 
@@ -656,6 +697,9 @@ if __name__ == "__main__":
         consider_properties=args.no_properties,
         output_dir=exp_id,
         early_stop=args.no_early_stopping,
+        compute_service_scheme=args.compute_service_scheme,
+        storage_service_scheme=args.storage_service_scheme,
+        network_topology_scheme=args.network_topology_scheme,
         logger=logger
     )
 
@@ -685,6 +729,9 @@ if __name__ == "__main__":
             consider_properties=args.no_properties,
             output_dir=exp_id,
             early_stop=args.no_early_stopping,
+            compute_service_scheme=args.compute_service_scheme,
+            storage_service_scheme=args.storage_service_scheme,
+            network_topology_scheme=args.network_topology_scheme,
             logger=logger
         )
 
