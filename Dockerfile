@@ -1,7 +1,10 @@
 FROM amd64/ubuntu:jammy
 #FROM i386/ubuntu:focal
+#FROM rayproject/ray
 
 LABEL org.opencontainers.image.authors="henric@hawaii.edu"
+
+USER root
 
 # add repositories
 RUN apt-get update
@@ -51,20 +54,20 @@ RUN git clone https://github.com/wrench-project/wrench.git && cd wrench && git c
 #################################################
 ## WfCommons
 #################################################
-
-RUN apt-get install -y gfortran
-RUN apt-get install -y libopenblas-dev
-
-RUN git clone https://github.com/wfcommons/wfcommons.git && cd wfcommons && git checkout 29c69989fe5701bc07eb66c0077531f60e8a4414 && python3 -m pip install . && cd .. && rm -rf wfcommons
+#
+#RUN apt-get install -y gfortran
+#RUN apt-get install -y libopenblas-dev
+#
+#RUN git clone https://github.com/wfcommons/wfcommons.git && cd wfcommons && git checkout 29c69989fe5701bc07eb66c0077531f60e8a4414 && python3 -m pip install . && cd .. && rm -rf wfcommons
 
 #################################################
-# Calibration repo
+# Workflow simulation calibrator
 #################################################
 
 # Clone workflow-simulator-for-calibration and install the simulator and deephyper
 RUN git clone https://github.com/wrench-project/workflow-simulator-for-calibration.git && cd workflow-simulator-for-calibration && mkdir build && cd build && cmake .. && make -j4 && make install && cd .. 
 
-RUN cd workflow-simulator-for-calibration && python3 -m pip install -r calibration/requirements.txt && cd .. && rm -rf workflow-simulator-for-calibration
+#RUN cd workflow-simulator-for-calibration && python3 -m pip install -r calibration/requirements.txt && cd .. && rm -rf workflow-simulator-for-calibration
 
 
 #################################################
@@ -80,3 +83,6 @@ WORKDIR /home/wrench
 # set user's environment variable
 ENV CXX="g++" CC="gcc"
 ENV LD_LIBRARY_PATH="/usr/local/lib"
+
+#RUN mkdir -p /home/wrench/ray/.config
+#ENV MPLCONFIGDIR="/home/wrench/ray/.config"
