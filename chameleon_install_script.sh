@@ -33,17 +33,12 @@ sudo apt-get update
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 sudo groupadd --force docker
 sudo usermod -aG docker `whoami`
-if id -nG `whoami` | grep -qw "docker"; then
-    echo "docker group is already active"
-else
-    newgrp docker
-fi
-
-# Pull Docker container
-docker pull wrenchproject/workflow-calibration
 
 # Done
 echo "***"
-echo "You should now be able to run: ./calibration/calibrate.py -c ./calibration/config.json"
+echo "You should now try to log out and log back in, which _may_ make it possible to run docker without sudo. If not, then you're on a VM and need to reboot it."
+echo "Once you can run docker without sudo, you can do:"
+echo "  docker pull wrenchproject/workflow-calibration"
+echo "  ./calibration/calibrate.py -c ./calibration/config.json"
 
 
