@@ -129,11 +129,14 @@ Once the path in your config file `config.json` are correct, you can run `./run-
  - [x] Loïc: Add flags for `network_topology_scheme` and other `scheme`
  - [x] Loïc/Henri: Create script to to build the simulator on, e.g., Chameleon
  - [X] Henri: Create a docker for the simulator
- - [ ] Henri/Jesse: Update the simulator to no longer do Slurm?  Or at least add HTCondor options without Slurm
+ - [ ] Henri/Jesse: 
+	- Check with Rafael what the actual setup is
+        - Add an htcondor_baremetal compute config
+        - Rename stuff in a coherent way
  - [ ] Rafael: Run more workflows, at least 5 per instance (10 if the variance is too high)
 
 Exp:
- - [ ] Run configurations: `all_bare_metal`, `submit_only`, `one_link` or `many_link`
+ - [ ] Run configurations: `all_bare_metal`/`htcondor_bare_metal`, `submit_only`/`submit_and_slurm_head`, and `one_link`/`two_link`/`many_link`
  - [ ] Explore some easy configurations (among the 18 configurations possible)
  - [ ] Explore new metrics for error (execution time distribution)
  
