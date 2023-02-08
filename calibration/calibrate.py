@@ -119,6 +119,41 @@ def configure_logger(level: int = logging.INFO) -> logging.Logger:
     logger.setLevel(level)
     return logger
 
+"""
+    Create a Docker container to run the simulator. Returns the container ID.
+"""
+
+def create_docker_container(docker_image) -> str:
+
+    logger.info(f"Starting Docker container for image {docker_image}")
+    cmd = "docker run -it -d -v " + os.getcwd() + ":/home/wrench " + docker_image
+    docker = run(cmd.split(" "), capture_output=True, text=True, timeout=int(10))
+    if docker.stdout == '':
+        raise CalledProcessError(docker.returncode, docker.args)
+    docker.check_returncode()
+    global docker_container_id
+    docker_container_id = docker.stdout.strip()
+    logger.info(f"Docker container started ({docker_container_id[0:11]})")
+    return docker.stdout.strip()
+
+
+"""
+    Kill a Docker container.
+"""
+
+def kill_docker_container(docker_container_id: str) -> str:
+
+    logger.info(f"Killing Docker container ({docker_container_id[0:11]})...")
+    cmd = "docker kill " + docker_container_id
+    docker = run(cmd.split(" "), capture_output=True, text=True, timeout=int(10))
+    docker.check_returncode()
+    logger.info("Docker container killed")
+    cmd = "docker rm " + docker_container_id
+    docker = run(cmd.split(" "), capture_output=True, text=True, timeout=int(10))
+    docker.check_returncode()
+    logger.info("Docker container removed")
+
+
 def get_nested_default(d: dict, path: str):
     return reduce(lambda d, k: d.setdefault(k, {}), path, d)
 
@@ -266,10 +301,6 @@ class Calibrator(object):
         self.backend = "ray"
         # Number of jobs used to compute the surrogate model ( -1 means max possible)
         self.n_jobs = -1
-
-        # Setup docker (with cleaning up upon exit)
-        docker_container_id = self._create_docker_container(self.config["simulator_docker_image"])
-        atexit.register(lambda: self._kill_docker_container(docker_container_id))
 
         #self.simulator: Path = Path(self.config["simulator"]).resolve()
         self.simulator = self.config["simulator"]
@@ -483,38 +514,6 @@ class Calibrator(object):
             f.write(json_data)
 
     """
-        Create a Docker container to run the simulator. Returns the container ID.
-    """
-
-    def _create_docker_container(self, docker_image) -> str:
-
-        self.logger.info(f"Starting Docker container for image {docker_image}")
-        cmd = "docker run -it -d -v " + os.getcwd() + ":/home/wrench " + docker_image
-        docker = run(cmd.split(" "), capture_output=True, text=True, timeout=int(10))
-        if docker.stdout == '':
-            raise CalledProcessError(docker.returncode, docker.args)
-        docker.check_returncode()
-        global docker_container_id
-        docker_container_id = docker.stdout.strip()
-        self.logger.info(f"Docker container started ({docker_container_id[0:11]})")
-        return docker.stdout.strip()
-
-
-    """
-        Kill a Docker container.
-    """
-
-    def _kill_docker_container(self, docker_container_id: str) -> str:
-
-        self.logger.info(f"Killing Docker container ({docker_container_id[0:11]})...")
-        cmd = "docker kill " + docker_container_id
-        docker = run(cmd.split(" "), capture_output=True, text=True, timeout=int(10))
-        docker.check_returncode()
-        self.logger.info("Docker container killed")
-        return
-
-
-    """
         Launch the search.
     """
 
@@ -699,12 +698,6 @@ if __name__ == "__main__":
                         help='Calibrate the simulator without payloads.'
                         )
 
-    parser.add_argument('--no-early-stopping', '-e', action='store_false',
-                        help=f'Do not stop the search when it does not improve for a given \
-                        number (here {EARLY_STOP}) of evaluations. Keep doing all the iterations even \
-                        if it does not improve the objective.'
-                        )
-
     parser.add_argument('--compute-service-scheme', action='store', type=str,
                         help=f'Specify the value of compute_service_scheme in \
                         the configuration. Possible values: all_bare_metal, \
@@ -720,14 +713,6 @@ if __name__ == "__main__":
                         help=f'Specify the value of network_topology_scheme in \
                         the configuration. Possible values: one_link, two_links, many_links'
                         )
-
-    parser.add_argument('--no-properties', action='store_false',
-                        help='Calibrate the simulator without properties.'
-    )
-
-    parser.add_argument('--no-payloads', action='store_false',
-                        help='Calibrate the simulator without payloads.'
-    )
 
     args = parser.parse_args()
 
@@ -759,6 +744,12 @@ if __name__ == "__main__":
 
     # Copy the configuration used
     copyfile(args.conf, f"{exp_id}/setup.json")
+
+    # Setup Docker (with cleaning up upon exit)
+    with open(args.conf, 'r') as stream:
+        docker_image = json.load(stream)["simulator_docker_image"]
+    docker_container_id = create_docker_container(docker_image)
+    atexit.register(lambda: kill_docker_container(docker_container_id))
 
     bayesian = Calibrator(
         config=args.conf,
