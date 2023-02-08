@@ -125,7 +125,7 @@ The field **calibration_ranges** defines, for each variable that can be calibrat
 Once the path in your config file `config.json` are correct, you can run `./run-calibration.sh -d $(pwd) -c config.json`. By default, the process will run 300 iterations per workflow without early stopping (i.e., process will not stop even if the objective does not improve) and will use all cores available (can be change with `--cores X`).
 
 # TODO
- - [x] Loïc: Adapt for multiple workflows (multiple workflows at the same time in DeepHyper). Added new flag `--workflow wf1.json wf2.json`
+ - [x] Loïc: Adapt for multiple workflows (multiple workflows at the same time in DeepHyper). Added new flag `--workflows wf1.json wf2.json`
  - [x] Loïc: Add flags for `network_topology_scheme` and other `scheme`
  - [ ] Loïc/Henri: Create script to help Rafael to build the simulator
  - [X] Henri: Create a docker for the simulator
