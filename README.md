@@ -127,8 +127,9 @@ Once the path in your config file `config.json` are correct, you can run `./run-
 # TODO
  - [x] Loïc: Adapt for multiple workflows (multiple workflows at the same time in DeepHyper). Added new flag `--workflows wf1.json wf2.json`
  - [x] Loïc: Add flags for `network_topology_scheme` and other `scheme`
- - [ ] Loïc/Henri: Create script to help Rafael to build the simulator
+ - [x] Loïc/Henri: Create script to to build the simulator on, e.g., Chameleon
  - [X] Henri: Create a docker for the simulator
+ - [ ] Henri/Jesse: Update the simulator to no longer do Slurm?  Or at least add HTCondor options without Slurm
  - [ ] Rafael: Run more workflows, at least 5 per instance (10 if the variance is too high)
 
 Exp:
