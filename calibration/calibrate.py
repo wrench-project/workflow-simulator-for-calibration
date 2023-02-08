@@ -17,6 +17,9 @@ if sys.version_info[0] != 3 or sys.version_info[1] >= 10:
         You are using Python {sys.version_info[0]}.{sys.version_info[1]}")
     sys.exit(-1)
 
+import os
+import atexit
+import time
 import json
 import logging
 import pandas as pd
@@ -57,6 +60,9 @@ SCHEMES = {"error": "error_computation_scheme",
            "storage": "storage_service_scheme",
            "network": "network_topology_scheme"}
 
+# Docker container ID as a global variable
+docker_container_id = ""
+
 # Some values are expressed as power of 2 to reduce the space of solutions:
 #   if MAX_PAYLOADS_VAL = 5 and MIN_PAYLOADS_VAL=0 then we the space explored 
 #   will consist of [1, 2, 4, 8, 16, 32]
@@ -79,8 +85,8 @@ MAX_LATENCY                     = 12       # max is 2^12 = 4096 us
 MIN_PAYLOADS_VAL                = 0        # min is 2^0 = 1 B
 MAX_PAYLOADS_VAL                = 20       # max is 2^20 = 1024 KB
 #################### Properties-related parameters ####################
-SCHEDULING_ALGO                 = ["fcfs", 
-                                   "conservative_bf", 
+SCHEDULING_ALGO                 = ["fcfs",
+                                   "conservative_bf",
                                    "conservative_bf_core_level"]
 MIN_BUFFER_SIZE                 = 20
 MAX_BUFFER_SIZE                 = 30
@@ -138,6 +144,7 @@ def get_val_with_unit(path: List[str], val: any) -> str:
             pass
     return updated_val
 
+
 """
     Create a platform file and a WRENCH configuration based on what DeepHyper picked.
 """
@@ -158,7 +165,7 @@ def setup_configuration(config: Dict) -> Dict:
         wrench_conf[val] = config[val]
         wrench_conf[val+"_parameters"] = {}
         wrench_conf[val+"_parameters"][config[val]] = {}
-    
+
     for key, val in config.items():
         path = key.split('-')
         if path[0] in param_names:
@@ -178,15 +185,15 @@ def worker(config: Dict) -> float:
     err = 0.0
     logger = logging.getLogger(__name__)
 
-    config_path = Path(
-        f"{config['output_dir']}/config-{config['job_id']}.json").resolve()
+    # config_path = Path(f"{config['output_dir']}/config-{config['job_id']}.json").resolve()
+    config_path = Path(f"{config['output_dir']}/config-{config['job_id']}.json")
     wrench_conf: Dict = setup_configuration(config)
 
     with open(config_path, 'w') as temp_config:
         json_config = json.dumps(wrench_conf, indent=4)
         temp_config.write(json_config)
     try:
-        cmd = [config["simulator"], str(config_path)]
+        cmd = ["docker", "exec", docker_container_id, config["simulator"], str(config_path)]
         simulation = run(cmd, capture_output=True, text=True, timeout=int(config["timeout"]))
 
         if simulation.stderr != '' or simulation.stdout == '':
@@ -255,6 +262,10 @@ class Calibrator(object):
         # Number of jobs used to compute the surrogate model ( -1 means max possible)
         self.n_jobs = -1
 
+        # Setup docker (with cleaning up upon exit)
+        docker_container_id = self._create_docker_container(self.config["simulator_docker_image"])
+        atexit.register(lambda: self._kill_docker_container(docker_container_id))
+
         #self.simulator: Path = Path(self.config["simulator"]).resolve()
         self.simulator = self.config["simulator"]
 
@@ -265,17 +276,20 @@ class Calibrator(object):
             self.logger.info(f"Success")
         else:
             simu_name = self.config["simulator"]
-            self.logger.error(f"Failed to run the simulator (make sure that the simulator '{simu_name}' exists and is in the $PATH or that Docker is running)")
+            self.logger.error(f"Failed to run the simulator (make sure that the simulator '{simu_name}' exists and is "
+                              f"in the $PATH or that Docker is running)")
             exit(1)
-        
+
         self.simulator_config: JSON = self._load_json(self.config["config"])
 
         # we can override the workflow in the config with --workflow
         if workflow:
-            self.workflow: Path = Path(workflow).resolve()
+            # self.workflow: Path = Path(workflow).resolve()
+            self.workflow: Path = Path(workflow)
         else:
-            self.workflow: Path = Path(self.simulator_config["workflow"]["file"]).resolve()
-        
+            # self.workflow: Path = Path(self.simulator_config["workflow"]["file"]).resolve()
+            self.workflow: Path = Path(self.simulator_config["workflow"]["file"])
+
         if Path.is_file(self.workflow):
             self.logger.info(f"Calibrating {self.workflow}")
         else:
@@ -401,7 +415,7 @@ class Calibrator(object):
         else:
             logger.warn(f"Did not find how to add parameter {name}")
             return None
-        
+
         logger.info(f"Added parameter {line[-1]} for calibration.")
 
 
@@ -437,7 +451,7 @@ class Calibrator(object):
     """
 
     def _test_simulator(self) -> Tuple[bool, str]:
-        cmd = [self.simulator, "--version"]
+        cmd = ["docker", "exec", docker_container_id, self.simulator, "--version"]
         try:
             test_simu = run(
                 cmd, capture_output=True, text=True, check=True
@@ -463,6 +477,38 @@ class Calibrator(object):
         with open(path, 'w') as f:
             json_data = json.dumps(data, indent=4)
             f.write(json_data)
+
+    """
+        Create a Docker container to run the simulator. Returns the container ID.
+    """
+
+    def _create_docker_container(self, docker_image) -> str:
+
+        self.logger.info(f"Starting Docker container for image {docker_image}")
+        cmd = "docker run -it -d -v " + os.getcwd() + ":/home/wrench " + docker_image
+        docker = run(cmd.split(" "), capture_output=True, text=True, timeout=int(10))
+        if docker.stdout == '':
+            raise CalledProcessError(docker.returncode, docker.args)
+        docker.check_returncode()
+        global docker_container_id
+        docker_container_id = docker.stdout.strip()
+        self.logger.info(f"Docker container started ({docker_container_id[0:11]})")
+        return docker.stdout.strip()
+
+
+    """
+        Kill a Docker container.
+    """
+
+    def _kill_docker_container(self, docker_container_id: str) -> str:
+
+        self.logger.info(f"Killing Docker container ({docker_container_id[0:11]})...")
+        cmd = "docker kill " + docker_container_id
+        docker = run(cmd.split(" "), capture_output=True, text=True, timeout=int(10))
+        docker.check_returncode()
+        self.logger.info("Docker container killed")
+        return
+
 
     """
         Launch the search.
@@ -598,64 +644,65 @@ def plot(df: pd.DataFrame, output: str, plot_rs: bool = True, show: bool = False
 
 if __name__ == "__main__":
 
+
     logger = configure_logger(level=logging.INFO)
 
     parser = ArgumentParser(description='Calibrate a WRENCH simulator using DeepHyper.')
     parser.add_argument('--config', '-c', dest='conf', action='store',
                         type=Path, required=True,
                         help='Path to the JSON configuration file'
-    )
+                        )
 
     parser.add_argument('--workflow', '-w', dest='workflow', action='store',
                         type=Path, required=False,
                         help='Path to the workflow (override the path in the config file)'
-    )
+                        )
 
     parser.add_argument('--iterations', '-i', dest='iter', action='store',
                         type=int, default=1,
                         help='Number of iterations executed by DeepHyper'
-    )
+                        )
 
     parser.add_argument('--all', '-a', action='store_true',
                         help='Perform a benchmark by running the \
                             same auto-calibration procedure using Bayesian Optimization \
                             and Random Search'
-    )
+                        )
 
     parser.add_argument('--cores', '-x', dest='cores', action='store',
                         type=int, required=False,
                         help='Number of cores to use (by default all available on the machine)'
-    )
+                        )
 
     parser.add_argument('--no-properties', action='store_false',
                         help='Calibrate the simulator without properties.'
-    )
+                        )
 
     parser.add_argument('--no-payloads', action='store_false',
                         help='Calibrate the simulator without payloads.'
-    )
+                        )
 
     parser.add_argument('--no-early-stopping', '-e', action='store_false',
                         help=f'Do not stop the search when it does not improve for a given \
                         number (here {EARLY_STOP}) of evaluations. Keep doing all the iterations even \
                         if it does not improve the objective.'
-    )
+                        )
 
     parser.add_argument('--compute-service-scheme', action='store', type=str,
                         help=f'Specify the value of compute_service_scheme in \
                         the configuration. Possible values: all_bare_metal, \
                         batch_only, htcondor_batch .'
-    )
+                        )
 
     parser.add_argument('--storage-service-scheme', action='store', type=str,
                         help=f'Specify the value of storage_service_scheme in \
                         the configuration. Possible values: submit_only, submit_and_slurm_head .'
-    )
+                        )
 
     parser.add_argument('--network-topology-scheme', action='store', type=str,
                         help=f'Specify the value of network_topology_scheme in \
                         the configuration. Possible values: one_link, two_links, many_links'
-    )
+                        )
 
     args = parser.parse_args()
 

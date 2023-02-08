@@ -22,7 +22,6 @@ git clone https://github.com/wfcommons/wfcommons.git && cd wfcommons && git chec
 # Install DeepHyper
 python3 -m pip install -r calibration/requirements.txt
 
-
 # Install Docker
 sudo apt-get remove -y docker docker-engine docker.io containerd runc
 sudo apt-get install -y ca-certificates curl gnupg lsb-release
@@ -35,5 +34,7 @@ sudo groupadd docker
 sudo usermod -aG docker $USER
 sudo newgrp docker
 
+# Done
+echo "You should now be able to run: ./calibration/calibrate.py -c ./calibration/config.json"
 
 

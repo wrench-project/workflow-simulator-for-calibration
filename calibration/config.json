@@ -1,5 +1,6 @@
 {
     "simulator": "workflow-simulator-for-calibration",
+    "simulator_docker_image": "wrenchproject/workflow-calibration",
     "config": "data/sample_input.json",
     "calibration_ranges": {
         "platform": {
