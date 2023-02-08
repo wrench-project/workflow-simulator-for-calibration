@@ -39,6 +39,12 @@ To launch a simple exploration with `10` iterations, using [Ray](https://www.ray
 ./calibration/calibrate.py --config calibration/config.json --iter 10
 ```
 
+If you want to calibrate multiple for multiple workflows on $20$ cores, you can specify a list of workflows (which will override the workflow specified `data/sample_input.json`):
+
+```bash
+./calibration/calibrate.py --config calibration/config.json --workflows seismology.json genome-250-50-10-0.json --iter 200 --cores 20
+```
+
 > By default, the script will detect the number of _physical_ cores and set up one worker per core. 
 
 Note that, when providing the flag `--all`, the script `calibrate.py` will perform two consecutive calibrations, one using **Bayesian optimization (BO)** and one using a naive **random search (RS)** approach.
@@ -46,13 +52,13 @@ Note that, when providing the flag `--all`, the script `calibrate.py` will perfo
 The output should be similar to this:
 
 ```bash
-=============== exp-seismology-250-50-10-0-55eb0d10da07 ===============
+=============== exp-55eb0d10da07 ===============
 Best error:
 	Bayesian Optimization    (BO): 1.375%
 	Random Search - baseline (RS): 0.180%
 ```
 
-`calibrate.py` creates a directory named `exp-{workflow}-{ID}` (`ID` is a random UUID) that contains several files:
+`calibrate.py` creates a directory named `exp-{ID}` (`ID` is a random UUID) that contains several files:
 
 + **results.csv**: This file contains a summary of the _error_ reached for each method used. You also have a PDF plot with the same name;
 + **best-bo.json**:  The best configuration found by the Bayesian Optimization process as a JSON;
@@ -119,9 +125,9 @@ The field **calibration_ranges** defines, for each variable that can be calibrat
 Once the path in your config file `config.json` are correct, you can run `./run-calibration.sh -d $(pwd) -c config.json`. By default, the process will run 300 iterations per workflow without early stopping (i.e., process will not stop even if the objective does not improve) and will use all cores available (can be change with `--cores X`).
 
 # TODO
- - [ ] Loic: Adapt for multiple workflows (multiple workflows at the same time in DeepHyper)
- - [x] Loic: Add flags for `network_topology_scheme` and other `scheme`
- - [ ] Loic/Henri: Create script to help Rafael to build the simulator
+ - [x] Loïc: Adapt for multiple workflows (multiple workflows at the same time in DeepHyper). Added new flag `--workflow wf1.json wf2.json`
+ - [x] Loïc: Add flags for `network_topology_scheme` and other `scheme`
+ - [ ] Loïc/Henri: Create script to help Rafael to build the simulator
  - [X] Henri: Create a docker for the simulator
  - [ ] Rafael: Run more workflows, at least 5 per instance (10 if the variance is too high)
 
