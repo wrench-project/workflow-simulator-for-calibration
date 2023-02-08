@@ -20,6 +20,7 @@ if sys.version_info[0] != 3 or sys.version_info[1] >= 10:
 import os
 import atexit
 import time
+import re
 import json
 import logging
 import pandas as pd
@@ -143,11 +144,24 @@ def create_docker_container(docker_image) -> str:
 
 def kill_docker_container(docker_container_id: str) -> str:
 
+    logger.info(f"Waiting for Docker container to idle...")
+    zero_count = 0
+    while zero_count < 3:
+        time.sleep(1)
+        cmd = "docker container stats --no-stream " + docker_container_id
+        docker = run(cmd.split(" "), capture_output=True, text=True, timeout=int(10))
+        docker.check_returncode()
+        second_line = docker.stdout.split('\n')[1].strip()
+        cpu_load = float(re.split(' +', second_line)[2].split("%")[0])
+        print(cpu_load)
+        if (cpu_load <= 0):
+            zero_count += 1
     logger.info(f"Killing Docker container ({docker_container_id[0:11]})...")
     cmd = "docker kill " + docker_container_id
     docker = run(cmd.split(" "), capture_output=True, text=True, timeout=int(10))
     docker.check_returncode()
     logger.info("Docker container killed")
+    time.sleep(1)
     cmd = "docker rm " + docker_container_id
     docker = run(cmd.split(" "), capture_output=True, text=True, timeout=int(10))
     docker.check_returncode()
