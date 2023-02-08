@@ -53,7 +53,9 @@ plt.rcParams.update({
 # Mandatory to load the simulator if SimGrid and WRENCH shared lib
 # are not located in /usr/local/lib
 if sys.platform == "darwin":
-    environ["DYLD_LIBRARY_PATH"] = environ["HOME"] + "/local/lib/"
+    if "DYLD_LIBRARY_PATH" not in environ:
+        environ["DYLD_LIBRARY_PATH"] = ""
+    environ["DYLD_LIBRARY_PATH"] = environ["DYLD_LIBRARY_PATH"] +":" + environ["HOME"] + "/local/lib/"
 
 SCHEMES = {"error": "error_computation_scheme",
            "compute": "compute_service_scheme",
@@ -225,7 +227,7 @@ class Calibrator(object):
 
     def __init__(self,
                  config: Path,
-                 workflow: Path = None,
+                 workflows: List[Path] = None,
                  random_search: bool = False,
                  max_evals: int = 100,
                  cores: int = None,
@@ -252,11 +254,14 @@ class Calibrator(object):
 
         self.func = worker
         if cores:
+            # Temporary fix
+            # For some reasons Ray crashes sometimes when num_cpus == 1
             self.num_cpus = cores
             self.num_cpus_per_task = 1
         else:
-            self.num_cpus = min(self.max_evals, int(cpu_count(logical=False)))
-            self.num_cpus_per_task = int(cpu_count() // int(cpu_count(logical=False)))
+            physical_cores = int(cpu_count(logical=False))
+            self.num_cpus = min(self.max_evals, physical_cores)
+            self.num_cpus_per_task = min(self.num_cpus, int(cpu_count() // physical_cores))
 
         self.backend = "ray"
         # Number of jobs used to compute the surrogate model ( -1 means max possible)
@@ -283,18 +288,17 @@ class Calibrator(object):
         self.simulator_config: JSON = self._load_json(self.config["config"])
 
         # we can override the workflow in the config with --workflow
-        if workflow:
-            # self.workflow: Path = Path(workflow).resolve()
-            self.workflow: Path = Path(workflow)
+        if workflows:
+            self.workflows: List[Path] = [Path(wf) for wf in workflows]
         else:
-            # self.workflow: Path = Path(self.simulator_config["workflow"]["file"]).resolve()
-            self.workflow: Path = Path(self.simulator_config["workflow"]["file"])
-
-        if Path.is_file(self.workflow):
-            self.logger.info(f"Calibrating {self.workflow}")
-        else:
-            self.logger.error(f"The file {self.workflow} does not exist.")
-            exit(1)
+            self.workflows: List[Path] = [Path(self.simulator_config["workflow"]["file"])]
+        
+        for wf in self.workflows:
+            if Path.is_file(wf):
+                self.logger.info(f"Calibrating {wf}")
+            else:
+                self.logger.error(f"The file {wf} does not exist.")
+                exit(1)
 
         self.schemes: Dict = SCHEMES
         # Override the schemes for compute, storage and topology (if needed)
@@ -386,7 +390,7 @@ class Calibrator(object):
                 self.problem.add_hyperparameter(
                     (MIN_SCHED_OVER, MAX_SCHED_OVER, SAMPLING), name)
             elif "BATCH_SCHEDULING_ALGORITHM" == l[-1]:
-                self.problem.add_hyperparameter(SCHEDULING_ALGO,name)
+                self.problem.add_hyperparameter(SCHEDULING_ALGO, name)
             elif "BUFFER_SIZE" == l[-1]:
                 # Model the concurrent access/buffer size with two variables:
                 # - inf or not inf
@@ -421,7 +425,7 @@ class Calibrator(object):
 
     def add_parameters(self):
         self.problem.add_hyperparameter([str(self.simulator)], "simulator")
-        self.problem.add_hyperparameter([str(self.workflow)], "workflow")
+        self.problem.add_hyperparameter([str(wf) for wf in self.workflows], "workflow")
         self.problem.add_hyperparameter([str(self.output_dir)], "output_dir")
         self.problem.add_hyperparameter([str(self.timeout)], "timeout")
 
@@ -537,7 +541,10 @@ class Calibrator(object):
         Get the pandas data frame
     """
 
-    def get_dataframe(self) -> pd.DataFrame | None:
+    def get_dataframe(self, simplify=True) -> pd.DataFrame | None:
+        if simplify:
+            # shorten workflow name
+            self.df["workflow"] = self.df["workflow"].apply(lambda x: x.split("/")[-1])
         return self.df
 
     """
@@ -576,7 +583,11 @@ class Calibrator(object):
         Write the data frame into a CSV
     """
 
-    def write_csv(self) -> None:
+    def write_csv(self, simplify=True) -> None:
+        if simplify:
+            # shorten workflow name
+            self.df["workflow"] = self.df["workflow"].apply(lambda x: x.split("/")[-1])
+
         if self.random_search:
             self.df.to_csv(self.output_dir+'/rs.csv', index=False)
         else:
@@ -653,21 +664,27 @@ if __name__ == "__main__":
                         help='Path to the JSON configuration file'
                         )
 
-    parser.add_argument('--workflow', '-w', dest='workflow', action='store',
+    parser.add_argument('--workflows', '-w', dest='workflows', nargs='+',
                         type=Path, required=False,
-                        help='Path to the workflow (override the path in the config file)'
-                        )
+                        help='Path to the workflows (override the paths in the config file)'
+    )
 
     parser.add_argument('--iterations', '-i', dest='iter', action='store',
                         type=int, default=1,
                         help='Number of iterations executed by DeepHyper'
                         )
 
+    parser.add_argument('--no-early-stopping', '-e', action='store_false',
+                        help=f'Do not stop the search when it does not improve for a given \
+                        number (here {EARLY_STOP}) of evaluations. Keep doing all the iterations even \
+                        if it does not improve the objective.'
+    )
+
     parser.add_argument('--all', '-a', action='store_true',
                         help='Perform a benchmark by running the \
-                            same auto-calibration procedure using Bayesian Optimization \
-                            and Random Search'
-                        )
+                            same auto-calibration procedure using Bayesian Optimization (BO) \
+                            and Random Search (RS). By default the script only uses BO.'
+    )
 
     parser.add_argument('--cores', '-x', dest='cores', action='store',
                         type=int, required=False,
@@ -704,21 +721,31 @@ if __name__ == "__main__":
                         the configuration. Possible values: one_link, two_links, many_links'
                         )
 
+    parser.add_argument('--no-properties', action='store_false',
+                        help='Calibrate the simulator without properties.'
+    )
+
+    parser.add_argument('--no-payloads', action='store_false',
+                        help='Calibrate the simulator without payloads.'
+    )
+
     args = parser.parse_args()
 
     if not args.conf.is_file():
         logger.error(f"Configuration file '{args.conf}' does not exist.")
         exit(1)
 
-    if args.workflow and not args.workflow.is_file():
-        logger.error(f"Workflow file '{args.workflow}' does not exist.")
-        exit(1)
+    if args.workflows:
+        for wf in args.workflows:
+            if not wf.is_file():
+                logger.error(f"Workflow file '{wf}' does not exist or is not a valid file.")
+                exit(1)
 
     # We use shorter UUID for clarity
-    if args.workflow:
-        exp_id = "exp-"+args.workflow.stem+"-"+str(uuid4()).split('-')[-1]
-    else:
-        exp_id = "exp-"+str(uuid4()).split('-')[-1]
+    # if args.workflow:
+    #     exp_id = "exp-"+args.workflow.stem+"-"+str(uuid4()).split('-')[-1]
+    # else:
+    exp_id = "exp-"+str(uuid4()).split('-')[-1]
 
     try:
         mkdir(exp_id)
@@ -735,7 +762,7 @@ if __name__ == "__main__":
 
     bayesian = Calibrator(
         config=args.conf,
-        workflow=args.workflow,
+        workflows=args.workflows,
         random_search=False,
         max_evals=args.iter,
         timeout=300,  # 5 min timeout
@@ -767,7 +794,7 @@ if __name__ == "__main__":
     if args.all:
         baseline = Calibrator(
             config=args.conf,
-            workflow=args.workflow,
+            workflows=args.workflows,
             random_search=True,
             max_evals=args.iter,
             timeout=300,  # 5 min timeout
