@@ -124,7 +124,7 @@ namespace wrench {
                     // Force on-core executions, just in case
                     service_specific_arguments[ready_task->getID()] = "1";
 
-                } else if (this->compute_service_scheme == "htcondor_baremetal") {
+                } else if (this->compute_service_scheme == "htcondor_bare_metal") {
                     target_cs = *(this->compute_services.begin());
                 } else {
                     throw std::runtime_error("Unimplemented compute_service_scheme in the Controller: " + compute_service_scheme);

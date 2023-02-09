@@ -326,7 +326,7 @@ int main(int argc, char **argv) {
                     new wrench::BareMetalComputeService(
                             host,
                             {host},
-                            "/scratch",
+                            scratch_mount_point,
                             get_properties(json_input,
                                            "compute_service_scheme_parameters",
                                            compute_service_scheme,
