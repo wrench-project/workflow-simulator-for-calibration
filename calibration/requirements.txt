@@ -5,5 +5,4 @@ psutil>=5.9.0
 wfcommons>=0.8
 deephyper==0.4.2
 scikit-learn<1.2.0
-ray>=2.2.0
 more_itertools>=9.0.0

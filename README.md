@@ -129,13 +129,14 @@ Once the path in your config file `config.json` are correct, you can run `./run-
  - [x] Loïc: Add flags for `network_topology_scheme` and other `scheme`
  - [x] Loïc/Henri: Create script to to build the simulator on, e.g., Chameleon
  - [X] Henri: Create a docker for the simulator
- - [ ] Loïc: Look at other evaluators, to abandon Ray
+ - [x] Loïc: Look at other evaluators, to abandon Ray
  - [ ] Henri: Fix Docker mayhem
  - [ ] Henri/Jesse: 
 	- [ ] Check with Rafael what the actual setup is
         - [ ] Modify the JSON to match the actual setup, let Loic know
         - [ ] Modify the simulator to match the actual setup
         - [ ] Rename stuff in a coherent way
+        - [x] Modify calibration script to match
  - [ ] Rafael: Run more workflows, at least 5 per instance (10 if the variance is too high)
 
 Exp:

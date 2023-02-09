@@ -153,7 +153,7 @@ def kill_docker_container(docker_container_id: str) -> str:
         docker.check_returncode()
         second_line = docker.stdout.split('\n')[1].strip()
         cpu_load = float(re.split(' +', second_line)[2].split("%")[0])
-        print(cpu_load)
+        # print(cpu_load)
         if (cpu_load <= 0):
             zero_count += 1
     logger.info(f"Killing Docker container ({docker_container_id[0:11]})...")
@@ -244,7 +244,7 @@ def worker(config: Dict) -> float:
         json_config = json.dumps(wrench_conf, indent=4)
         temp_config.write(json_config)
     try:
-        cmd = ["docker", "exec", docker_container_id, config["simulator"], str(config_path)]
+        cmd = ["docker", "exec", config["docker_container_id"], config["simulator"], str(config_path)]
         simulation = run(cmd, capture_output=True, text=True, timeout=int(config["timeout"]))
 
         if simulation.stderr != '' or simulation.stdout == '':
@@ -288,7 +288,9 @@ class Calibrator(object):
                  compute_service_scheme: str = None,
                  storage_service_scheme: str = None,
                  network_topology_scheme: str = None,
-                 logger: logging.Logger = None) -> None:
+                 docker_container_id: str = None,
+                 logger: logging.Logger = None
+                ) -> None:
 
         self.logger = logger if logger else logging.getLogger(__name__)
         self.config: JSON = self._load_json(config)
@@ -300,19 +302,16 @@ class Calibrator(object):
         self.compute_service_scheme = compute_service_scheme
         self.storage_service_scheme = storage_service_scheme
         self.network_topology_scheme = network_topology_scheme
+        self.docker_container_id = docker_container_id
 
         self.func = worker
         if cores:
-            # Temporary fix
-            # For some reasons Ray crashes sometimes when num_cpus == 1
             self.num_cpus = cores
-            self.num_cpus_per_task = 1
         else:
-            physical_cores = int(cpu_count(logical=False))
-            self.num_cpus = min(self.max_evals, physical_cores)
-            self.num_cpus_per_task = min(self.num_cpus, int(cpu_count() // physical_cores))
+            self.num_cpus = min(self.max_evals, int(cpu_count(logical=False)))
 
-        self.backend = "ray"
+        #Use subprocess as backend, to use ThreadPool -> thread 
+        self.backend = "process"
         # Number of jobs used to compute the surrogate model ( -1 means max possible)
         self.n_jobs = -1
 
@@ -379,8 +378,7 @@ class Calibrator(object):
             self.func,
             method=self.backend,
             method_kwargs={
-                "num_cpus": self.num_cpus,
-                "num_cpus_per_task": self.num_cpus_per_task,
+                "num_workers": self.num_cpus,
                 "callbacks": callbacks
             },
         )
@@ -473,6 +471,7 @@ class Calibrator(object):
         self.problem.add_hyperparameter([str(wf) for wf in self.workflows], "workflow")
         self.problem.add_hyperparameter([str(self.output_dir)], "output_dir")
         self.problem.add_hyperparameter([str(self.timeout)], "timeout")
+        self.problem.add_hyperparameter([str(self.docker_container_id)], "docker_container_id")
 
         for scheme in self.schemes.values():
             self.problem.add_hyperparameter(
@@ -500,7 +499,7 @@ class Calibrator(object):
     """
 
     def _test_simulator(self) -> Tuple[bool, str]:
-        cmd = ["docker", "exec", docker_container_id, self.simulator, "--version"]
+        cmd = ["docker", "exec", self.docker_container_id, self.simulator, "--version"]
         try:
             test_simu = run(
                 cmd, capture_output=True, text=True, check=True
@@ -715,17 +714,17 @@ if __name__ == "__main__":
     parser.add_argument('--compute-service-scheme', action='store', type=str,
                         help=f'Specify the value of compute_service_scheme in \
                         the configuration. Possible values: all_bare_metal, \
-                        batch_only, htcondor_batch .'
+                        htcondor_bare_metal .'
                         )
 
     parser.add_argument('--storage-service-scheme', action='store', type=str,
                         help=f'Specify the value of storage_service_scheme in \
-                        the configuration. Possible values: submit_only, submit_and_slurm_head .'
+                        the configuration. Possible values: submit_only, submit_and_compute_hosts .'
                         )
 
     parser.add_argument('--network-topology-scheme', action='store', type=str,
                         help=f'Specify the value of network_topology_scheme in \
-                        the configuration. Possible values: one_link, two_links, many_links'
+                        the configuration. Possible values: one_link, one_and_then_many_links, many_links'
                         )
 
     args = parser.parse_args()
@@ -740,10 +739,6 @@ if __name__ == "__main__":
                 logger.error(f"Workflow file '{wf}' does not exist or is not a valid file.")
                 exit(1)
 
-    # We use shorter UUID for clarity
-    # if args.workflow:
-    #     exp_id = "exp-"+args.workflow.stem+"-"+str(uuid4()).split('-')[-1]
-    # else:
     exp_id = "exp-"+str(uuid4()).split('-')[-1]
 
     try:
@@ -752,9 +747,9 @@ if __name__ == "__main__":
         print(e)
         exit(1)
 
-    assert args.compute_service_scheme in [None, "all_bare_metal", "batch_only", "htcondor_batch"]
-    assert args.storage_service_scheme in [None, "submit_only", "submit_and_slurm_head"]
-    assert args.network_topology_scheme in [None, "one_link", "two_links", "many_links"]
+    assert args.compute_service_scheme in [None, "all_bare_metal", "htcondor_bare_metal"]
+    assert args.storage_service_scheme in [None, "submit_only", "submit_and_compute_hosts"]
+    assert args.network_topology_scheme in [None, "one_link", "one_and_then_many_links", "many_links"]
 
     # Copy the configuration used
     copyfile(args.conf, f"{exp_id}/setup.json")
@@ -779,6 +774,7 @@ if __name__ == "__main__":
         compute_service_scheme=args.compute_service_scheme,
         storage_service_scheme=args.storage_service_scheme,
         network_topology_scheme=args.network_topology_scheme,
+        docker_container_id=docker_container_id,
         logger=logger
     )
 
@@ -811,6 +807,7 @@ if __name__ == "__main__":
             compute_service_scheme=args.compute_service_scheme,
             storage_service_scheme=args.storage_service_scheme,
             network_topology_scheme=args.network_topology_scheme,
+            docker_container_id=docker_container_id,
             logger=logger
         )
 
