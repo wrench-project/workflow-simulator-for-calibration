@@ -98,7 +98,7 @@
         "one_and_then_many_links": {
             "bandwidth_out_of_submit": "4MBps",
             "latency_out_of_submit": "10us",
-            "bandwidth_to_compute_host": "4MBps",
+            "bandwidth_to_compute_hosts": "4MBps",
             "latency_to_compute_hosts": "10us"
         },
         "many_links": {
