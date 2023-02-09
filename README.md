@@ -138,6 +138,8 @@ Once the path in your config file `config.json` are correct, you can run `./run-
         - [ ] Rename stuff in a coherent way
         - [x] Modify calibration script to match
  - [ ] Rafael: Run more workflows, at least 5 per instance (10 if the variance is too high)
+ - [ ] Loïc: add a ``--docker` option tu run with and without docker
+ - [ ] Loïc: Write a Python function to parse units from the JSON (similar to what WRENCH uses)
 
 Exp:
  - [ ] Run configurations: `all_bare_metal`/`htcondor_bare_metal`, `submit_only`/`submit_and_slurm_head`, and `one_link`/`two_link`/`many_link`
