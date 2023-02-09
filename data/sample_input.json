@@ -19,10 +19,6 @@
                 "num_cores": "10",
                 "speed": "123Gf"
             },
-            "slurm_head_host": {
-                "num_cores": "10",
-                "speed": "423Gf"
-            },
             "compute_hosts": {
                 "num_hosts": "1",
                 "num_cores": "5",
@@ -34,48 +30,21 @@
             "payloads": {
             }
         },
-        "batch_only": {
-            "submit_host": {
-                "num_cores": "12",
-                "speed": "123Gf"
-            },
-            "slurm_head_host": {
-                "num_cores": "10",
-                "speed": "423Gf"
-            },
-            "compute_hosts":
-            {
-                "num_hosts": "4",
-                "num_cores": "10",
-                "speed": "423Gf"
-            },
-            "properties": {
-                "BatchComputeServiceProperty::THREAD_STARTUP_OVERHEAD": "1",
-                "BatchComputeServiceProperty::BATCH_SCHEDULING_ALGORITHM": "fcfs"
-            },
-            "payloads": {
-            }
-        },
-        "htcondor_batch": {
+        "htcondor_bare_metal": {
             "submit_host": {
                 "num_cores": "1231",
                 "speed": "123Gf"
             },
-            "slurm_head_host": {
-                "num_cores": "10",
-                "speed": "423Gf"
-            },
             "compute_hosts":
             {
                 "num_hosts": "4",
                 "num_cores": "10",
                 "speed": "423Gf"
             },
-            "batch_properties": {
-                "BatchComputeServiceProperty::THREAD_STARTUP_OVERHEAD": "1",
-                "BatchComputeServiceProperty::BATCH_SCHEDULING_ALGORITHM": "fcfs"
+            "bare_metal_properties": {
+                "BareMetalComputeServiceProperty::THREAD_STARTUP_OVERHEAD": "42s"
             },
-            "batch_payloads": {
+            "bare_metal_payloads": {
             },
             "htcondor_properties": {
                 "HTCondorComputeServiceProperty::NEGOTIATOR_OVERHEAD": "1.0ms",
@@ -100,7 +69,7 @@
                 "StorageServiceMessagePayload::FILE_READ_REQUEST_MESSAGE_PAYLOAD": "666"
             }
         },
-        "submit_and_slurm_head": {
+        "submit_and_compute_hosts": {
             "bandwidth_submit_disk_read": "100MBps",
             "bandwidth_submit_disk_write": "10MBps",
             "submit_properties": {
@@ -109,14 +78,13 @@
             },
             "submit_payloads": {
             },
-            "slurm_head_disk_read": "100MBps",
-            "slurm_head_disk_write": "10MBps",
-            "slurm_head_properties": {
+            "bandwidth_compute_host_disk_read": "100MBps",
+            "bandwidth_compute_host_write": "10MBps",
+            "compute_host_properties": {
                 "StorageServiceProperty::BUFFER_SIZE": "1048576B",
                 "SimpleStorageServiceProperty::MAX_NUM_CONCURRENT_DATA_CONNECTIONS": "8"
             },
-            "slurm_head_payloads": {
-                "StorageServiceMessagePayload::FILE_READ_REQUEST_MESSAGE_PAYLOAD": "666"
+            "compute_host_payloads": {
             }
         }
     },
@@ -127,17 +95,15 @@
             "bandwidth": "4MBps",
             "latency": "10us"
         },
-        "two_links": {
-            "bandwidth_submit_to_slurm_head": "4MBps",
-            "latency_submit_to_slurm_head": "10us",
-            "bandwidth_slurm_head_to_compute_hosts": "4MBps",
-            "latency_slurm_head_to_compute_hosts": "10us" 
+        "one_and_then_many_links": {
+            "bandwidth_out_of_submit": "4MBps",
+            "latency_out_of_submit": "10us",
+            "bandwidth_to_compute_host": "4MBps",
+            "latency_to_compute_hosts": "10us"
         },
         "many_links": {
-            "bandwidth_submit_to_slurm_head": "4000MBps",
-            "latency_submit_to_slurm_head": "10us",
-            "bandwidth_slurm_head_to_compute_hosts": "4000MBps",
-            "latency_slurm_head_to_compute_hosts": "10us"
+            "bandwidth_submit_to_compute_host": "4000MBps",
+            "latency_submit_to_compute_host": "10us"
         }
     }
 }
