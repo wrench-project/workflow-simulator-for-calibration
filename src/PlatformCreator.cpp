@@ -209,13 +209,13 @@ void PlatformCreator::create_platform() {
         }
         auto network_link_out_of_submit = zone->create_link("network_link_out_of_submit",
                                                             bandwidth_out_of_submit)->set_latency(
-                boost::json::value_to<std::string>(link_specs["latency_submit_to_slurm_head"]))->seal();
+                boost::json::value_to<std::string>(link_specs["latency_out_of_submit"]))->seal();
 
         // Create all to_compute_host network links
-        double bandwidth_to_compute_host;
+        double bandwidth_to_compute_hosts;
         try {
-            bandwidth_to_compute_host = UnitParser::parse_bandwidth(
-                    boost::json::value_to<std::string>(link_specs["bandwidth_to_compute_host"]));
+            bandwidth_to_compute_hosts = UnitParser::parse_bandwidth(
+                    boost::json::value_to<std::string>(link_specs["bandwidth_to_compute_hosts"]));
         } catch (std::exception &e) {
             throw std::invalid_argument(
                     "Missing or invalid 'bandwidth_to_compute_hosts' value for 'one_and_then_many_links' scheme");
@@ -230,7 +230,7 @@ void PlatformCreator::create_platform() {
         std::vector<sg4::Link *> network_links_to_compute_hosts;
         for (int i = 0; i < num_compute_hosts; i++) {
             auto link = zone->create_link("network_link_compute_host_" + std::to_string(i),
-                                          bandwidth_to_compute_host)->set_latency(
+                                          bandwidth_to_compute_hosts)->set_latency(
                     boost::json::value_to<std::string>(link_specs["latency_to_compute_hosts"]))->seal();
             network_links_to_compute_hosts.emplace_back(link);
         }
