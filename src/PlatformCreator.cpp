@@ -144,7 +144,7 @@ void PlatformCreator::create_platform() {
                 throw std::invalid_argument("Missing or invalid 'bandwidth_compute_host_write' value");
             }
 
-            auto scratch_disk = submit_host->create_disk("scratch_" + std::to_string(i),
+            auto scratch_disk = compute_host->create_disk("scratch_" + std::to_string(i),
                                                          boost::json::value_to<std::string>(
                                                                  disk_specs["bandwidth_compute_host_disk_read"]),
                                                          boost::json::value_to<std::string>(

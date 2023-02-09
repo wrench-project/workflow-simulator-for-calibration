@@ -271,36 +271,44 @@ int main(int argc, char **argv) {
 //    }
 
 
-    // There may be a storage service on each compute host
-    std::set<std::shared_ptr<wrench::StorageService>> compute_host_storage_services;
-    if (storage_service_scheme == "submit_and_compute_hosts") {
-        for (const auto &host : compute_host_names) {
-            auto ss =
-                    simulation->add(wrench::SimpleStorageService::createSimpleStorageService(
-                            host,
-                            {{"/"}},
-                            get_properties(json_input,
-                                           "storage_service_scheme_parameters",
-                                           storage_service_scheme,
-                                           "compute_host_properties"),
-                            get_payloads(json_input,
-                                         "storage_service_scheme_parameters",
-                                         storage_service_scheme,
-                                         "compute_host_payloads")));
-        }
-    }
+//    // There may be a storage service on each compute host
+//    std::set<std::shared_ptr<wrench::StorageService>> compute_host_storage_services;
+//    if (storage_service_scheme == "submit_and_compute_hosts") {
+//        for (const auto &host : compute_host_names) {
+//            auto ss =
+//                    simulation->add(wrench::SimpleStorageService::createSimpleStorageService(
+//                            host,
+//                            {{"/"}},
+//                            get_properties(json_input,
+//                                           "storage_service_scheme_parameters",
+//                                           storage_service_scheme,
+//                                           "compute_host_properties"),
+//                            get_payloads(json_input,
+//                                         "storage_service_scheme_parameters",
+//                                         storage_service_scheme,
+//                                         "compute_host_payloads")));
+//        }
+//    }
 
     // Create relevant compute services
     std::set<std::shared_ptr<wrench::ComputeService>> compute_services;
 
     if (compute_service_scheme == "all_bare_metal") {
+
+        std::string scratch_mount_point;
+        if (storage_service_scheme == "submit_and_compute_hosts") {
+            scratch_mount_point = "/scratch";
+        } else {
+            scratch_mount_point = "";
+        }
+
         // Create one bare-metal service on all compute nodes
         for (auto const &host : compute_host_names) {
             compute_services.insert(simulation->add(
                     new wrench::BareMetalComputeService(
                             host,
                             {host},
-                            "",
+                            scratch_mount_point,
                             get_properties(json_input,
                                            "compute_service_scheme_parameters",
                                            compute_service_scheme,
