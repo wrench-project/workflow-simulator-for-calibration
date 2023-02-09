@@ -29,7 +29,6 @@ namespace wrench {
                 std::string storage_service_scheme,
                 std::set<std::shared_ptr<wrench::ComputeService>> compute_services,
                 std::shared_ptr<wrench::StorageService> submit_node_storage_service,
-                std::shared_ptr<wrench::StorageService>  slurm_head_node_storage_service,
                 double scheduling_overhead,
                 const std::string &hostname);
 
@@ -47,7 +46,6 @@ namespace wrench {
         std::string storage_service_scheme;
         std::set<std::shared_ptr<wrench::ComputeService>> compute_services;
         std::shared_ptr<wrench::StorageService> submit_node_storage_service;
-        std::shared_ptr<wrench::StorageService> slurm_head_node_storage_service;
         double scheduling_overhead;
 
         std::map<std::shared_ptr<ComputeService>, unsigned long> core_availability;

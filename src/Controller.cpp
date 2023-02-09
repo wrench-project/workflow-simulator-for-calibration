@@ -35,7 +35,6 @@ namespace wrench {
             std::string storage_service_scheme,
             std::set<std::shared_ptr<wrench::ComputeService>> compute_services,
             std::shared_ptr<wrench::StorageService> submit_node_storage_service,
-            std::shared_ptr<wrench::StorageService>  slurm_head_node_storage_service,
             double scheduling_overhead,
             const std::string &hostname) : ExecutionController(hostname, "controller"),
                                            workflow(std::move(workflow)),
@@ -43,7 +42,6 @@ namespace wrench {
                                            storage_service_scheme(std::move(storage_service_scheme)),
                                            compute_services(std::move(compute_services)),
                                            submit_node_storage_service(std::move(submit_node_storage_service)),
-                                           slurm_head_node_storage_service(std::move(slurm_head_node_storage_service)),
                                            scheduling_overhead(scheduling_overhead) {}
 
     /**
@@ -84,12 +82,12 @@ namespace wrench {
             auto ready_tasks = this->workflow->getReadyTasks();
             std::sort(ready_tasks.begin(), ready_tasks.end(),
                       [](const std::shared_ptr<wrench::WorkflowTask> &a, const std::shared_ptr<wrench::WorkflowTask> &b) -> bool {
-                if (a->getID() == b->getID()) {
-                    return (a.get() > b.get());
-                } else {
-                    return (a->getID() > b->getID());
-                }
-            });
+                          if (a->getID() == b->getID()) {
+                              return (a.get() > b.get());
+                          } else {
+                              return (a->getID() > b->getID());
+                          }
+                      });
 
             for (auto const &ready_task: ready_tasks) {
 
@@ -126,20 +124,8 @@ namespace wrench {
                     // Force on-core executions, just in case
                     service_specific_arguments[ready_task->getID()] = "1";
 
-                } else if (this->compute_service_scheme == "batch_only") {
+                } else if (this->compute_service_scheme == "htcondor_baremetal") {
                     target_cs = *(this->compute_services.begin());
-                    service_specific_arguments["-N"] = "1";
-                    service_specific_arguments["-c"] = "1";
-                    service_specific_arguments["-t"] = "100000"; // doesn't matter since all tasks are 1-core
-
-                } else if (this->compute_service_scheme == "htcondor_batch") {
-                    target_cs = *(this->compute_services.begin());
-                    service_specific_arguments["-universe"] = "grid";
-                    service_specific_arguments["-N"] = "1";
-                    service_specific_arguments["-c"] = "1";
-                    service_specific_arguments["-t"] = "100000"; // doesn't matter since all tasks are 1-core
-                    // Only one batch service, so we shouldn't have to specify it
-
                 } else {
                     throw std::runtime_error("Unimplemented compute_service_scheme in the Controller: " + compute_service_scheme);
                 }
@@ -167,17 +153,18 @@ namespace wrench {
                         file_locations[f] = FileLocation::LOCATION(this->submit_node_storage_service, f);
                     }
 
-                } else if (storage_service_scheme == "submit_and_slurm_head") {
+                } else if (storage_service_scheme == "submit_and_compute_hosts") {
                     for (auto const &f: ready_task->getInputFiles()) {
-                        file_locations[f] = FileLocation::LOCATION(this->slurm_head_node_storage_service, f);
-                        pre_file_copies.emplace_back(std::make_tuple(FileLocation::LOCATION(this->submit_node_storage_service, f),
-                                                     FileLocation::LOCATION(this->slurm_head_node_storage_service, f)));
+                        file_locations[f] = FileLocation::SCRATCH(f);
+                        pre_file_copies.emplace_back(std::make_tuple(
+                                FileLocation::LOCATION(this->submit_node_storage_service, f),
+                                FileLocation::SCRATCH(f)));
                     }
                     for (auto const &f: ready_task->getOutputFiles()) {
-                        file_locations[f] = FileLocation::LOCATION(this->slurm_head_node_storage_service, f);
+                        file_locations[f] = FileLocation::SCRATCH(f);
                         post_file_copies.emplace_back(std::make_tuple(
-                                                      FileLocation::LOCATION(this->slurm_head_node_storage_service, f),
-                                                      FileLocation::LOCATION(this->submit_node_storage_service, f)));
+                                FileLocation::SCRATCH(f),
+                                FileLocation::LOCATION(this->submit_node_storage_service, f)));
                     }
 
                 }   else {

@@ -15,9 +15,9 @@
 /**
  * All implemented schemes as ugly globals
  */
-std::set<std::string> implemented_compute_service_schemes = {"all_bare_metal","batch_only", "htcondor_batch"};
-std::set<std::string> implemented_storage_service_schemes = {"submit_only","submit_and_slurm_head"};
-std::set<std::string> implemented_network_topology_schemes = {"one_link","two_links","many_links"};
+std::set<std::string> implemented_compute_service_schemes = {"all_bare_metal", "htcondor_bare_metal"};
+std::set<std::string> implemented_storage_service_schemes = {"submit_only","submit_and_compute_hosts"};
+std::set<std::string> implemented_network_topology_schemes = {"one_link","one_and_then_many_links","many_links"};
 
 
 
@@ -79,7 +79,6 @@ void determine_all_schemes(boost::json::object &json_input,
         compute_service_scheme = boost::json::value_to<std::string>(json_input["compute_service_scheme"]);
     } catch (std::exception &e) {
         throw std::invalid_argument("Invalid or missing compute_service_scheme specification in JSON input (" + std::string(e.what()) + ")");
-        exit(1);
     }
     if (implemented_compute_service_schemes.find(compute_service_scheme) == implemented_compute_service_schemes.end()) {
         throw std::invalid_argument("unknown or unimplemented compute service scheme " + compute_service_scheme);
@@ -88,7 +87,6 @@ void determine_all_schemes(boost::json::object &json_input,
         storage_service_scheme = boost::json::value_to<std::string>(json_input["storage_service_scheme"]);
     } catch (std::exception &e) {
         throw std::invalid_argument("Invalid or missing storage_service_scheme specification in JSON input (" + std::string(e.what()) +")");
-        exit(1);
     }
     if (implemented_storage_service_schemes.find(storage_service_scheme) == implemented_storage_service_schemes.end()) {
         throw std::invalid_argument("unknown or unimplemented storage service scheme " + storage_service_scheme + ")");
@@ -97,7 +95,6 @@ void determine_all_schemes(boost::json::object &json_input,
         network_topology_scheme = boost::json::value_to<std::string>(json_input["network_topology_scheme"]);
     } catch (std::exception &e) {
         throw std::invalid_argument("Invalid or missing network_topology_scheme specification in JSON input (" + std::string(e.what()) + ")");
-        exit(1);
     }
     if (implemented_network_topology_schemes.find(network_topology_scheme) == implemented_network_topology_schemes.end()) {
         throw std::invalid_argument("unknown or unimplemented network topology scheme " + network_topology_scheme);
@@ -129,7 +126,7 @@ std::shared_ptr<wrench::Workflow> create_workflow(boost::json::object &json_inpu
 
 
 
-void process_hostnames(std::string &submit_host_name, std::string &slurm_head_host_name,
+void process_hostnames(std::string &submit_host_name,
                        std::vector<std::string> &compute_host_names) {
     // Gather all relevant hostnames and perform sanity checks
     for (const auto &h : simgrid::s4u::Engine::get_instance()->get_all_hosts()) {
@@ -140,22 +137,12 @@ void process_hostnames(std::string &submit_host_name, std::string &slurm_head_ho
                 submit_host_name = h->get_cname();
             }
         }
-        if (std::string(h->get_property("type")) == "slurm_head") {
-            if (not slurm_head_host_name.empty()) {
-                throw std::invalid_argument("More than one host of type 'slurm_head' in the platform description");
-            } else {
-                slurm_head_host_name = h->get_cname();
-            }
-        }
         if (std::string(h->get_property("type")) == "compute") {
             compute_host_names.emplace_back(h->get_cname());
         }
     }
     if (compute_host_names.empty()) {
         throw std::invalid_argument("There should be a host of type 'submit' in the platform description");
-    }
-    if (slurm_head_host_name.empty()) {
-        throw std::invalid_argument("There should be a host of type 'slurm_head' in the platform description");
     }
     if (compute_host_names.empty()) {
         throw std::invalid_argument("There should be at least one host of type 'slurm_compute' in the platform description");
@@ -173,7 +160,11 @@ wrench::WRENCH_PROPERTY_COLLECTION_TYPE get_properties(boost::json::object &json
 
     if (specs.contains(properties_key)) {
         for (const auto &prop : specs[properties_key].as_object()) {
+#if (BOOST_VERSION >= 108000)
             auto property = wrench::ServiceProperty::translateString(prop.key());
+#else
+            auto property = wrench::ServiceProperty::translateString(prop.key().to_string());
+#endif
             std::string property_value = boost::json::value_to<std::string>(prop.value());
             property_list[property] = property_value;
         }
@@ -191,7 +182,11 @@ wrench::WRENCH_MESSAGE_PAYLOADCOLLECTION_TYPE get_payloads(boost::json::object &
 
     if (specs.contains(payloads_key)) {
         for (const auto &pl : specs[payloads_key].as_object()) {
+#if (BOOST_VERSION >= 108000)
             auto payload = wrench::ServiceMessagePayload::translateString(pl.key());
+#else
+            auto payload = wrench::ServiceMessagePayload::translateString(pl.key().to_string());
+#endif
             double payload_value =  std::strtod(boost::json::value_to<std::string>(pl.value()).c_str(), nullptr);
             payload_list[payload] = payload_value;
         }
@@ -232,7 +227,6 @@ int main(int argc, char **argv) {
     std::shared_ptr<wrench::Workflow> workflow;
     double observed_real_makespan;
     std::string submit_host_name;
-    std::string slurm_head_host_name;
     std::vector<std::string> compute_host_names;
     try {
         // Read JSON input
@@ -245,7 +239,7 @@ int main(int argc, char **argv) {
         // Create the workflow for the WRENCH simulation
         workflow = create_workflow(json_input, &observed_real_makespan);
         // Gather all relevant hostnames and perform sanity checks
-        process_hostnames(submit_host_name, slurm_head_host_name, compute_host_names);
+        process_hostnames(submit_host_name, compute_host_names);
 
     } catch (std::invalid_argument &e) {
         std::cerr << "Error: " << e.what() << std::endl;
@@ -277,25 +271,26 @@ int main(int argc, char **argv) {
 //    }
 
 
-    // There may be a storage service on the slurm head node
-    std::shared_ptr<wrench::StorageService> slurm_head_node_storage_service = nullptr;
-    if (storage_service_scheme == "submit_and_slurm_head") {
-        slurm_head_node_storage_service =
-                simulation->add(wrench::SimpleStorageService::createSimpleStorageService(
-                        slurm_head_host_name,
-                        {{"/"}},
-                        get_properties(json_input,
-                                       "storage_service_scheme_parameters",
-                                       storage_service_scheme,
-                                       "slurm_head_properties"),
-                        get_payloads(json_input,
-                                     "storage_service_scheme_parameters",
-                                     storage_service_scheme,
-                                     "slurm_head_payloads")));
+    // There may be a storage service on each compute host
+    std::set<std::shared_ptr<wrench::StorageService>> compute_host_storage_services;
+    if (storage_service_scheme == "submit_and_compute_hosts") {
+        for (const auto &host : compute_host_names) {
+            auto ss =
+                    simulation->add(wrench::SimpleStorageService::createSimpleStorageService(
+                            host,
+                            {{"/"}},
+                            get_properties(json_input,
+                                           "storage_service_scheme_parameters",
+                                           storage_service_scheme,
+                                           "compute_host_properties"),
+                            get_payloads(json_input,
+                                         "storage_service_scheme_parameters",
+                                         storage_service_scheme,
+                                         "compute_host_payloads")));
+        }
     }
 
     // Create relevant compute services
-
     std::set<std::shared_ptr<wrench::ComputeService>> compute_services;
 
     if (compute_service_scheme == "all_bare_metal") {
@@ -316,52 +311,37 @@ int main(int argc, char **argv) {
                                          "payloads"))));
         }
 
-    } else if (compute_service_scheme == "batch_only") {
-        // Create a batch compute service that manages all compute nodes
-        compute_services.insert(simulation->add(
-                new wrench::BatchComputeService(
-                        slurm_head_host_name,
-                        compute_host_names,
-                        "",
-                        get_properties(json_input,
-                                       "compute_service_scheme_parameters",
-                                       compute_service_scheme,
-                                       "properties"),
-                        get_payloads(json_input,
-                                     "compute_service_scheme_parameters",
-                                     compute_service_scheme,
-                                     "payloads"))));
+    } else if (compute_service_scheme == "htcondor_bare_metal") {
+        // Create one bare-metal service on all compute nodes
 
-    } else if (compute_service_scheme == "htcondor_batch") {
-        // Create a batch compute service that manages all compute nodes
-        get_properties(json_input,
-                       "compute_service_scheme_parameters",
-                       compute_service_scheme,
-                       "batch_properties");
-        get_payloads(json_input,
-                     "compute_service_scheme_parameters",
-                     compute_service_scheme,
-                     "batch_payloads");
-
-        auto batch = simulation->add(
-                new wrench::BatchComputeService(
-                        slurm_head_host_name,
-                        compute_host_names,
-                        "",
-                        get_properties(json_input,
-                                       "compute_service_scheme_parameters",
-                                       compute_service_scheme,
-                                       "batch_properties"),
-                        get_payloads(json_input,
-                                     "compute_service_scheme_parameters",
-                                     compute_service_scheme,
-                                     "batch_payloads")));
+        std::set<std::shared_ptr<wrench::ComputeService>> bare_metal_services;
+        std::string scratch_mount_point;
+        if (storage_service_scheme == "submit_and_compute_hosts") {
+            scratch_mount_point = "/scratch";
+        } else {
+            scratch_mount_point = "";
+        }
+        for (auto const &host : compute_host_names) {
+            bare_metal_services.insert(simulation->add(
+                    new wrench::BareMetalComputeService(
+                            host,
+                            {host},
+                            "/scratch",
+                            get_properties(json_input,
+                                           "compute_service_scheme_parameters",
+                                           compute_service_scheme,
+                                           "bare_metal_properties"),
+                            get_payloads(json_input,
+                                         "compute_service_scheme_parameters",
+                                         compute_service_scheme,
+                                         "bare_metal_payloads"))));
+        }
 
         // Create a top-level HTCondor compute service
         compute_services.insert(simulation->add(
                 new wrench::HTCondorComputeService(
                         submit_host_name,
-                        {batch},
+                        bare_metal_services,
                         get_properties(json_input,
                                        "compute_service_scheme_parameters",
                                        compute_service_scheme,
@@ -389,7 +369,6 @@ int main(int argc, char **argv) {
                                    storage_service_scheme,
                                    compute_services,
                                    submit_node_storage_service,
-                                   slurm_head_node_storage_service,
                                    scheduling_overhead,
                                    submit_host_name));
 
