@@ -715,17 +715,17 @@ if __name__ == "__main__":
     parser.add_argument('--compute-service-scheme', action='store', type=str,
                         help=f'Specify the value of compute_service_scheme in \
                         the configuration. Possible values: all_bare_metal, \
-                        batch_only, htcondor_batch .'
+                        htcondor_bare_metal .'
                         )
 
     parser.add_argument('--storage-service-scheme', action='store', type=str,
                         help=f'Specify the value of storage_service_scheme in \
-                        the configuration. Possible values: submit_only, submit_and_slurm_head .'
+                        the configuration. Possible values: submit_only, submit_and_compute_hosts .'
                         )
 
     parser.add_argument('--network-topology-scheme', action='store', type=str,
                         help=f'Specify the value of network_topology_scheme in \
-                        the configuration. Possible values: one_link, two_links, many_links'
+                        the configuration. Possible values: one_link, one_and_then_many_links, many_links'
                         )
 
     args = parser.parse_args()
@@ -752,9 +752,9 @@ if __name__ == "__main__":
         print(e)
         exit(1)
 
-    assert args.compute_service_scheme in [None, "all_bare_metal", "batch_only", "htcondor_batch"]
-    assert args.storage_service_scheme in [None, "submit_only", "submit_and_slurm_head"]
-    assert args.network_topology_scheme in [None, "one_link", "two_links", "many_links"]
+    assert args.compute_service_scheme in [None, "all_bare_metal", "htcondor_bare_metal"]
+    assert args.storage_service_scheme in [None, "submit_only", "submit_and_compute_hosts"]
+    assert args.network_topology_scheme in [None, "one_link", "one_and_then_many_links", "many_links"]
 
     # Copy the configuration used
     copyfile(args.conf, f"{exp_id}/setup.json")
