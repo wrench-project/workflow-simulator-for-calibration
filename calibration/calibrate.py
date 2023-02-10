@@ -45,6 +45,8 @@ from deephyper.problem import HpProblem
 from ConfigSpace import EqualsCondition
 from ConfigSpace.hyperparameters import CategoricalHyperparameter, UniformIntegerHyperparameter
 
+JSON = Union[Dict[str, Any], List[Any], int, str, float, bool, Type[None]]
+
 plt.rcParams.update({
     "text.usetex": True,
     "font.family": "serif",
@@ -66,7 +68,7 @@ SCHEMES = {"error": "error_computation_scheme",
 # Docker container ID as a global variable
 docker_container_id = ""
 
-# Some values are expressed as power of 2 to reduce the space of solutions:
+# Some values are expressed as powers of 2 to reduce the space of configurations:
 #   if MAX_PAYLOADS_VAL = 5 and MIN_PAYLOADS_VAL=0 then we the space explored 
 #   will consist of [1, 2, 4, 8, 16, 32]
 
@@ -97,16 +99,10 @@ MIN_CONCURRENT_DATA_CONNECTIONS = 1
 MAX_CONCURRENT_DATA_CONNECTIONS = 64
 #######################################################################
 SAMPLING = "uniform"
-EARLY_STOP = 20
 #######################################################################
 
-JSON = Union[Dict[str, Any], List[Any], int, str, float, bool, Type[None]]
-
-# To shutdown  FutureWarning: The frame.append method is deprecated 
-# and will be removed from pandas in a future version. Use pandas.concat instead.
-filterwarnings("ignore", category=FutureWarning)
-
 def configure_logger(level: int = logging.INFO) -> logging.Logger:
+    """Configure the logger."""
     logger = logging.getLogger(__name__)
     # create console handler and set level to debug
     ch = logging.StreamHandler()
@@ -120,14 +116,11 @@ def configure_logger(level: int = logging.INFO) -> logging.Logger:
     logger.setLevel(level)
     return logger
 
-
-
 def create_docker_container(docker_image) -> str:
     """
     Create a Docker container to run the simulator.
     Returns the container ID.
     """
-
     logger.info(f"Starting Docker container for image {docker_image}")
     cmd = "docker run -it -d -v " + os.getcwd() + ":/home/wrench " + docker_image
     docker = run(cmd.split(" "), capture_output=True, text=True, timeout=int(10))
@@ -138,8 +131,6 @@ def create_docker_container(docker_image) -> str:
     docker_container_id = docker.stdout.strip()
     logger.info(f"Docker container started ({docker_container_id[0:11]})")
     return docker.stdout.strip()
-
-
 
 def kill_docker_container(docker_container_id: str) -> str:
     """Kill a Docker container."""
@@ -167,11 +158,17 @@ def kill_docker_container(docker_container_id: str) -> str:
     logger.info("Docker container removed")
 
 
-def get_nested_default(d: dict, path: str):
-    return reduce(lambda d, k: d.setdefault(k, {}), path, d)
 
-def set_nested(d: dict, path :str, value: str):
-    get_nested_default(d, path[:-1])[path[-1]] = value
+
+def set_nested(d: dict, path :str, value: str) -> None:
+    """
+    Helper function to create the right nested configuration (JSON)
+
+    """
+    def _get_nested_default(d: dict, path: str):
+        return reduce(lambda d, k: d.setdefault(k, {}), path, d)
+
+    _get_nested_default(d, path[:-1])[path[-1]] = value
 
 def get_val_with_unit(path: List[str], val: any) -> str:
     updated_val = str(val)
@@ -194,103 +191,25 @@ def get_val_with_unit(path: List[str], val: any) -> str:
             pass
     return updated_val
 
-
-"""
-    Create a platform file and a WRENCH configuration based on what DeepHyper picked.
-"""
-
-def setup_configuration(config: Dict) -> Dict:
-
-    wrench_conf = {}
-    param_names = [x+"_parameters" for x in SCHEMES.values()]
-
-    wrench_conf["workflow"] = {}
-    wrench_conf["workflow"]["file"] = config["workflow"]
-    wrench_conf["workflow"]["reference_flops"] = str(config["reference_flops"])
-
-    wrench_conf["scheduling_overhead"] = str(
-        2**int(config["scheduling_overhead"]))+"ms"
-
-    for val in SCHEMES.values():
-        wrench_conf[val] = config[val]
-        wrench_conf[val+"_parameters"] = {}
-        wrench_conf[val+"_parameters"][config[val]] = {}
-
-    for key, val in config.items():
-        path = key.split('-')
-        if path[0] in param_names:
-            updated_val = get_val_with_unit(path, val)
-            set_nested(wrench_conf, path, updated_val)
-
-    # print(json.dumps(wrench_conf, indent=4))
-
-    return wrench_conf
-
-
-
-
-def worker(config: Dict) -> float:
-    """
-    Launch one instance of a simulator in one subprocess
-    based on a given configuration/platform.
-    """
-    err = 0.0
-    logger = logging.getLogger(__name__)
-
-    config_path = Path(f"{config['output_dir']}/config-{config['job_id']}.json")
-    wrench_conf: Dict = setup_configuration(config)
-    use_docker: bool = "docker_container_id" in config
-
-    # We write the configuration we got from DeepHyper as a JSON file for the simulator
-    with open(config_path, 'w') as temp_config:
-        json_config = json.dumps(wrench_conf, indent=4)
-        temp_config.write(json_config)
-    try:
-        if use_docker:
-            cmd = ["docker", "exec", config["docker_container_id"], config["simulator"], str(config_path)]
-        else:
-            cmd = [config["simulator"], str(config_path)]
-
-        simulation = run(cmd, capture_output=True, text=True, timeout=int(config["timeout"]))
-
-        if simulation.stderr != '' or simulation.stdout == '':
-            raise CalledProcessError(simulation.returncode, simulation.args)
-        simulation.check_returncode()
-
-        err = float(simulation.stdout.strip().split(':')[2])
-    except (CalledProcessError, FileNotFoundError) as e:
-        error = simulation.stderr.strip()
-        logger.error(error)
-        logger.error(f"To reproduce that error you can run: {' '.join(cmd)}")
-        return str('-inf')
-    except TimeoutExpired:
-        logger.error(f"Timeout of the subprocess, process got killed {config_path}")
-        return str('-inf')
-    else:
-        try:
-            remove(config_path)
-        except OSError as e:
-            raise e
-
-    return -(err**2)
-
-
 class Calibrator(object):
     """
     This class defines a WRENCH simulation auto-calibrator
 
     :param config: Path for the configuration file (JSON)
     :type config: Path
-    :param workflows: A list of workflows calibrate together, defaults to [None]. 
+    :param workflows: A list of workflows calibrate together, defaults to [None].
     If None, the workflow(s) found in the config file will be used.
     :type workflows: List[Path]
-    :param random_search: Perform a random search instead of a bayesian optimization, defaults to [False]
+    :param random_search: Perform a random search instead of a Bayesian 
+    optimization, defaults to [False]
     :type random_search: bool
     :param max_evals: Number of iterations performed, defaults to [100]
     :type max_evals: int
-    :param cores: Number of workers used (by default: all available = number of physical cores), defaults to [None]
+    :param cores: Number of workers used 
+    (by default: all available = number of physical cores), defaults to [None]
     :type cores: int
-    :param timeout: Seconds after which the simulator is killed for each iteration (if None = infinite), defaults to [None]
+    :param timeout: Seconds after which the simulator is killed 
+    for each iteration (if None = infinite), defaults to [None]
     :type timeout: int
     :param consider_properties: Calibrate properties, defaults to [True]
     :type consider_properties: Path
@@ -298,17 +217,23 @@ class Calibrator(object):
     :type consider_payloads: bool
     :param output_dir: Output directory for all the files, defaults to [None]
     :type output_dir: str
-    :param early_stop: If true DeepHyper will stop the exploration of the objective has not improved after X iterations, defaults to [True]
-    :type early_stop: bool
-    :param compute_service_scheme: Specify the compute_service_scheme to use, defaults to [None]
+    :param early_stop: If None DeepHyper will perform all iterations, 
+    otherwise DeepHyper will stop after X iterations that did not improve 
+    the objective , defaults to [None]
+    :type early_stop: int
+    :param compute_service_scheme: Specify the compute_service_scheme to
+    use, defaults to [None]
     :type compute_service_scheme: str
-    :param storage_service_scheme: Specify the storage_service_scheme to use, defaults to [None]
+    :param storage_service_scheme: Specify the storage_service_scheme to
+    use, defaults to [None]
     :type storage_service_scheme: str
-    :param network_topology_scheme: Specify the network_topology_scheme to use, defaults to [None]
+    :param network_topology_scheme: Specify the network_topology_scheme to
+    use, defaults to [None]
     :type network_topology_scheme: str
     :param use_docker: use Docker to run the simulator, defaults to [False]
     :type use_docker: bool
-    :param docker_container_id: The Docker container ID if running with Docker, defaults to [None]
+    :param docker_container_id: The Docker container ID if running with
+    Docker, defaults to [None]
     :type docker_container_id: str
     :param logger: The logger, defaults to [None]
     :type logger: logging.Logger
@@ -327,7 +252,7 @@ class Calibrator(object):
                 consider_properties: bool = True,
                 consider_payloads: bool = True,
                 output_dir: str = None,
-                early_stop: bool = True,
+                early_stop: int = None,
                 compute_service_scheme: str = None,
                 storage_service_scheme: str = None,
                 network_topology_scheme: str = None,
@@ -352,13 +277,12 @@ class Calibrator(object):
 
         self.problem = HpProblem()
 
-        self.func = worker
         if cores:
             self.num_cpus = cores
         else:
             self.num_cpus = min(self.max_evals, int(cpu_count(logical=False)))
 
-        #Use subprocess as backend, to use ThreadPool -> thread 
+        #Use sub-process as back-end, to use ThreadPool -> "thread" 
         self.backend = "process"
         # Number of jobs used to compute the surrogate model ( -1 means max possible)
         self.n_jobs = -1
@@ -419,11 +343,11 @@ class Calibrator(object):
         callbacks = [LoggerCallback()]
         # Stop after EARLY_STOP evaluations that did not improve the search
         if self.early_stop:
-            callbacks.append(SearchEarlyStopping(patience=EARLY_STOP))
+            callbacks.append(SearchEarlyStopping(patience=self.early_stop))
 
         # define the evaluator to distribute the computation
         self.evaluator = Evaluator.create(
-            self.func,
+            self.worker,
             method=self.backend,
             method_kwargs={
                 "num_workers": self.num_cpus,
@@ -540,11 +464,12 @@ class Calibrator(object):
                     name = cs_parameter+"-"+cs_scheme+"-"+elem
                     self._add_parameter(name)
 
-    """
-        Test the simulator to make sure it exists and that's a valid WRENCH simulator
-    """
 
     def _test_simulator(self, use_docker: bool) -> Tuple[bool, str]:
+        """
+        Test the simulator to make sure it exists and that's 
+        a valid WRENCH simulator
+        """
         if use_docker:
             cmd = ["docker", "exec", self.docker_container_id, self.simulator, "--version"]
         else:
@@ -558,28 +483,97 @@ class Calibrator(object):
         else:
             return (True, test_simu.stdout)
 
-    """
-        Load the JSON file that define the experiments
-    """
-
     def _load_json(self, path: Path) -> JSON:
+        """Load the JSON file that define the experiments."""
         with open(path, 'r') as stream:
             return json.load(stream)
 
-    """
-        Write a dict in a JSON file
-    """
-
     def write_json(self, data: JSON, path: Path) -> None:
+        """Write a dict in a JSON file."""
         with open(path, 'w') as f:
             json_data = json.dumps(data, indent=4)
             f.write(json_data)
 
-    """
-        Launch the search.
-    """
+    @staticmethod
+    def setup_configuration(config: Dict) -> Dict:
+        """
+        Create a platform file and a WRENCH configuration 
+        based on what DeepHyper picked.
+        """
+        wrench_conf = {}
+        param_names = [x+"_parameters" for x in SCHEMES.values()]
+
+        wrench_conf["workflow"] = {}
+        wrench_conf["workflow"]["file"] = config["workflow"]
+        wrench_conf["workflow"]["reference_flops"] = str(config["reference_flops"])
+
+        wrench_conf["scheduling_overhead"] = str(
+            2**int(config["scheduling_overhead"]))+"ms"
+
+        for val in SCHEMES.values():
+            wrench_conf[val] = config[val]
+            wrench_conf[val+"_parameters"] = {}
+            wrench_conf[val+"_parameters"][config[val]] = {}
+
+        for key, val in config.items():
+            path = key.split('-')
+            if path[0] in param_names:
+                updated_val = get_val_with_unit(path, val)
+                # print (path, val, updated_val)
+                set_nested(wrench_conf, path, updated_val)
+
+        # print(json.dumps(wrench_conf, indent=4))
+
+        return wrench_conf
+
+    @staticmethod
+    def worker(config: Dict) -> float:
+        """
+        Launch one instance of a simulator in one sub-process
+        based on a given configuration/platform.
+        """
+        err = 0.0
+        logger = logging.getLogger(__name__)
+
+        config_path = Path(f"{config['output_dir']}/config-{config['job_id']}.json")
+        wrench_conf: Dict = Calibrator.setup_configuration(config)
+        use_docker: bool = "docker_container_id" in config
+
+        # We write the configuration we got from DeepHyper as a JSON file for the simulator
+        with open(config_path, 'w') as temp_config:
+            json_config = json.dumps(wrench_conf, indent=4)
+            temp_config.write(json_config)
+        try:
+            if use_docker:
+                cmd = ["docker", "exec", config["docker_container_id"], config["simulator"], str(config_path)]
+            else:
+                cmd = [config["simulator"], str(config_path)]
+
+            simulation = run(cmd, capture_output=True, text=True, timeout=int(config["timeout"]))
+
+            if simulation.stderr != '' or simulation.stdout == '':
+                raise CalledProcessError(simulation.returncode, simulation.args)
+            simulation.check_returncode()
+
+            err = float(simulation.stdout.strip().split(':')[2])
+        except (CalledProcessError, FileNotFoundError) as e:
+            error = simulation.stderr.strip()
+            logger.error(error)
+            logger.error(f"To reproduce that error you can run: {' '.join(cmd)}")
+            return str('-inf')
+        except TimeoutExpired:
+            logger.error(f"Timeout of the sub-process, process got killed {config_path}")
+            return str('-inf')
+        else:
+            try:
+                remove(config_path)
+            except OSError as e:
+                raise e
+
+        return -(err**2)
 
     def launch(self) -> pd.DataFrame:
+        """Launch the search."""
         self.df = self.search.search(max_evals=self.max_evals, timeout=self.timeout)
 
         # Clean the dataframe and re-ordering the columns
@@ -598,21 +592,15 @@ class Calibrator(object):
 
         return self.df
 
-    """
-        Get the pandas data frame
-    """
-
     def get_dataframe(self, simplify=True) -> pd.DataFrame | None:
+        """Get the pandas data frame from DeepHyper run and clean it."""
         if simplify:
             # shorten workflow name
             self.df["workflow"] = self.df["workflow"].apply(lambda x: x.split("/")[-1])
         return self.df
 
-    """
-        Return the best configuration
-    """
-
     def get_best_row(self) -> pd.DataFrame | None:
+        """Return the best configuration."""
         if self.df.empty:
             return None
 
@@ -620,18 +608,15 @@ class Calibrator(object):
 
         return self.df.iloc[i_max]
 
-    """
-        Return the best configuration found as a JSON
-    """
-
     def get_best_config_json(self) -> JSON:
+        """Return the best configuration found as a JSON."""
         if self.df.empty:
             return None
 
         i_max = self.df.objective.argmax()
         data = self.df.iloc[i_max].to_dict()
 
-        conf = setup_configuration(data)
+        conf = Calibrator.setup_configuration(data)
 
         conf["calibration"] = {}
         conf["calibration"]["error"] = str(abs(data["objective"])**0.5)
@@ -640,11 +625,8 @@ class Calibrator(object):
 
         return conf
 
-    """
-        Write the data frame into a CSV
-    """
-
     def write_csv(self, simplify=True) -> None:
+        """Write the data frame into a CSV."""
         if simplify:
             # shorten workflow name
             self.df["workflow"] = self.df["workflow"].apply(lambda x: x.split("/")[-1])
@@ -654,11 +636,8 @@ class Calibrator(object):
         else:
             self.df.to_csv(self.output_dir+'/bo.csv', index=False)
 
-    """
-        Produce a figure of the error in function of the iteration
-    """
-
-    def plot(self, show: bool = False):
+    def plot(self, show: bool=False):
+        """Produce a figure of the error in function of the iteration."""
         plt.plot(
             self.df.objective,
             label='Objective',
@@ -675,11 +654,12 @@ class Calibrator(object):
         if show:
             plt.show()
 
-"""
-    Produce a figure of the error in function of the iterations for different methods
-"""
 
-def plot(df: pd.DataFrame, output: str, plot_rs: bool = True, show: bool = False):
+
+def plot(df: pd.DataFrame, output: str, plot_rs: bool=True, show: bool=False):
+    """
+    Produce a figure of the error in function of the iterations for different methods.
+    """
     plt.plot(
         df.err_bo,
         label='Bayesian Optimization',
@@ -713,73 +693,58 @@ def plot(df: pd.DataFrame, output: str, plot_rs: bool = True, show: bool = False
     if show:
         plt.show()
 
-
 if __name__ == "__main__":
-
 
     logger = configure_logger(level=logging.INFO)
 
     parser = ArgumentParser(description='Calibrate a WRENCH simulator using DeepHyper.')
     parser.add_argument('--config', '-c', dest='conf', action='store',
                         type=Path, required=True,
-                        help='Path to the JSON configuration file'
-                        )
+                        help='Path to the JSON configuration file')
 
     parser.add_argument('--docker', '-d', dest='docker', action='store_true',
                         help="Use docker to run the simulator. \
-                        The image 'simulator_docker_image' from the JSON config file will be used."
-    )
+                        The image 'simulator_docker_image' from the JSON config file will be used.")
 
     parser.add_argument('--workflows', '-w', dest='workflows', nargs='+',
                         type=Path, required=False,
-                        help='Path to the workflows (override the paths in the config file)'
-    )
+                        help='Path to the workflows (override the paths in the config file)')
 
     parser.add_argument('--iter', '-i', dest='iter', action='store',
                         type=int, default=1,
-                        help='Number of iterations executed by DeepHyper'
-    )
+                        help='Number of iterations executed by DeepHyper')
 
-    parser.add_argument('--no-early-stopping', '-e', action='store_false',
-                        help=f'Do not stop the search when it does not improve for a given \
-                        number (here {EARLY_STOP}) of evaluations. Keep doing all the iterations even \
-                        if it does not improve the objective.'
-    )
+    parser.add_argument('--early-stop', '-e', action='store',
+                        help=f'Stop the search after X iterations if the objective has \
+                        not improved. By default: no early stop')
 
     parser.add_argument('--all', '-a', action='store_true',
                         help='Perform a benchmark by running the \
                             same auto-calibration procedure using Bayesian Optimization (BO) \
-                            and Random Search (RS). By default the script only uses BO.'
-    )
+                            and Random Search (RS). By default the script only uses BO.')
 
     parser.add_argument('--cores', '-x', dest='cores', action='store',
                         type=int, required=False,
-                        help='Number of cores to use (by default all available on the machine)'
-    )
+                        help='Number of cores to use (by default all available on the machine)')
 
     parser.add_argument('--no-properties', action='store_false',
-                        help='Calibrate the simulator without properties.'
-    )
+                        help='Calibrate the simulator without properties.')
 
     parser.add_argument('--no-payloads', action='store_false',
-                        help='Calibrate the simulator without payloads.'
-    )
+                        help='Calibrate the simulator without payloads.')
 
     parser.add_argument('--compute-service-scheme', action='store', type=str,
                         help=f'Specify the value of compute_service_scheme in \
                         the configuration. Possible values: all_bare_metal, \
-                        htcondor_bare_metal .'
-    )
+                        htcondor_bare_metal .')
 
     parser.add_argument('--storage-service-scheme', action='store', type=str,
                         help=f'Specify the value of storage_service_scheme in \
-                        the configuration. Possible values: submit_only, submit_and_compute_hosts .'
-    )
+                        the configuration. Possible values: submit_only, submit_and_compute_hosts .')
 
     parser.add_argument('--network-topology-scheme', action='store', type=str,
                         help=f'Specify the value of network_topology_scheme in \
-                        the configuration. Possible values: one_link, one_and_then_many_links, many_links'
-    )
+                        the configuration. Possible values: one_link, one_and_then_many_links, many_links')
 
     args = parser.parse_args()
 
@@ -825,7 +790,7 @@ if __name__ == "__main__":
         consider_payloads=args.no_payloads,
         consider_properties=args.no_properties,
         output_dir=exp_id,
-        early_stop=args.no_early_stopping,
+        early_stop=args.early_stop,
         compute_service_scheme=args.compute_service_scheme,
         storage_service_scheme=args.storage_service_scheme,
         network_topology_scheme=args.network_topology_scheme,
@@ -859,7 +824,7 @@ if __name__ == "__main__":
             consider_payloads=args.no_payloads,
             consider_properties=args.no_properties,
             output_dir=exp_id,
-            early_stop=args.no_early_stopping,
+            early_stop=args.early_stop,
             compute_service_scheme=args.compute_service_scheme,
             storage_service_scheme=args.storage_service_scheme,
             network_topology_scheme=args.network_topology_scheme,
