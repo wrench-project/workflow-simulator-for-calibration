@@ -3,7 +3,7 @@
 
 Code tested with:
  - SimGrid master commit ID: `d685808894710dda03e4734a9e39f617adda0508`
- - WRENCH master commit ID: `1c77d7c0070262cb5356e169e42c009b46369155`
+ - WRENCH master commit ID: `081dea2fc50a95b9a3d335faf3d01d4c5d68e892`
  - Wfcommons master commit ID: `29c69989fe5701bc07eb66c0077531f60e8a4414`
  - Boost: `1.80`
  - Python: `3.9`
@@ -128,12 +128,12 @@ Once the path in your config file `config.json` are correct, you can run `./run-
  - [x] Loïc: Adapt for multiple workflows (multiple workflows at the same time in DeepHyper). Added new flag `--workflows wf1.json wf2.json`
  - [x] Loïc: Add flags for `network_topology_scheme` and other `scheme`
  - [x] Loïc/Henri: Create script to to build the simulator on, e.g., Chameleon
- - [X] Henri: Create a docker for the simulator
+ - [x] Henri: Create a docker for the simulator
  - [x] Loïc: Look at other evaluators, to abandon Ray
  - [ ] Henri: Fix Docker mayhem
  - [ ] Henri/Jesse: 
-	- [ ] Check with Rafael what the actual setup is
-        - [ ] Modify the JSON to match the actual setup, let Loic know
+	- [x] Check with Rafael what the actual setup is
+        - [x] Modify the JSON to match the actual setup, let Loic know
         - [ ] Modify the simulator to match the actual setup
         - [ ] Rename stuff in a coherent way
         - [x] Modify calibration script to match

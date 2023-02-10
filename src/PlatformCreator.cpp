@@ -149,7 +149,7 @@ void PlatformCreator::create_platform() {
                                                                  disk_specs["bandwidth_compute_host_disk_read"]),
                                                          boost::json::value_to<std::string>(
                                                                  disk_specs["bandwidth_compute_host_write"]));
-            scratch_disk->set_property("size", "5000GiB");
+            scratch_disk->set_property("size", "500000GiB");
             scratch_disk->set_property("mount", "/scratch");
         }
 

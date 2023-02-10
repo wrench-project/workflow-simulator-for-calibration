@@ -217,6 +217,8 @@ namespace wrench {
         WRENCH_INFO("Notified that a standard job has failed for task %s (%s)",
                     task->getID().c_str(),
                     event->failure_cause->toString().c_str());
+        WRENCH_INFO("THIS SHOULD NOT HAVE HAPPENED");
+        exit(0);
     }
 
 }// namespace wrench
