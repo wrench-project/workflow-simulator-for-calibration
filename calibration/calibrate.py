@@ -120,11 +120,13 @@ def configure_logger(level: int = logging.INFO) -> logging.Logger:
     logger.setLevel(level)
     return logger
 
-"""
-    Create a Docker container to run the simulator. Returns the container ID.
-"""
+
 
 def create_docker_container(docker_image) -> str:
+    """
+    Create a Docker container to run the simulator.
+    Returns the container ID.
+    """
 
     logger.info(f"Starting Docker container for image {docker_image}")
     cmd = "docker run -it -d -v " + os.getcwd() + ":/home/wrench " + docker_image
@@ -138,12 +140,9 @@ def create_docker_container(docker_image) -> str:
     return docker.stdout.strip()
 
 
-"""
-    Kill a Docker container.
-"""
 
 def kill_docker_container(docker_container_id: str) -> str:
-
+    """Kill a Docker container."""
     logger.info(f"Waiting for Docker container to idle...")
     zero_count = 0
     while zero_count < 3:
@@ -228,23 +227,30 @@ def setup_configuration(config: Dict) -> Dict:
     return wrench_conf
 
 
-"""
-    Launch one instance of a simulator in one process based on a given configuration/platform.
-"""
+
 
 def worker(config: Dict) -> float:
+    """
+    Launch one instance of a simulator in one subprocess
+    based on a given configuration/platform.
+    """
     err = 0.0
     logger = logging.getLogger(__name__)
 
-    # config_path = Path(f"{config['output_dir']}/config-{config['job_id']}.json").resolve()
     config_path = Path(f"{config['output_dir']}/config-{config['job_id']}.json")
     wrench_conf: Dict = setup_configuration(config)
+    use_docker: bool = "docker_container_id" in config
 
+    # We write the configuration we got from DeepHyper as a JSON file for the simulator
     with open(config_path, 'w') as temp_config:
         json_config = json.dumps(wrench_conf, indent=4)
         temp_config.write(json_config)
     try:
-        cmd = ["docker", "exec", config["docker_container_id"], config["simulator"], str(config_path)]
+        if use_docker:
+            cmd = ["docker", "exec", config["docker_container_id"], config["simulator"], str(config_path)]
+        else:
+            cmd = [config["simulator"], str(config_path)]
+
         simulation = run(cmd, capture_output=True, text=True, timeout=int(config["timeout"]))
 
         if simulation.stderr != '' or simulation.stdout == '':
@@ -258,7 +264,7 @@ def worker(config: Dict) -> float:
         logger.error(f"To reproduce that error you can run: {' '.join(cmd)}")
         return str('-inf')
     except TimeoutExpired:
-        logger.error(f"Timeout, process got killed {config_path}")
+        logger.error(f"Timeout of the subprocess, process got killed {config_path}")
         return str('-inf')
     else:
         try:
@@ -271,26 +277,63 @@ def worker(config: Dict) -> float:
 
 class Calibrator(object):
     """
-        This class defines a WRENCH simulation auto-calibrator
+    This class defines a WRENCH simulation auto-calibrator
+
+    :param config: Path for the configuration file (JSON)
+    :type config: Path
+    :param workflows: A list of workflows calibrate together, defaults to [None]. 
+    If None, the workflow(s) found in the config file will be used.
+    :type workflows: List[Path]
+    :param random_search: Perform a random search instead of a bayesian optimization, defaults to [False]
+    :type random_search: bool
+    :param max_evals: Number of iterations performed, defaults to [100]
+    :type max_evals: int
+    :param cores: Number of workers used (by default: all available = number of physical cores), defaults to [None]
+    :type cores: int
+    :param timeout: Seconds after which the simulator is killed for each iteration (if None = infinite), defaults to [None]
+    :type timeout: int
+    :param consider_properties: Calibrate properties, defaults to [True]
+    :type consider_properties: Path
+    :param consider_payloads: Calibrate payloads, defaults to [True]
+    :type consider_payloads: bool
+    :param output_dir: Output directory for all the files, defaults to [None]
+    :type output_dir: str
+    :param early_stop: If true DeepHyper will stop the exploration of the objective has not improved after X iterations, defaults to [True]
+    :type early_stop: bool
+    :param compute_service_scheme: Specify the compute_service_scheme to use, defaults to [None]
+    :type compute_service_scheme: str
+    :param storage_service_scheme: Specify the storage_service_scheme to use, defaults to [None]
+    :type storage_service_scheme: str
+    :param network_topology_scheme: Specify the network_topology_scheme to use, defaults to [None]
+    :type network_topology_scheme: str
+    :param use_docker: use Docker to run the simulator, defaults to [False]
+    :type use_docker: bool
+    :param docker_container_id: The Docker container ID if running with Docker, defaults to [None]
+    :type docker_container_id: str
+    :param logger: The logger, defaults to [None]
+    :type logger: logging.Logger
+
+    :returns: A calibrator object
+    :rtype: Calibrator
     """
 
     def __init__(self,
-                 config: Path,
-                 workflows: List[Path] = None,
-                 random_search: bool = False,
-                 max_evals: int = 100,
-                 cores: int = None,
-                 timeout: int = None,
-                 consider_properties: bool = True,
-                 consider_payloads: bool = True,
-                 output_dir: str = None,
-                 early_stop: bool = True,
-                 compute_service_scheme: str = None,
-                 storage_service_scheme: str = None,
-                 network_topology_scheme: str = None,
-                 docker_container_id: str = None,
-                 logger: logging.Logger = None
-                ) -> None:
+                config: Path,
+                workflows: List[Path] = None,
+                random_search: bool = False,
+                max_evals: int = 100,
+                cores: int = None,
+                timeout: int = None,
+                consider_properties: bool = True,
+                consider_payloads: bool = True,
+                output_dir: str = None,
+                early_stop: bool = True,
+                compute_service_scheme: str = None,
+                storage_service_scheme: str = None,
+                network_topology_scheme: str = None,
+                use_docker: bool = False,
+                docker_container_id: str = None,
+                logger: logging.Logger = None) -> None:
 
         self.logger = logger if logger else logging.getLogger(__name__)
         self.config: JSON = self._load_json(config)
@@ -302,7 +345,12 @@ class Calibrator(object):
         self.compute_service_scheme = compute_service_scheme
         self.storage_service_scheme = storage_service_scheme
         self.network_topology_scheme = network_topology_scheme
+        self.use_docker = use_docker
         self.docker_container_id = docker_container_id
+        self.consider_payloads = consider_payloads
+        self.consider_properties = consider_properties
+
+        self.problem = HpProblem()
 
         self.func = worker
         if cores:
@@ -315,11 +363,10 @@ class Calibrator(object):
         # Number of jobs used to compute the surrogate model ( -1 means max possible)
         self.n_jobs = -1
 
-        #self.simulator: Path = Path(self.config["simulator"]).resolve()
         self.simulator = self.config["simulator"]
 
         self.logger.info(f"Trying to run {self.simulator} --version...")
-        simu_ok = self._test_simulator()
+        simu_ok = self._test_simulator(use_docker=self.use_docker)
 
         if simu_ok[0]:
             self.logger.info(f"Success")
@@ -344,6 +391,11 @@ class Calibrator(object):
                 self.logger.error(f"The file {wf} does not exist.")
                 exit(1)
 
+        if self.consider_properties:
+            self.logger.info(f"We are calibrating properties")
+        if self.consider_payloads:
+            self.logger.info(f"We are calibrating payloads.")
+
         self.schemes: Dict = SCHEMES
         # Override the schemes for compute, storage and topology (if needed)
         if compute_service_scheme:
@@ -362,11 +414,7 @@ class Calibrator(object):
         else:
             self.output_dir = '.'
 
-        self.problem = HpProblem()
         self.add_parameters()
-
-        self.consider_payloads = consider_payloads
-        self.consider_properties = consider_properties
 
         callbacks = [LoggerCallback()]
         # Stop after EARLY_STOP evaluations that did not improve the search
@@ -382,11 +430,8 @@ class Calibrator(object):
                 "callbacks": callbacks
             },
         )
-        self.logger.info(
-            f"Evaluator has {self.evaluator.num_workers} available workers")
-        if consider_properties:
-            self.logger.info(
-                f"We are using properties in addition of payloads.")
+
+        self.logger.info(f"Evaluator has {self.evaluator.num_workers} available workers")
 
         if self.random_search:
             # When surrogate_model=DUMMY it performs a Random Search
@@ -471,7 +516,8 @@ class Calibrator(object):
         self.problem.add_hyperparameter([str(wf) for wf in self.workflows], "workflow")
         self.problem.add_hyperparameter([str(self.output_dir)], "output_dir")
         self.problem.add_hyperparameter([str(self.timeout)], "timeout")
-        self.problem.add_hyperparameter([str(self.docker_container_id)], "docker_container_id")
+        if self.use_docker:
+            self.problem.add_hyperparameter([str(self.docker_container_id)], "docker_container_id")
 
         for scheme in self.schemes.values():
             self.problem.add_hyperparameter(
@@ -498,8 +544,11 @@ class Calibrator(object):
         Test the simulator to make sure it exists and that's a valid WRENCH simulator
     """
 
-    def _test_simulator(self) -> Tuple[bool, str]:
-        cmd = ["docker", "exec", self.docker_container_id, self.simulator, "--version"]
+    def _test_simulator(self, use_docker: bool) -> Tuple[bool, str]:
+        if use_docker:
+            cmd = ["docker", "exec", self.docker_container_id, self.simulator, "--version"]
+        else:
+            cmd = [self.simulator, "--version"]
         try:
             test_simu = run(
                 cmd, capture_output=True, text=True, check=True
@@ -676,15 +725,20 @@ if __name__ == "__main__":
                         help='Path to the JSON configuration file'
                         )
 
+    parser.add_argument('--docker', '-d', dest='docker', action='store_true',
+                        help="Use docker to run the simulator. \
+                        The image 'simulator_docker_image' from the JSON config file will be used."
+    )
+
     parser.add_argument('--workflows', '-w', dest='workflows', nargs='+',
                         type=Path, required=False,
                         help='Path to the workflows (override the paths in the config file)'
     )
 
-    parser.add_argument('--iterations', '-i', dest='iter', action='store',
+    parser.add_argument('--iter', '-i', dest='iter', action='store',
                         type=int, default=1,
                         help='Number of iterations executed by DeepHyper'
-                        )
+    )
 
     parser.add_argument('--no-early-stopping', '-e', action='store_false',
                         help=f'Do not stop the search when it does not improve for a given \
@@ -701,31 +755,31 @@ if __name__ == "__main__":
     parser.add_argument('--cores', '-x', dest='cores', action='store',
                         type=int, required=False,
                         help='Number of cores to use (by default all available on the machine)'
-                        )
+    )
 
     parser.add_argument('--no-properties', action='store_false',
                         help='Calibrate the simulator without properties.'
-                        )
+    )
 
     parser.add_argument('--no-payloads', action='store_false',
                         help='Calibrate the simulator without payloads.'
-                        )
+    )
 
     parser.add_argument('--compute-service-scheme', action='store', type=str,
                         help=f'Specify the value of compute_service_scheme in \
                         the configuration. Possible values: all_bare_metal, \
                         htcondor_bare_metal .'
-                        )
+    )
 
     parser.add_argument('--storage-service-scheme', action='store', type=str,
                         help=f'Specify the value of storage_service_scheme in \
                         the configuration. Possible values: submit_only, submit_and_compute_hosts .'
-                        )
+    )
 
     parser.add_argument('--network-topology-scheme', action='store', type=str,
                         help=f'Specify the value of network_topology_scheme in \
                         the configuration. Possible values: one_link, one_and_then_many_links, many_links'
-                        )
+    )
 
     args = parser.parse_args()
 
@@ -754,11 +808,12 @@ if __name__ == "__main__":
     # Copy the configuration used
     copyfile(args.conf, f"{exp_id}/setup.json")
 
-    # Setup Docker (with cleaning up upon exit)
-    with open(args.conf, 'r') as stream:
-        docker_image = json.load(stream)["simulator_docker_image"]
-    docker_container_id = create_docker_container(docker_image)
-    atexit.register(lambda: kill_docker_container(docker_container_id))
+    if args.docker:
+        # Setup Docker (with cleaning up upon exit)
+        with open(args.conf, 'r') as stream:
+            docker_image = json.load(stream)["simulator_docker_image"]
+        docker_container_id = create_docker_container(docker_image)
+        atexit.register(lambda: kill_docker_container(docker_container_id))
 
     bayesian = Calibrator(
         config=args.conf,
@@ -774,6 +829,7 @@ if __name__ == "__main__":
         compute_service_scheme=args.compute_service_scheme,
         storage_service_scheme=args.storage_service_scheme,
         network_topology_scheme=args.network_topology_scheme,
+        use_docker=args.docker,
         docker_container_id=docker_container_id,
         logger=logger
     )
@@ -807,6 +863,7 @@ if __name__ == "__main__":
             compute_service_scheme=args.compute_service_scheme,
             storage_service_scheme=args.storage_service_scheme,
             network_topology_scheme=args.network_topology_scheme,
+            use_docker=args.docker,
             docker_container_id=docker_container_id,
             logger=logger
         )

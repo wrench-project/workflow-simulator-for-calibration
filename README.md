@@ -2,8 +2,8 @@
 
 
 Code tested with:
- - SimGrid master commit ID: `d685808894710dda03e4734a9e39f617adda0508`
- - WRENCH master commit ID: `081dea2fc50a95b9a3d335faf3d01d4c5d68e892`
+ - SimGrid master commit ID: `359e5754327037ea72945a6df353124b25562266`
+ - WRENCH master commit ID: `8337151afa41a38840445f33cf25dbe85a1169a1`
  - Wfcommons master commit ID: `29c69989fe5701bc07eb66c0077531f60e8a4414`
  - Boost: `1.80`
  - Python: `3.9`
@@ -33,7 +33,7 @@ python3.9 -m pip install -r calibration/requirements.txt
 
 > **Warning**: Python 3.10 breaks several things and is not yet supported.
 
-To launch a simple exploration with `10` iterations, using [Ray](https://www.ray.io/) as distributed back-end, you can run:
+To launch a simple exploration with `10` iterations you can run:
 
 ```bash
 ./calibration/calibrate.py --config calibration/config.json --iter 10
@@ -138,6 +138,8 @@ Once the path in your config file `config.json` are correct, you can run `./run-
         - [ ] Rename stuff in a coherent way
         - [x] Modify calibration script to match
  - [ ] Rafael: Run more workflows, at least 5 per instance (10 if the variance is too high)
+ - [x] Loïc: add a `--docker` / `-d` option to run with docker
+ - [ ] Loïc: Write a Python function to parse units from the JSON (similar to what WRENCH uses)
 
 Exp:
  - [ ] Run configurations: `all_bare_metal`/`htcondor_bare_metal`, `submit_only`/`submit_and_slurm_head`, and `one_link`/`two_link`/`many_link`
