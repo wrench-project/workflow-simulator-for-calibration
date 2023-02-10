@@ -3,7 +3,7 @@
 
 Code tested with:
  - SimGrid master commit ID: `359e5754327037ea72945a6df353124b25562266`
- - WRENCH master commit ID: `8337151afa41a38840445f33cf25dbe85a1169a1`
+ - WRENCH master commit ID: `9e49547ec52def90d37d9cd06a49e8ad432f82f0`
  - Wfcommons master commit ID: `29c69989fe5701bc07eb66c0077531f60e8a4414`
  - Boost: `1.80`
  - Python: `3.9`

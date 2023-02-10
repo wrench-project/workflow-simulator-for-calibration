@@ -49,7 +49,7 @@ RUN git clone https://framagit.org/simgrid/simgrid.git && cd simgrid && git chec
 RUN wget --no-check-certificate https://github.com/nlohmann/json/archive/refs/tags/v3.10.5.tar.gz && tar -xf v3.10.5.tar.gz && cd json-3.10.5 && cmake . && make -j4 && make install && cd .. && rm -rf v3.10.5* json-3.10.5
 
 # install WRENCH
-RUN git clone https://github.com/wrench-project/wrench.git && cd wrench && git checkout 081dea2fc50a95b9a3d335faf3d01d4c5d68e892 && mkdir build && cd build && cmake .. && make -j4 && make install && cd .. && rm -rf wrench
+RUN git clone https://github.com/wrench-project/wrench.git && cd wrench && git checkout 9e49547ec52def90d37d9cd06a49e8ad432f82f0 && mkdir build && cd build && cmake .. && make -j4 && make install && cd .. && rm -rf wrench
 
 #################################################
 ## WfCommons
