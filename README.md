@@ -130,19 +130,19 @@ Once the path in your config file `config.json` are correct, you can run `./run-
  - [x] Loïc/Henri: Create script to to build the simulator on, e.g., Chameleon
  - [x] Henri: Create a docker for the simulator
  - [x] Loïc: Look at other evaluators, to abandon Ray
- - [ ] Henri: Fix Docker mayhem
- - [ ] Henri/Jesse: 
+ - [x] Henri: Fix Docker mayhem
+ - [x] Henri/Jesse: 
 	- [x] Check with Rafael what the actual setup is
         - [x] Modify the JSON to match the actual setup, let Loic know
-        - [ ] Modify the simulator to match the actual setup
-        - [ ] Rename stuff in a coherent way
+        - [x] Modify the simulator to match the actual setup
+        - [x] Rename stuff in a coherent way
         - [x] Modify calibration script to match
  - [ ] Rafael: Run more workflows, at least 5 per instance (10 if the variance is too high)
  - [x] Loïc: add a `--docker` / `-d` option to run with docker
  - [ ] Loïc: Write a Python function to parse units from the JSON (similar to what WRENCH uses)
 
 Exp:
- - [ ] Run configurations: `all_bare_metal`/`htcondor_bare_metal`, `submit_only`/`submit_and_slurm_head`, and `one_link`/`two_link`/`many_link`
- - [ ] Explore some easy configurations (among the 18 configurations possible)
+ - [ ] Run configurations: `all_bare_metal`/`htcondor_bare_metal`, `submit_only`/`submit_and_compute_hosts`, and `one_link`/`one_link_then_many_links`/`many_link`
+ - [ ] Explore some easy configurations (among the 12 configurations possible)
  - [ ] Explore new metrics for error (execution time distribution)
  
