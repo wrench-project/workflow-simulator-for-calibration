@@ -39,7 +39,8 @@ RUN apt-get install -y --reinstall python3.9-distutils
 ENV CXX="g++" CC="gcc"
 WORKDIR /tmp
 
-## install Boost 1.80
+# install Boost 1.80
+#RUN apt-get install -y libboost-all-dev
 RUN wget --no-check-certificate https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.tar.gz && tar -xvf boost_1_80_0.tar.gz && cd boost_1_80_0 && ./bootstrap.sh && ./b2 && ./b2 install && cd .. && rm -rf boost_1_80_0
 
 # install SimGrid master
@@ -54,11 +55,11 @@ RUN git clone https://github.com/wrench-project/wrench.git && cd wrench && git c
 #################################################
 ## WfCommons
 #################################################
-#
-#RUN apt-get install -y gfortran
-#RUN apt-get install -y libopenblas-dev
-#
-#RUN git clone https://github.com/wfcommons/wfcommons.git && cd wfcommons && git checkout 29c69989fe5701bc07eb66c0077531f60e8a4414 && python3 -m pip install . && cd .. && rm -rf wfcommons
+
+RUN apt-get install -y gfortran
+RUN apt-get install -y libopenblas-dev
+
+RUN git clone https://github.com/wfcommons/wfcommons.git && cd wfcommons && git checkout 29c69989fe5701bc07eb66c0077531f60e8a4414 && python3 -m pip install . && cd .. && rm -rf wfcommons
 
 #################################################
 # Workflow simulation calibrator
@@ -67,8 +68,14 @@ RUN git clone https://github.com/wrench-project/wrench.git && cd wrench && git c
 # Clone workflow-simulator-for-calibration and install the simulator and deephyper
 RUN git clone https://github.com/wrench-project/workflow-simulator-for-calibration.git && cd workflow-simulator-for-calibration && mkdir build && cd build && cmake .. && make -j4 && make install && cd .. 
 
-#RUN cd workflow-simulator-for-calibration && python3 -m pip install -r calibration/requirements.txt && cd .. && rm -rf workflow-simulator-for-calibration
+RUN cd workflow-simulator-for-calibration && python3 -m pip install -r calibration/requirements.txt && cd .. && rm -rf workflow-simulator-for-calibration
 
+
+# install stuff needed by DeepHyper
+RUN apt-get install -y texlive
+RUN apt-get install -y texlive-latex-extra
+RUN apt-get install -y cm-super
+RUN apt-get install -y dvipng
 
 #################################################
 # WRENCH's user
@@ -84,5 +91,3 @@ WORKDIR /home/wrench
 ENV CXX="g++" CC="gcc"
 ENV LD_LIBRARY_PATH="/usr/local/lib"
 
-#RUN mkdir -p /home/wrench/ray/.config
-#ENV MPLCONFIGDIR="/home/wrench/ray/.config"
