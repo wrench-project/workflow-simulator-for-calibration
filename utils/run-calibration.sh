@@ -75,7 +75,7 @@ for workflow in $(find $JSON_DIR -maxdepth 1 -mindepth 1 -type f -name '*.json')
   wf=$(basename $workflow)
   filename="${wf%.*}"
   echo -en "[$((i+1))] Calibrating ${wf} ...\t"
-  if ${PYTHON} ${EXE} --config $CONFIG --workflow $workflow --iter $ITER --all --no-early-stopping > $filename.log 2>&1 ; then
+  if ${PYTHON} ${EXE} --config $CONFIG --workflows $workflow --iter $ITER --all > $filename.log 2>&1 ; then
     echo -e " [ ${GREEN}OK${NC} ]" | column -t -s $'\t'
   else
     echo -e " [${RED}FAIL${NC}]" | column -t -s $'\t'
