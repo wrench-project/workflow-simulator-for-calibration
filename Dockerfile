@@ -44,7 +44,7 @@ WORKDIR /tmp
 RUN wget --no-check-certificate https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.tar.gz && tar -xvf boost_1_80_0.tar.gz && cd boost_1_80_0 && ./bootstrap.sh && ./b2 && ./b2 install && cd .. && rm -rf boost_1_80_0
 
 # install SimGrid master
-RUN git clone https://framagit.org/simgrid/simgrid.git && cd simgrid && git checkout d685808894710dda03e4734a9e39f617adda0508 && mkdir build && cd build && cmake .. && make -j4 && sudo make install && cd ../.. && rm -rf simgrid
+RUN git clone https://framagit.org/simgrid/simgrid.git && cd simgrid && git checkout d685808894710dda03e4734a9e39f617adda0508 && mkdir build && cd build && cmake .. && make -j4 && make install && cd ../.. && rm -rf simgrid
 
 # install json for modern c++
 RUN wget --no-check-certificate https://github.com/nlohmann/json/archive/refs/tags/v3.10.5.tar.gz && tar -xf v3.10.5.tar.gz && cd json-3.10.5 && cmake . && make -j4 && make install && cd .. && rm -rf v3.10.5* json-3.10.5
