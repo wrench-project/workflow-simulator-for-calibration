@@ -1,5 +1,8 @@
 #!/bin/bash 
 #
+# This script installs EVERYTHING, so that we can run things bare-metal, bare-metal but using
+# Docker for the simulator, or all inside Docker
+#
 set -e
 
 # Update repo
@@ -20,19 +23,19 @@ sudo apt-get install -y --reinstall python3.9-distutils
 # Install WfCommons
 sudo apt-get install -y gfortran
 sudo apt-get install -y libopenblas-dev
-git clone https://github.com/wfcommons/wfcommons.git && cd wfcommons && git checkout 29c69989fe5701bc07eb66c0077531f60e8a4414 && sudo python3 -m pip install . && cd .. && rm -rf wfcommons
+pushd /tmp && git clone https://github.com/wfcommons/wfcommons.git && cd wfcommons && git checkout 29c69989fe5701bc07eb66c0077531f60e8a4414 && sudo python3 -m pip install . && cd .. && rm -rf wfcommons && popd
 
 # Install DeepHyper
 python3 -m pip install -r calibration/requirements.txt
 
 # Install WRENCH stuff
-wget --no-check-certificate https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.tar.gz && tar -xvf boost_1_80_0.tar.gz && cd boost_1_80_0 && ./bootstrap.sh && ./b2 && sudo ./b2 install && cd .. && sudo /bin/rm -rf boost_1_80_0*
+pushd /tmp && wget --no-check-certificate https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.tar.gz && tar -xvf boost_1_80_0.tar.gz && cd boost_1_80_0 && ./bootstrap.sh && ./b2 && sudo ./b2 install && cd .. && sudo /bin/rm -rf boost_1_80_0* && popd
 
-git clone https://framagit.org/simgrid/simgrid.git && cd simgrid && git checkout d685808894710dda03e4734a9e39f617adda0508 && mkdir build && cd build && cmake .. && make -j16 && sudo make install && cd ../.. && sudo /bin/rm -rf simgrid
+pushd /tmp && git clone https://framagit.org/simgrid/simgrid.git && cd simgrid && git checkout d685808894710dda03e4734a9e39f617adda0508 && mkdir build && cd build && cmake .. && make -j16 && sudo make install && cd ../.. && sudo /bin/rm -rf simgrid && popd
 
-wget --no-check-certificate https://github.com/nlohmann/json/archive/refs/tags/v3.10.5.tar.gz && tar -xf v3.10.5.tar.gz && cd json-3.10.5 && cmake . && make -j16 && sudo make install && cd .. && sudo /bin/rm -rf v3.10.5* json-3.10.5
+pushd /tmp && wget --no-check-certificate https://github.com/nlohmann/json/archive/refs/tags/v3.10.5.tar.gz && tar -xf v3.10.5.tar.gz && cd json-3.10.5 && cmake . && make -j16 && sudo make install && cd .. && sudo /bin/rm -rf v3.10.5* json-3.10.5 && popd
 
-git clone https://github.com/wrench-project/wrench.git && cd wrench && git checkout 9e49547ec52def90d37d9cd06a49e8ad432f82f0 && mkdir build && cd build && cmake .. && sudo make -j16 && make install && cd .. && sudo /bin/rm -rf wrench
+pushd /tmp && git clone https://github.com/wrench-project/wrench.git && cd wrench && git checkout 9e49547ec52def90d37d9cd06a49e8ad432f82f0 && mkdir build && cd build && cmake .. && sudo make -j16 && make install && cd .. && sudo /bin/rm -rf wrench && popd
 
 
 # Install this repo
