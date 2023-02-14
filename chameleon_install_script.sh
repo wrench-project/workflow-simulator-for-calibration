@@ -28,6 +28,9 @@ pushd /tmp && git clone https://github.com/wfcommons/wfcommons.git && cd wfcommo
 # Install DeepHyper
 python3 -m pip install -r calibration/requirements.txt
 
+# Install latex stuff
+sudo apt-get install -y texlive-base texlive-latex-extra cm-super dvipng
+
 # Install WRENCH stuff
 pushd /tmp && wget --no-check-certificate https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.tar.gz && tar -xvf boost_1_80_0.tar.gz && cd boost_1_80_0 && ./bootstrap.sh && ./b2 && sudo ./b2 install && cd .. && sudo /bin/rm -rf boost_1_80_0* && popd
 
@@ -37,6 +40,7 @@ pushd /tmp && wget --no-check-certificate https://github.com/nlohmann/json/archi
 
 pushd /tmp && git clone https://github.com/wrench-project/wrench.git && cd wrench && git checkout 9e49547ec52def90d37d9cd06a49e8ad432f82f0 && mkdir build && cd build && cmake .. && make -j16 && sudo make install && cd .. && sudo /bin/rm -rf wrench && popd
 
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/
 
 # Install this repo
 sudo rm -rf ./build && mkdir ./build && cd ./build && cmake .. && make -j4 && sudo make install && cd .. && sudo rm -rf build
