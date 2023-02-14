@@ -36,7 +36,7 @@ git clone https://github.com/wrench-project/wrench.git && cd wrench && git check
 
 
 # Install this repo
-mkdir build && cd build && cmake .. && make -j4 && sudo make install && cd .. && sudo rm -rf build
+sudo rm -rf ./build && mkdir ./build && cd ./build && cmake .. && make -j4 && sudo make install && cd .. && sudo rm -rf build
 
 # Install Docker
 sudo apt-get install -y ca-certificates curl gnupg lsb-release
