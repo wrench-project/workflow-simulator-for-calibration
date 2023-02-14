@@ -257,8 +257,6 @@ class Calibrator(object):
                 compute_service_scheme: str = None,
                 storage_service_scheme: str = None,
                 network_topology_scheme: str = None,
-                use_docker: bool = False,
-                docker_container_id: str = None,
                 logger: logging.Logger = None) -> None:
 
         self.logger = logger if logger else logging.getLogger(__name__)
@@ -271,10 +269,12 @@ class Calibrator(object):
         self.compute_service_scheme = compute_service_scheme
         self.storage_service_scheme = storage_service_scheme
         self.network_topology_scheme = network_topology_scheme
-        self.use_docker = use_docker
-        self.docker_container_id = docker_container_id
         self.consider_payloads = consider_payloads
         self.consider_properties = consider_properties
+
+        # global docker_container_id
+        # self.docker_container_id = docker_container_id
+        # self.use_docker = docker_container_id != ""
 
         # self.configspace = cs.ConfigurationSpace()
         # self.configspace.seed(SEED)
@@ -294,7 +294,7 @@ class Calibrator(object):
         self.simulator = self.config["simulator"]
 
         self.logger.info(f"Trying to run {self.simulator} --version...")
-        simu_ok = self._test_simulator(use_docker=self.use_docker)
+        simu_ok = self._test_simulator()
 
         if simu_ok[0]:
             self.logger.info(f"Success")
@@ -441,13 +441,14 @@ class Calibrator(object):
         logger.info(f"Added parameter {line[-1]} for calibration.")
 
 
-    def add_parameters(self):
+    def add_parameters(self):        
         self.problem.add_hyperparameter([str(self.simulator)], "simulator")
         self.problem.add_hyperparameter([str(wf) for wf in self.workflows], "workflow")
         self.problem.add_hyperparameter([str(self.output_dir)], "output_dir")
         self.problem.add_hyperparameter([str(self.timeout)], "timeout")
-        if self.use_docker:
-            self.problem.add_hyperparameter([str(self.docker_container_id)], "docker_container_id")
+
+        # if self.use_docker:
+        #     self.problem.add_hyperparameter([str(self.docker_container_id)], "docker_container_id")
 
         for scheme in self.schemes.values():
             self.problem.add_hyperparameter(
@@ -471,13 +472,15 @@ class Calibrator(object):
                     self._add_parameter(name)
 
 
-    def _test_simulator(self, use_docker: bool) -> Tuple[bool, str]:
+    def _test_simulator(self, use_docker: bool = False) -> Tuple[bool, str]:
         """
         Test the simulator to make sure it exists and that's 
         a valid WRENCH simulator
         """
-        if use_docker:
-            cmd = ["docker", "exec", self.docker_container_id, self.simulator, "--version"]
+        global docker_container_id
+
+        if docker_container_id != "":
+            cmd = ["docker", "exec", docker_container_id, self.simulator, "--version"]
         else:
             cmd = [self.simulator, "--version"]
         try:
@@ -538,6 +541,9 @@ class Calibrator(object):
         Launch one instance of a simulator in one sub-process
         based on a given configuration/platform.
         """
+        # We must use a global variable here to ensure the seed used by DeepHyper
+        # when using Docker or not remain the same...
+        global docker_container_id
         err = 0.0
         logger = logging.getLogger(__name__)
 
@@ -550,8 +556,8 @@ class Calibrator(object):
             json_config = json.dumps(wrench_conf, indent=4)
             temp_config.write(json_config)
         try:
-            if use_docker:
-                cmd = ["docker", "exec", config["docker_container_id"], config["simulator"], str(config_path)]
+            if docker_container_id != "":
+                cmd = ["docker", "exec", docker_container_id, config["simulator"], str(config_path)]
             else:
                 cmd = [config["simulator"], str(config_path)]
 
@@ -800,8 +806,6 @@ if __name__ == "__main__":
         compute_service_scheme=args.compute_service_scheme,
         storage_service_scheme=args.storage_service_scheme,
         network_topology_scheme=args.network_topology_scheme,
-        use_docker=args.docker,
-        docker_container_id=docker_container_id,
         logger=logger
     )
 
@@ -834,8 +838,6 @@ if __name__ == "__main__":
             compute_service_scheme=args.compute_service_scheme,
             storage_service_scheme=args.storage_service_scheme,
             network_topology_scheme=args.network_topology_scheme,
-            use_docker=args.docker,
-            docker_container_id=docker_container_id,
             logger=logger
         )
 
