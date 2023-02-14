@@ -60,12 +60,12 @@ sudo usermod -aG docker `whoami`
 echo ""
 echo ""
 echo "****************************************************************************"
-echo "If 'docker ps' gives you some 'not allowed' error, you should try to log out and log back in, which _may_ make it possible to run docker without sudo. If not, then you may be on a VM and may need to reboot it."
+echo "NOTE ABOUT USING DOCKER, WHICH IS OPTIONAL:"
 echo ""
-echo "Once you can run docker without sudo, you should do:"
+echo "If you intend to use Docker, and 'docker ps' gives you some 'not allowed' error, you should try to log out and log back in, which _may_ make it possible to run docker without sudo. If not, then you may be on a VM and may need to reboot it. Once you know you can run Docker without sudo, you should do:"
 echo "  docker pull wrenchproject/workflow-calibration"
 echo ""
-echo "You will then be ready to run the calibration script, e.g.:"
-echo "  ./calibration/calibrate.py -c ./calibration/config.json"
+echo "You will then be ready to run the calibration script, using Docker e.g.:"
+echo "  ./calibration/calibrate.py --docker -c ./calibration/config.json"
 
 
