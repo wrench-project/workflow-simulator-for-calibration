@@ -11,6 +11,7 @@
 #include <boost/json.hpp>
 #include <PlatformCreator.h>
 
+#define NETWORK_TIMEOUT 1000.0
 
 /**
  * All implemented schemes as ugly globals
@@ -261,34 +262,7 @@ int main(int argc, char **argv) {
                                  "storage_service_scheme_parameters",
                                  storage_service_scheme,
                                  "submit_payloads")));
-
-//    for (auto const &p:     submit_node_storage_service->getPropertyList()) {
-//        std::cerr << p.first << " " << wrench::ServiceProperty::translatePropertyType(p.first) << " " << p.second << "\n";
-//    }
-//
-//    for (auto const &p: submit_node_storage_service->getMessagePayloadList()) {
-//        std::cerr << p.first << " " << wrench::ServiceMessagePayload::translatePayloadType(p.first) << " " << p.second << "\n";
-//    }
-
-
-//    // There may be a storage service on each compute host
-//    std::set<std::shared_ptr<wrench::StorageService>> compute_host_storage_services;
-//    if (storage_service_scheme == "submit_and_compute_hosts") {
-//        for (const auto &host : compute_host_names) {
-//            auto ss =
-//                    simulation->add(wrench::SimpleStorageService::createSimpleStorageService(
-//                            host,
-//                            {{"/"}},
-//                            get_properties(json_input,
-//                                           "storage_service_scheme_parameters",
-//                                           storage_service_scheme,
-//                                           "compute_host_properties"),
-//                            get_payloads(json_input,
-//                                         "storage_service_scheme_parameters",
-//                                         storage_service_scheme,
-//                                         "compute_host_payloads")));
-//        }
-//    }
+    submit_node_storage_service->setNetworkTimeoutValue(NETWORK_TIMEOUT);
 
     // Create relevant compute services
     std::set<std::shared_ptr<wrench::ComputeService>> compute_services;
@@ -304,7 +278,7 @@ int main(int argc, char **argv) {
 
         // Create one bare-metal service on all compute nodes
         for (auto const &host : compute_host_names) {
-            compute_services.insert(simulation->add(
+            auto cs = simulation->add(
                     new wrench::BareMetalComputeService(
                             host,
                             {host},
@@ -316,7 +290,12 @@ int main(int argc, char **argv) {
                             get_payloads(json_input,
                                          "compute_service_scheme_parameters",
                                          compute_service_scheme,
-                                         "payloads"))));
+                                         "payloads")));
+            cs->setNetworkTimeoutValue(NETWORK_TIMEOUT);
+            if (not scratch_mount_point.empty()) {
+                cs->getScratch()->setNetworkTimeoutValue(NETWORK_TIMEOUT);
+            }
+            compute_services.insert(cs);
         }
 
     } else if (compute_service_scheme == "htcondor_bare_metal") {
@@ -330,7 +309,7 @@ int main(int argc, char **argv) {
             scratch_mount_point = "";
         }
         for (auto const &host : compute_host_names) {
-            bare_metal_services.insert(simulation->add(
+            auto cs = simulation->add(
                     new wrench::BareMetalComputeService(
                             host,
                             {host},
@@ -342,11 +321,13 @@ int main(int argc, char **argv) {
                             get_payloads(json_input,
                                          "compute_service_scheme_parameters",
                                          compute_service_scheme,
-                                         "bare_metal_payloads"))));
+                                         "bare_metal_payloads")));
+            cs->setNetworkTimeoutValue(NETWORK_TIMEOUT);
+            bare_metal_services.insert(cs);
         }
 
         // Create a top-level HTCondor compute service
-        compute_services.insert(simulation->add(
+        auto htcondor_cs = simulation->add(
                 new wrench::HTCondorComputeService(
                         submit_host_name,
                         bare_metal_services,
@@ -357,8 +338,9 @@ int main(int argc, char **argv) {
                         get_payloads(json_input,
                                      "compute_service_scheme_parameters",
                                      compute_service_scheme,
-                                     "htcondor_payloads"))));
-
+                                     "htcondor_payloads")));
+        htcondor_cs->setNetworkTimeoutValue(NETWORK_TIMEOUT);
+        compute_services.insert(htcondor_cs);
 
     }
 
@@ -371,14 +353,15 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    simulation->add(
-            new wrench::Controller(workflow,
-                                   compute_service_scheme,
-                                   storage_service_scheme,
-                                   compute_services,
-                                   submit_node_storage_service,
-                                   scheduling_overhead,
-                                   submit_host_name));
+    auto wms = new wrench::Controller(workflow,
+                                      compute_service_scheme,
+                                      storage_service_scheme,
+                                      compute_services,
+                                      submit_node_storage_service,
+                                      scheduling_overhead,
+                                      submit_host_name);
+    wms->setNetworkTimeoutValue(NETWORK_TIMEOUT);
+    simulation->add(wms);
 
     // Create each file ab-initio on the storage service (no file registry service)
     for (auto const &f: workflow->getInputFiles()) {
