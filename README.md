@@ -1,15 +1,15 @@
 ## Workflow execution simulator used for simulation calibration experiments
 
-
 Code tested with:
  - SimGrid master commit ID: `359e5754327037ea72945a6df353124b25562266`
  - WRENCH master commit ID: `9e49547ec52def90d37d9cd06a49e8ad432f82f0`
  - Wfcommons master commit ID: `29c69989fe5701bc07eb66c0077531f60e8a4414`
  - Boost: `1.80`
  - Python: `3.9`
+
 ---
 
-## How to invoke the simulator
+## How to invoke the simulator stand-alone
 
 This simulator takes as input a single JSON file. An example input file
 is in `data/sample_input.json`. An invocation of the simulator could be:
@@ -24,14 +24,22 @@ and `B` computed as $C=\frac{\left| A - B \right|}{B}$.
 
 ## How to calibrate the simulator
 
-The calibration script is compatible with `Python <= 3.9`. Your first need
-to install DeepHyper:
+### Insallation
+
+The calibration script is compatible with `Python <= 3.9` and requires to install DeepHyper:
+to install DeepHyper as:
 
 ```bash
 python3.9 -m pip install -r calibration/requirements.txt
 ```
 
 > **Warning**: Python 3.10 breaks several things and is not yet supported.
+
+There are other dependencies, and the script `./chameleon_install_script.sh` installs EVERYTHING. 
+
+
+### Launching the calibration script
+
 
 To launch a simple exploration with `10` iterations you can run:
 
@@ -67,6 +75,25 @@ Best error:
 + **best-rs.json**:  The best configuration found by the _Random Search_ process as a JSON;
 
 > Note that you can re-run the simulator with the best configuration found by DeepHyper with `./workflow-simulator-for-calibration exp-{ID}/best-bo.json`.
+
+## Running with Docker
+
+If you've installed everything on your host (e.g., by running the `chameleon_install_script.sh` script), then you can just run `callibrate.py` as described above.  
+
+If you have installed everything but the SimGrid/WRENCH/simulator, then you can use a pre-built Docker image:
+
+```bash
+docker pull wrenchproject/workflow-calibration:latest
+./calibration/calibrate.py --docker --config calibration/config.json --iter 10
+```
+
+If you have installed nothing, then you can run everything in Docker:
+
+```bash
+docker pull wrenchproject/workflow-calibration:latest
+docker run -it --rm -v `pwd`:/home/wrench wrenchproject/workflow-calibration:latest ./calibration/calibrate.py --config calibration/config.json --iter 10
+```
+
 
 ## How to calibrate Pegasus Workflows
 
