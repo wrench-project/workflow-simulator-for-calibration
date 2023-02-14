@@ -57,10 +57,15 @@ sudo groupadd --force docker
 sudo usermod -aG docker `whoami`
 
 # Done
-echo "***"
-echo "You should now try to log out and log back in, which _may_ make it possible to run docker without sudo. If not, then you're on a VM and need to reboot it."
-echo "Once you can run docker without sudo, you can do:"
+echo ""
+echo ""
+echo "****************************************************************************"
+echo "If 'docker ps' gives you some 'not allowed' error, you should try to log out and log back in, which _may_ make it possible to run docker without sudo. If not, then you may be on a VM and may need to reboot it."
+echo ""
+echo "Once you can run docker without sudo, you should do:"
 echo "  docker pull wrenchproject/workflow-calibration"
+echo ""
+echo "You will then be ready to run the calibration script, e.g.:"
 echo "  ./calibration/calibrate.py -c ./calibration/config.json"
 
 
