@@ -42,8 +42,8 @@ from deephyper.search.hps import CBO
 from deephyper.evaluator.callback import LoggerCallback, SearchEarlyStopping
 from deephyper.evaluator import Evaluator
 from deephyper.problem import HpProblem
-from ConfigSpace import EqualsCondition
-from ConfigSpace.hyperparameters import CategoricalHyperparameter, UniformIntegerHyperparameter
+import ConfigSpace as cs
+import ConfigSpace.hyperparameters as csh
 
 JSON = Union[Dict[str, Any], List[Any], int, str, float, bool, Type[None]]
 
@@ -98,7 +98,8 @@ MAX_BUFFER_SIZE                 = 30
 MIN_CONCURRENT_DATA_CONNECTIONS = 1
 MAX_CONCURRENT_DATA_CONNECTIONS = 64
 #######################################################################
-SAMPLING = "uniform"
+SAMPLING                        = "uniform"
+SEED                            = 0
 #######################################################################
 
 def configure_logger(level: int = logging.INFO) -> logging.Logger:
@@ -275,7 +276,10 @@ class Calibrator(object):
         self.consider_payloads = consider_payloads
         self.consider_properties = consider_properties
 
+        # self.configspace = cs.ConfigurationSpace()
+        # self.configspace.seed(SEED)
         self.problem = HpProblem()
+        self.problem.space.seed(SEED)
 
         if cores:
             self.num_cpus = cores
@@ -362,14 +366,16 @@ class Calibrator(object):
             self.search = CBO(
                 problem=self.problem,
                 evaluator=self.evaluator,
+                random_state=SEED,
                 n_jobs=self.n_jobs,
                 surrogate_model="DUMMY",
-                log_dir=self.output_dir
+                log_dir=self.output_dir,
             )
         else:
             self.search = CBO(
                 problem=self.problem,
                 evaluator=self.evaluator,
+                random_state=SEED,
                 n_jobs=self.n_jobs,
                 surrogate_model="RF",
                 log_dir=self.output_dir
@@ -407,26 +413,26 @@ class Calibrator(object):
                 # Model the concurrent access/buffer size with two variables:
                 # - inf or not inf
                 #   - if not inf we pick a discrete value between MIN and MAX
-                buffer_size_categorical = CategoricalHyperparameter(
+                buffer_size_categorical = csh.CategoricalHyperparameter(
                     "CAT_"+name, choices=["infinity", "finite"])
                 # Express as power of 2^x : if range goes to 8 to 10 then the values will range from 2^8 to 2^10
-                buffer_size_discrete = UniformIntegerHyperparameter(
+                buffer_size_discrete = csh.UniformIntegerHyperparameter(
                     name, lower=MIN_BUFFER_SIZE, upper=MAX_BUFFER_SIZE, log=False)
                 self.problem.add_hyperparameter(
                     buffer_size_categorical)
                 self.problem.add_hyperparameter(
                     buffer_size_discrete)
                 # If we choose "finite" then we sample a discrete value for the buffer size
-                self.problem.add_condition(EqualsCondition(
+                self.problem.add_condition(cs.EqualsCondition(
                     buffer_size_discrete, buffer_size_categorical, "finite"))
             elif "MAX_NUM_CONCURRENT_DATA_CONNECTIONS" == l[-1]:
-                conc_conn_categorical = CategoricalHyperparameter(
+                conc_conn_categorical = csh.CategoricalHyperparameter(
                     "CAT_"+name, choices=["infinity", "finite"])
-                conc_conn_discrete = UniformIntegerHyperparameter(
+                conc_conn_discrete = csh.UniformIntegerHyperparameter(
                     name, lower=MIN_CONCURRENT_DATA_CONNECTIONS, upper=MAX_CONCURRENT_DATA_CONNECTIONS, log=False)
                 self.problem.add_hyperparameter(conc_conn_categorical)
                 self.problem.add_hyperparameter(conc_conn_discrete)
-                self.problem.add_condition(EqualsCondition(
+                self.problem.add_condition(cs.EqualsCondition(
                     conc_conn_discrete, conc_conn_categorical, "finite"))
         else:
             logger.warn(f"Did not find how to add parameter {name}")
