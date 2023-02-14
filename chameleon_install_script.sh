@@ -26,7 +26,7 @@ git clone https://github.com/wfcommons/wfcommons.git && cd wfcommons && git chec
 python3 -m pip install -r calibration/requirements.txt
 
 # Install WRENCH stuff
-wget --no-check-certificate https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.tar.gz && tar -xvf boost_1_80_0.tar.gz && cd boost_1_80_0 && ./bootstrap.sh && ./b2 && sudo ./b2 install && cd .. && sudo /bin/rm -rf boost_1_80_0
+wget --no-check-certificate https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.tar.gz && tar -xvf boost_1_80_0.tar.gz && cd boost_1_80_0 && ./bootstrap.sh && ./b2 && sudo ./b2 install && cd .. && sudo /bin/rm -rf boost_1_80_0*
 
 git clone https://framagit.org/simgrid/simgrid.git && cd simgrid && git checkout d685808894710dda03e4734a9e39f617adda0508 && mkdir build && cd build && cmake .. && make -j16 && sudo make install && cd ../.. && sudo /bin/rm -rf simgrid
 
