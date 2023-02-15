@@ -175,7 +175,7 @@ Experimental ground truth data:
 
 Calibration experiments:
  - [ ] Jesse: Convert all current pegagus logs in google drive to usable .json files
- - [ ] Modify the simulator so that if its input JSON workflow has a non-empty "machines", that's what it uses to determine the number of compute hosts and number of cores on each compute hosts
+ - [ ] Henri: Modify the simulator so that it uses the workflow's number of "machines" (as specified in the workflow's JSON) as the number of compute hosts
    - Question: some runs are on non-homegeneous setups (one node 32 cores, the others 64 cores). So we may need to annotate one of them as the submit node while parsing the Pegasus log
  - [ ] Pick simulator configurations: `all_bare_metal`/`htcondor_bare_metal`, `submit_only`/`submit_and_compute_hosts`, and `one_link`/`many_links`/`one_link_then_many_links`
     - For now pick `all_bare_metal`/`submit_only`/`one_link`  (the most abstract/simple simulator)

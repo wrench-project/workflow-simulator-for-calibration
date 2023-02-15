@@ -8,8 +8,9 @@
 
 namespace sg4 = simgrid::s4u;
 
-PlatformCreator::PlatformCreator(boost::json::object &json_spec) {
+PlatformCreator::PlatformCreator(boost::json::object &json_spec, unsigned long num_compute_hosts) {
     this->json_spec = json_spec;
+    this->num_compute_hosts = num_compute_hosts;
 }
 
 void PlatformCreator::create_platform() {
@@ -100,15 +101,6 @@ void PlatformCreator::create_platform() {
     }
     auto compute_hosts_spec = host_specs["compute_hosts"].as_object();
 
-    int num_compute_hosts;
-    try {
-        num_compute_hosts = std::stoi(boost::json::value_to<std::string>(compute_hosts_spec["num_hosts"]));
-    } catch (std::exception  &e) {
-        throw std::invalid_argument("Missing or invalid value for  compute_hosts's 'num_hosts'");
-    }
-    if (num_compute_hosts < 1) {
-        throw std::invalid_argument("At least one compute host is needed");
-    }
     double compute_host_speed;
     try {
         compute_host_speed = UnitParser::parse_compute_speed(

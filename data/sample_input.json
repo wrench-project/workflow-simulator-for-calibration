@@ -16,12 +16,11 @@
     "compute_service_scheme_parameters": {
         "all_bare_metal": {
             "submit_host": {
-                "num_cores": "10",
+                "num_cores": "16",
                 "speed": "123Gf"
             },
             "compute_hosts": {
-                "num_hosts": "1",
-                "num_cores": "5",
+                "num_cores": "16",
                 "speed": "423Gf"
             },
             "properties": {
@@ -37,8 +36,7 @@
             },
             "compute_hosts":
             {
-                "num_hosts": "4",
-                "num_cores": "10",
+                "num_cores": "16",
                 "speed": "423Gf"
             },
             "bare_metal_properties": {

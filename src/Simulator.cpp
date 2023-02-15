@@ -102,7 +102,11 @@ void determine_all_schemes(boost::json::object &json_input,
     }
 }
 
-std::shared_ptr<wrench::Workflow> create_workflow(boost::json::object &json_input, double *observed_real_makespan) {
+
+
+std::shared_ptr<wrench::Workflow> create_workflow(boost::json::object &json_input,
+                                                  double *observed_real_makespan,
+                                                  unsigned long *num_compute_hosts) {
     std::string workflow_file;
     std::string reference_flops;
     try {
@@ -118,6 +122,7 @@ std::shared_ptr<wrench::Workflow> create_workflow(boost::json::object &json_inpu
     try {
         json_workflow = readJSONFromFile(workflow_file);
         *observed_real_makespan = boost::json::value_to<double>(json_workflow["workflow"].as_object()["makespan"]);
+        *num_compute_hosts = json_workflow["workflow"].as_object()["machines"].as_array().size();
     } catch (std::exception &e) {
         throw;
     }
@@ -229,16 +234,22 @@ int main(int argc, char **argv) {
     double observed_real_makespan;
     std::string submit_host_name;
     std::vector<std::string> compute_host_names;
+    unsigned long num_compute_hosts;
     try {
         // Read JSON input
         json_input = readJSONFromFile(argv[1]);
+        // Create the workflow for the WRENCH simulation
+        workflow = create_workflow(json_input, &observed_real_makespan, &num_compute_hosts);
+
+        if (num_compute_hosts <= 0) {
+            throw std::invalid_argument("The Workflow JSON does not specify 'machines', and thus we can't determine "
+                                        "the number of compute hosts used");
+        }
         // Determine schemes in use
         determine_all_schemes(json_input, compute_service_scheme, storage_service_scheme, network_topology_scheme);
         // Create the platform
-        PlatformCreator platform_creator(json_input);
+        PlatformCreator platform_creator(json_input, num_compute_hosts);
         simulation->instantiatePlatform(platform_creator);
-        // Create the workflow for the WRENCH simulation
-        workflow = create_workflow(json_input, &observed_real_makespan);
         // Gather all relevant hostnames and perform sanity checks
         process_hostnames(submit_host_name, compute_host_names);
 
