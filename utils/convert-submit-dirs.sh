@@ -77,6 +77,17 @@ rm -rf *.err
 
 echo "=================================================="
 SECONDS=0
+for dirs in $(find $DATA_ROOT_DIR -maxdepth `echo $DEPTH-1|bc` -mindepth `echo $DEPTH-1|bc` -type d); do 
+	pushd $dirs
+	for workflow in $(find . -maxdepth 1 -type f -name "*.tar.gz"); do
+		if [ ! -d `echo $workflow|sed "s/.tar.gz//"` ] ; then 
+			mkdir `echo $workflow|sed "s/.tar.gz//"`
+			echo Extracting $workflow
+			tar -xzf $workflow  -C `echo $workflow|sed "s/.tar.gz//"` --strip-components 1
+		fi
+	done
+	popd
+done
 for workflow in $(find $DATA_ROOT_DIR -maxdepth $DEPTH -mindepth $DEPTH -type d); do
     json_output="$(basename $workflow).json"
     if [ ! -f "$json_output" ]; then
