@@ -16,7 +16,7 @@
 ###############################################################################
 
 usage() { 
-  echo "Usage: $0 [-d <path>]" 1>&2
+  echo "Usage: $0 -d <path> [-o <output dir>]" 1>&2
   exit 1
 }
 EXE="pegasus-submit-to-json.py"
