@@ -76,10 +76,10 @@ docker_container_id = ""
 MIN_SCHED_OVER                  = 0        # min is 2^0 = 1 ms
 MAX_SCHED_OVER                  = 10       # max is 2^10 = 1024 ms
 #################### Platform-related parameters ######################
-MIN_CORES                       = 0        # min is 2^3 = 1 core/host
-MAX_CORES                       = 8        # max is 2^8 = 256 core/host
-MIN_HOSTS                       = 0        # min is 2^3 = 1 host
-MAX_HOSTS                       = 7        # max is 2^8 = 256 hosts
+MIN_CORES                       = 4        # min is 2^3 = 1 core/host
+MAX_CORES                       = 4        # max is 2^8 = 256 core/host
+MIN_HOSTS                       = 4        # min is 2^3 = 1 host
+MAX_HOSTS                       = 4        # max is 2^8 = 256 hosts
 MIN_PROC_SPEED                  = 3        # min is 2^3 = 8 Gflops
 MAX_PROC_SPEED                  = 8        # max is 2^8 = 256 Gflops
 MIN_BANDWIDTH                   = 6        # min is 2^6 = 64 MBps
@@ -381,32 +381,49 @@ class Calibrator(object):
                 log_dir=self.output_dir
             )
 
+    @staticmethod
+    def _verify_range(a: int, b: int, sampling: str) -> Tuple[int, int, str] | List[int]:
+        """We must verify that if a == b we cannot add it as hyperparameters 
+        to DeepHyper
+            - if a > b we must return (a, b, sampling)
+            - if a == b, we return [a]
+            - if a < b -> raise an error
+        """
+        if a < b:
+            return (a, b, sampling)
+        elif a == b:
+            return [a]
+        else:
+            raise ValueError(f"invalid range {a} not < {b}")
+
     def _add_parameter(self, name: str) -> None:
         line = name.split("-")
         if "core" in line[2]:
-            self.problem.add_hyperparameter((MIN_CORES, MAX_CORES, SAMPLING),name)
+            self.problem.add_hyperparameter(
+                Calibrator._verify_range(MIN_CORES, MAX_CORES, SAMPLING), name)
         elif "host" in line[2]:
             self.problem.add_hyperparameter(
-                (MIN_HOSTS, MAX_HOSTS, SAMPLING), name)
+                Calibrator._verify_range(MIN_HOSTS, MAX_HOSTS, SAMPLING), name)
         elif "speed" in line[2]:
-            self.problem.add_hyperparameter((MIN_PROC_SPEED, MAX_PROC_SPEED, SAMPLING),name)
+            self.problem.add_hyperparameter(
+                Calibrator._verify_range(MIN_PROC_SPEED, MAX_PROC_SPEED, SAMPLING), name)
         elif "bandwidth" in line[2]:
             self.problem.add_hyperparameter(
-                (MIN_BANDWIDTH, MAX_BANDWIDTH, SAMPLING), name)
+                Calibrator._verify_range(MIN_BANDWIDTH, MAX_BANDWIDTH, SAMPLING), name)
         elif "disk" in line[2]:
             self.problem.add_hyperparameter(
-                (MIN_BANDWIDTH, MAX_BANDWIDTH, SAMPLING), name)
+                Calibrator._verify_range(MIN_BANDWIDTH, MAX_BANDWIDTH, SAMPLING), name)
         elif "payload" in line[2]:
             self.problem.add_hyperparameter(
-                (MIN_PAYLOADS_VAL, MAX_PAYLOADS_VAL, SAMPLING), name)
+                Calibrator._verify_range(MIN_PAYLOADS_VAL, MAX_PAYLOADS_VAL, SAMPLING), name)
         elif "latency" in line[2]:
             self.problem.add_hyperparameter(
-                (MIN_LATENCY, MAX_LATENCY, SAMPLING), name)
+                Calibrator._verify_range(MIN_LATENCY, MAX_LATENCY, SAMPLING), name)
         elif "properties" in line[2]:
             l = name.split('::')
             if "OVERHEAD" in l[-1] or "DELAY" in l[-1]:
                 self.problem.add_hyperparameter(
-                    (MIN_SCHED_OVER, MAX_SCHED_OVER, SAMPLING), name)
+                    Calibrator._verify_range(MIN_SCHED_OVER, MAX_SCHED_OVER, SAMPLING), name)
             elif "BATCH_SCHEDULING_ALGORITHM" == l[-1]:
                 self.problem.add_hyperparameter(SCHEDULING_ALGO, name)
             elif "BUFFER_SIZE" == l[-1]:
@@ -417,7 +434,7 @@ class Calibrator(object):
                     "CAT_"+name, choices=["infinity", "finite"])
                 # Express as power of 2^x : if range goes to 8 to 10 then the values will range from 2^8 to 2^10
                 buffer_size_discrete = csh.UniformIntegerHyperparameter(
-                    name, lower=MIN_BUFFER_SIZE, upper=MAX_BUFFER_SIZE, log=False)
+                    name, lower=MIN_BUFFER_SIZE, upper=MAX_BUFFER_SIZE, log=True)
                 self.problem.add_hyperparameter(
                     buffer_size_categorical)
                 self.problem.add_hyperparameter(
@@ -454,9 +471,10 @@ class Calibrator(object):
             self.problem.add_hyperparameter(
                 [self.simulator_config[scheme]], scheme)
 
-        self.problem.add_hyperparameter([str(self.simulator_config["workflow"]["reference_flops"])], "reference_flops")
         self.problem.add_hyperparameter(
-            (MIN_SCHED_OVER, MAX_SCHED_OVER, SAMPLING), "scheduling_overhead")
+            [str(self.simulator_config["workflow"]["reference_flops"])], "reference_flops")
+        self.problem.add_hyperparameter(
+            Calibrator._verify_range(MIN_SCHED_OVER, MAX_SCHED_OVER, SAMPLING), "scheduling_overhead")
 
         for _, name_scheme in self.schemes.items():
             cs_scheme = self.simulator_config[name_scheme]
@@ -546,6 +564,7 @@ class Calibrator(object):
         global docker_container_id
         err = 0.0
         logger = logging.getLogger(__name__)
+        config["seed"] = SEED
 
         config_path = Path(f"{config['output_dir']}/config-{config['job_id']}.json")
         wrench_conf: Dict = Calibrator.setup_configuration(config)
@@ -556,7 +575,7 @@ class Calibrator(object):
             json_config = json.dumps(wrench_conf, indent=4)
             temp_config.write(json_config)
         try:
-            if docker_container_id != "":
+            if use_docker:
                 cmd = ["docker", "exec", docker_container_id, config["simulator"], str(config_path)]
             else:
                 cmd = [config["simulator"], str(config_path)]
