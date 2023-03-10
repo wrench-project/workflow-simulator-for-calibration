@@ -2,21 +2,151 @@
     "simulator": "workflow-simulator-for-calibration",
     "simulator_docker_image": "wrenchproject/workflow-calibration",
     "config": "data/sample_input.json",
+    "sampling": "uniform",
+    "seed": 0,
     "calibration_ranges": {
         "platform": {
-            "scheduling_overhead": [0, 6],
-            "reference_flops": [3, 8],
-            "speed": [3, 8],
-            "read_bw": [6, 10],
-            "write_bw": [6,10],
-            "bandwidth": [6, 17],
-            "latency": [0, 12]
+            "submit_hosts": {
+                "min": 1,
+                "max": 1,
+                "scale": "linear"
+            },
+            "compute_hosts": {
+                "min": 16,
+                "max": 16,
+                "scale": "linear"
+            },
+            "num_cores": {
+                "min": 16,
+                "max": 16,
+                "scale": "linear"
+            },
+            "scheduling_overhead": {
+                "min": 0,
+                "max": 10,
+                "scale": "log2",
+                "unit" : "ms"
+            },
+            "reference_flops": {
+                "min": 3,
+                "max": 8,
+                "scale": "log2",
+                "unit" : "Gf"
+            },
+            "speed": {
+                "min": 3,
+                "max": 8,
+                "scale": "log2",
+                "unit" : "Gf"
+            },
+            "bandwidth_submit_disk_read": {
+                "min": 6,
+                "max": 17,
+                "scale": "log2",
+                "unit" : "MBps"
+            },
+            "bandwidth_submit_disk_write": {
+                "min": 6,
+                "max": 17,
+                "scale": "log2",
+                "unit" : "MBps"
+            },
+            "bandwidth_compute_host_disk_read": {
+                "min": 6,
+                "max": 17,
+                "scale": "log2",
+                "unit" : "MBps"
+            },
+            "bandwidth_compute_host_write": {
+                "min": 6,
+                "max": 17,
+                "scale": "log2",
+                "unit" : "MBps"
+            },
+            "bandwidth_out_of_submit": {
+                "min": 6,
+                "max": 17,
+                "scale": "log2",
+                "unit" : "MBps"
+            },
+            "latency_out_of_submit": {
+                "min": 0,
+                "max": 12,
+                "scale": "log2",
+                "unit": "us"
+            },
+            "bandwidth_to_compute_hosts": {
+                "min": 6,
+                "max": 17,
+                "scale": "log2",
+                "unit" : "MBps"
+            },
+            "latency_to_compute_hosts": {
+                "min": 0,
+                "max": 12,
+                "scale": "log2",
+                "unit": "us"
+            },
+            "bandwidth_submit_to_compute_host": {
+                "min": 6,
+                "max": 17,
+                "scale": "log2",
+                "unit" : "MBps"
+            },
+            "latency_submit_to_compute_host": {
+                "min": 0,
+                "max": 12,
+                "scale": "log2",
+                "unit": "us"
+            },
+            "bandwidth": {
+                "min": 6,
+                "max": 17,
+                "scale": "log2",
+                "unit" : "MBps"
+            },
+            "latency": {
+                "min": 0,
+                "max": 12,
+                "scale": "log2",
+                "unit": "us"
+            }
         },
-        "payloads": [0, 20],
+        "payloads": {
+            "min": 0,
+            "max": 20,
+            "scale": "log2",
+            "unit": "B"
+        },
         "properties": {
             "batch_scheduling_algorithm" : ["fcfs", "conservative_bf", "conservative_bf_core_level"],
-            "max_num_concurrent_data_connections": [1, 64],
-            "buffer_size": [20, 30]
+            "max_num_concurrent_data_connections": {
+                "min": 1,
+                "max": 64,
+                "scale": "linear"
+            },
+            "buffer_size": {
+                "min": 20,
+                "max": 30,
+                "scale": "log2",
+                "unit": "B"
+            },
+            "bare_metal_properties": {
+                "thread_startup_overhead": {
+                    "min": 5,
+                    "max": 30,
+                    "scale": "linear",
+                    "unit" : "ms"
+                }
+            },
+            "htcondor_properties": {
+                "negotiator_overhead": {
+                    "min": 1,
+                    "max": 20,
+                    "scale": "linear",
+                    "unit" : "ms"
+                }
+            }
         }
     }
 }
