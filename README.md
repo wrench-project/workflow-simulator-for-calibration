@@ -1,8 +1,8 @@
 ## Workflow execution simulator used for simulation calibration experiments
 
 Code tested with:
- - SimGrid master commit ID: `359e5754327037ea72945a6df353124b25562266`
- - WRENCH master commit ID: `9e49547ec52def90d37d9cd06a49e8ad432f82f0`
+ - SimGrid master commit ID: `3863ea3407b8209a66dded84e28001f24225682c`
+ - WRENCH master commit ID: `cb3befe95bf0f04052a8b37c37e0f8e1b0416428`
  - Wfcommons master commit ID: `29c69989fe5701bc07eb66c0077531f60e8a4414`
  - Boost: `1.80`
  - Python: `3.9`
@@ -18,9 +18,9 @@ is in `data/sample_input.json`. An invocation of the simulator could be:
 ```
 which will print three numbers of standard output formatted as `A:B:C`,
 where `A` is the simulated makespan computed by the simulator (in seconds),
-`B` is the actual makespan of the workflow, observed on a real platform (see
-`data/sample_workflow.json`), and `C` is the relative error between `A`
-and `B` computed as $C=\frac{\left| A - B \right|}{B}$.
+`B` is the actual makespan of the workflow, observed on a real platform
+(see `data/sample_workflow.json`), and `C` is the relative error between
+`A` and `B` computed as $C=\frac{\left| A - B \right|}{B}$.
 
 ## How to calibrate the simulator
 
@@ -35,8 +35,9 @@ python3.9 -m pip install -r calibration/requirements.txt
 
 > **Warning**: Python 3.10 breaks several things and is not yet supported.
 
-There are other dependencies. The script `./chameleon_install_script.sh` installs EVERYTHING, and
-would be useful for you to see how to install missing dependencies on Ubuntu (including Python 3.9)
+There are other dependencies. The script `./chameleon_install_script.sh`
+installs EVERYTHING, and would be useful for you to see how to install
+missing dependencies on Ubuntu (including Python 3.9)
 
 
 ### Running the calibration script without Docker
@@ -48,7 +49,7 @@ To launch a simple exploration with `10` iterations you can run:
 ./calibration/calibrate.py --config calibration/config.json --iter 10
 ```
 
-If you want to calibrate multiple for multiple workflows on $20$ cores, you can specify a list of workflows (which will override the workflow specified `data/sample_input.json`):
+If you want to calibrate multiple for multiple workflows using $20$ cores on your machine, you can specify a list of workflows (which will override the workflow specified `data/sample_input.json`):
 
 ```bash
 ./calibration/calibrate.py --config calibration/config.json --workflows seismology.json genome-250-50-10-0.json --iter 200 --cores 20

@@ -44,13 +44,13 @@ WORKDIR /tmp
 RUN wget --no-check-certificate https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.tar.gz && tar -xvf boost_1_80_0.tar.gz && cd boost_1_80_0 && ./bootstrap.sh && ./b2 && ./b2 install && cd .. && rm -rf boost_1_80_0
 
 # install SimGrid master
-RUN git clone https://framagit.org/simgrid/simgrid.git && cd simgrid && git checkout d685808894710dda03e4734a9e39f617adda0508 && mkdir build && cd build && cmake .. && make -j4 && make install && cd ../.. && rm -rf simgrid
+RUN git clone https://framagit.org/simgrid/simgrid.git && cd simgrid && git checkout 3863ea3407b8209a66dded84e28001f24225682c && mkdir build && cd build && cmake .. && make -j4 && make install && cd ../.. && rm -rf simgrid
 
 # install json for modern c++
 RUN wget --no-check-certificate https://github.com/nlohmann/json/archive/refs/tags/v3.10.5.tar.gz && tar -xf v3.10.5.tar.gz && cd json-3.10.5 && cmake . && make -j4 && make install && cd .. && rm -rf v3.10.5* json-3.10.5
 
 # install WRENCH
-RUN git clone https://github.com/wrench-project/wrench.git && cd wrench && git checkout 9e49547ec52def90d37d9cd06a49e8ad432f82f0 && mkdir build && cd build && cmake .. && make -j4 && make install && cd .. && rm -rf wrench
+RUN git clone https://github.com/wrench-project/wrench.git && cd wrench && git checkout cb3befe95bf0f04052a8b37c37e0f8e1b0416428 && mkdir build && cd build && cmake .. && make -j4 && make install && cd .. && rm -rf wrench
 
 #################################################
 ## WfCommons
