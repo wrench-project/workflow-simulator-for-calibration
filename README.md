@@ -154,29 +154,15 @@ The field **calibration_ranges** defines, for each variable that can be calibrat
 Once the path in your config file `config.json` are correct, you can run `./run-calibration.sh -d $(pwd) -c config.json`. By default, the process will run 300 iterations per workflow without early stopping (i.e., process will not stop even if the objective does not improve) and will use all cores available (can be change with `--cores X`).
 
 # TODO
+
 Sofware:
- - [x] Loïc: Adapt for multiple workflows (multiple workflows at the same time in DeepHyper). Added new flag `--workflows wf1.jsonn
- wf2.json`
- - [x] Loïc: Add flags for `network_topology_scheme` and other `scheme`
- - [x] Loïc/Henri: Create script to to build the simulator on, e.g., Chameleon
- - [x] Henri: Create a docker for the simulator
- - [x] Loïc: Look at other evaluators, to abandon Ray
- - [x] Henri: Fix Docker mayhem
- - [x] Henri:
-        - [x] Check with Rafael what the actual setup is
-        - [x] Modify the JSON to match the actual setup, let Loic know
-        - [x] Modify the simulator to match the actual setup
-        - [x] Rename stuff in a coherent way
-        - [x] Modify calibration script to match
- - [x] Loïc: add a `--docker` / `-d` option to run with docker
- - [ ] Loïc:Augment the config.json to take in min, max, units, and scale
+ - Nothing for now
 
 Experimental ground truth data:
  - [ ] Rafael: Run more workflows, at least 5 per instance (10 if the variance is too high)
 
 Calibration experiments:
  - [ ] Jesse: Convert all current pegagus logs in google drive to usable .json files
- - [x] Henri: Modify the simulator so that it uses the workflow's number of "machines" (as specified in the workflow's JSON) as the number of compute hosts
    - Question: some runs are on non-homegeneous setups (one node 32 cores, the others 64 cores). So we may need to annotate one of them as the submit node while parsing the Pegasus log. **ANSWER**: no! it's all 16 cores
  - [ ] Pick simulator configurations: `all_bare_metal`/`htcondor_bare_metal`, `submit_only`/`submit_and_compute_hosts`, and `one_link`/`many_links`/`one_link_then_many_links`
     - For now pick `all_bare_metal`/`submit_only`/`one_link`  (the most abstract/simple simulator)

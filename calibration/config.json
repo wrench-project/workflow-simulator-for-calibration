@@ -6,16 +6,6 @@
     "seed": 0,
     "calibration_ranges": {
         "platform": {
-            "submit_hosts": {
-                "min": 1,
-                "max": 1,
-                "scale": "linear"
-            },
-            "compute_hosts": {
-                "min": 16,
-                "max": 16,
-                "scale": "linear"
-            },
             "num_cores": {
                 "min": 16,
                 "max": 16,
@@ -119,7 +109,6 @@
             "unit": "B"
         },
         "properties": {
-            "batch_scheduling_algorithm" : ["fcfs", "conservative_bf", "conservative_bf_core_level"],
             "max_num_concurrent_data_connections": {
                 "min": 1,
                 "max": 64,
@@ -129,7 +118,7 @@
                 "min": 20,
                 "max": 30,
                 "scale": "log2",
-                "unit": "B"
+                "unit": "MB"
             },
             "bare_metal_properties": {
                 "thread_startup_overhead": {
