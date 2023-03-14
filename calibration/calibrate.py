@@ -10,7 +10,7 @@
 
 from __future__ import annotations
 import sys
-from os import mkdir, remove, environ
+from os import mkdir, remove, environ, getcwd
 
 if sys.version_info[0] != 3 or sys.version_info[1] >= 10:
     print(
@@ -105,7 +105,7 @@ def create_docker_container(docker_image) -> str:
     Returns the container ID.
     """
     logger.info(f"Starting Docker container for image {docker_image}")
-    cmd = "docker run -it -d -v " + os.getcwd() + ":/home/wrench " + docker_image
+    cmd = "docker run -it -d -v " + getcwd() + ":/home/wrench " + docker_image
     docker = run(cmd.split(" "), capture_output=True, text=True, timeout=int(10))
     if docker.stdout == '':
         raise CalledProcessError(docker.returncode, docker.args)
