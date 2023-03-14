@@ -1,3 +1,4 @@
+./calibration/calibrate.py --config calibration/config.json --iter 10
 ## Workflow execution simulator used for simulation calibration experiments
 
 Code tested with:
