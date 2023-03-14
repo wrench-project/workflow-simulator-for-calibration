@@ -109,19 +109,21 @@
             "unit": "B"
         },
         "properties": {
-            "max_num_concurrent_data_connections": {
-                "min": 1,
-                "max": 64,
-                "scale": "linear"
-            },
-            "buffer_size": {
-                "min": 20,
-                "max": 30,
-                "scale": "log2",
-                "unit": "MB"
+            "submit_properties": {
+                "SimpleStorageServiceProperty::MAX_NUM_CONCURRENT_DATA_CONNECTIONS": {
+                    "min": 1,
+                    "max": 64,
+                    "scale": "linear"
+                },
+                "StorageServiceProperty::BUFFER_SIZE": {
+                    "min": 20,
+                    "max": 30,
+                    "scale": "log2",
+                    "unit": "MB"
+                }
             },
             "bare_metal_properties": {
-                "thread_startup_overhead": {
+                "BareMetalComputeServiceProperty::THREAD_STARTUP_OVERHEAD": {
                     "min": 5,
                     "max": 30,
                     "scale": "linear",
@@ -129,7 +131,7 @@
                 }
             },
             "htcondor_properties": {
-                "negotiator_overhead": {
+                "HTCondorComputeServiceProperty::NEGOTIATOR_OVERHEAD": {
                     "min": 1,
                     "max": 20,
                     "scale": "linear",

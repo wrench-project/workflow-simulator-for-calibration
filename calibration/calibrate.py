@@ -428,8 +428,8 @@ class Calibrator(object):
 
     @staticmethod
     def _verify_range(a: int, b: int, sampling: str) -> Tuple[int, int, str] | List[int]:
-        """We must verify that if a == b we cannot add it as hyperparameters 
-        to DeepHyper
+        """We must verify that if a == b. Constants parameters cannot add it as hyperparameters 
+        to DeepHyper and must be treated as a list of one element
             - if a > b we must return (a, b, sampling)
             - if a == b, we return [a]
             - if a < b -> raise an error
@@ -446,16 +446,14 @@ class Calibrator(object):
         Function that add the right parameter with its range.
         """
         line = name.split("-")
-        # We do that to handle property like SimpleStorageServiceProperty::MAX_NUM_CONCURRENT_DATA_CONNECTIONS
-        # this give us -> "max_num_concurrent_data_connections"
-        value = line[-1].split("::")[-1].lower()
         # Get the range defined in the config file
-        ranges = self._get_range(value, strict = True)
+        ranges = self._get_range(line[-1], strict = True)
         if "payloads" in name or "Payload" in name:
             ranges = self._get_range("payloads", strict = True)
         if ranges:
             is_log = ranges["scale"] == "log2"
-            if value == "buffer_size":
+            value = line[-1].split("::")[-1] # We split in case of properties
+            if value == "BUFFER_SIZE":
                 # Model the concurrent access/buffer size with two variables:
                 # - inf or not inf
                 #   - if not inf we pick a discrete value between MIN and MAX
@@ -468,7 +466,7 @@ class Calibrator(object):
                 # If we choose "finite" then we sample a discrete value for the buffer size
                 self.problem.add_condition(cs.EqualsCondition(
                     buffer_size_discrete, buffer_size_categorical, "finite"))
-            elif value == "max_num_concurrent_data_connections":
+            elif value == "MAX_NUM_CONCURRENT_DATA_CONNECTIONS":
                 conc_conn_categorical = csh.CategoricalHyperparameter(
                     "CAT_"+name, choices=["infinity", "finite"])
                 conc_conn_discrete = csh.UniformIntegerHyperparameter(
@@ -520,6 +518,7 @@ class Calibrator(object):
 
         self.problem.add_hyperparameter(
             [str(self.simulator_config["workflow"]["reference_flops"])], "reference_flops")
+        
         ranges = self._get_range("scheduling_overhead")
         self.problem.add_hyperparameter(
             Calibrator._verify_range(ranges["min"], ranges["max"], self.sampling), "scheduling_overhead")
@@ -560,20 +559,20 @@ class Calibrator(object):
 
     @staticmethod
     def get_real_values_with_unit(name: str, val: any, calib_conf: CalibrationConfiguration) -> str:
-        line = name.split('-')
-        key = line[-1].split("::")[-1].lower()
-        
+        line = name.split('-')        
         logger = logging.getLogger(__name__)
+        updated_val = val
 
         if "payloads" in name or "Payload" in name:
             ranges = calib_conf.get_range("payloads", strict = True)
         else:
-            ranges = calib_conf.get_range(key, strict = True)
+            ranges = calib_conf.get_range(line[-1], strict = True)
 
         if ranges:
+            key = line[-1].split("::")[-1]
             is_log = ranges["scale"] == "log2"
             unit = str(ranges.get("unit")) if ranges.get("unit") else ""
-            if key == "buffer_size":
+            if key == "BUFFER_SIZE":
                 if isnan(val):
                     # Here nan means the value must be infinite 
                     # and WRENCH understands it as "infinity"
@@ -583,7 +582,7 @@ class Calibrator(object):
                         updated_val = str(2**int(val)) + unit
                     else:
                         updated_val = str(int(val)) + unit
-            elif key == "max_num_concurrent_data_connections":
+            elif key == "MAX_NUM_CONCURRENT_DATA_CONNECTIONS":
                 if isnan(val):
                     updated_val = "infinity"
                 else:
@@ -598,6 +597,9 @@ class Calibrator(object):
                     updated_val = str(int(val)) + unit
         else:
             logger.warning(f"Did not find calibration ranges for {line[-1]}. Ignored.")
+
+        if updated_val == val:
+            logger.warning(f"Value {val} has not been updated and scaled.")
 
         return updated_val
 
