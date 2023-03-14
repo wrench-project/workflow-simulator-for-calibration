@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 import sys
+from os import mkdir, remove, environ
 
 if sys.version_info[0] != 3 or sys.version_info[1] >= 10:
     print(
@@ -17,7 +18,13 @@ if sys.version_info[0] != 3 or sys.version_info[1] >= 10:
         You are using Python {sys.version_info[0]}.{sys.version_info[1]}")
     sys.exit(-1)
 
-import os
+# Mandatory to load the simulator if SimGrid and WRENCH shared lib
+# are not located in /usr/local/lib
+if sys.platform == "darwin":
+    if "DYLD_LIBRARY_PATH" not in environ:
+        environ["DYLD_LIBRARY_PATH"] = ""
+    environ["DYLD_LIBRARY_PATH"] = environ["DYLD_LIBRARY_PATH"] +":" + environ["HOME"] + "/local/lib/"
+
 import atexit
 import time
 import re
@@ -27,7 +34,6 @@ import pandas as pd
 from pathlib import Path
 import matplotlib.pyplot as plt
 
-from os import mkdir, remove, environ
 from math import isnan
 from psutil import cpu_count
 from shutil import copyfile
@@ -46,20 +52,6 @@ import ConfigSpace as cs
 import ConfigSpace.hyperparameters as csh
 
 JSON = Union[Dict[str, Any], List[Any], int, str, float, bool, Type[None]]
-
-plt.rcParams.update({
-    "text.usetex": True,
-    "font.family": "serif",
-    "font.serif": ["sans-serif"],
-})
-
-# Mandatory to load the simulator if SimGrid and WRENCH shared lib
-# are not located in /usr/local/lib
-if sys.platform == "darwin":
-    if "DYLD_LIBRARY_PATH" not in environ:
-        environ["DYLD_LIBRARY_PATH"] = ""
-    environ["DYLD_LIBRARY_PATH"] = environ["DYLD_LIBRARY_PATH"] +":" + environ["HOME"] + "/local/lib/"
-
 SCHEMES = {"error": "error_computation_scheme",
            "compute": "compute_service_scheme",
            "storage": "storage_service_scheme",
@@ -67,55 +59,45 @@ SCHEMES = {"error": "error_computation_scheme",
 
 # Docker container ID as a global variable
 docker_container_id = ""
+SEED = 0
 
-# Some values are expressed as powers of 2 to reduce the space of configurations:
-#   if MAX_PAYLOADS_VAL = 5 and MIN_PAYLOADS_VAL=0 then we the space explored 
-#   will consist of [1, 2, 4, 8, 16, 32]
+##########################   Logging   ################################
 
-######################## General parameters ###########################
-MIN_SCHED_OVER                  = 0        # min is 2^0 = 1 ms
-MAX_SCHED_OVER                  = 10       # max is 2^10 = 1024 ms
-#################### Platform-related parameters ######################
-MIN_CORES                       = 4        # min is 2^3 = 1 core/host
-MAX_CORES                       = 4        # max is 2^8 = 256 core/host
-MIN_HOSTS                       = 4        # min is 2^3 = 1 host
-MAX_HOSTS                       = 4        # max is 2^8 = 256 hosts
-MIN_PROC_SPEED                  = 3        # min is 2^3 = 8 Gflops
-MAX_PROC_SPEED                  = 8        # max is 2^8 = 256 Gflops
-MIN_BANDWIDTH                   = 6        # min is 2^6 = 64 MBps
-MAX_BANDWIDTH                   = 17       # max is 2^17 = 128 GBps
-MIN_LATENCY                     = 0        # min is 2^0 = 1 us
-MAX_LATENCY                     = 12       # max is 2^12 = 4096 us
-#################### Payloads-related parameters ######################
-MIN_PAYLOADS_VAL                = 0        # min is 2^0 = 1 B
-MAX_PAYLOADS_VAL                = 20       # max is 2^20 = 1024 KB
-#################### Properties-related parameters ####################
-SCHEDULING_ALGO                 = ["fcfs",
-                                   "conservative_bf",
-                                   "conservative_bf_core_level"]
-MIN_BUFFER_SIZE                 = 20
-MAX_BUFFER_SIZE                 = 30
-MIN_CONCURRENT_DATA_CONNECTIONS = 1
-MAX_CONCURRENT_DATA_CONNECTIONS = 64
-#######################################################################
-SAMPLING                        = "uniform"
-SEED                            = 0
-#######################################################################
+class CustomFormatter(logging.Formatter):
+
+    grey = "\x1b[38;20m"
+    yellow = "\x1b[33;20m"
+    red = "\x1b[31;20m"
+    green = "\x1b[32m"
+    bold_green = "\x1b[1;32m"
+    bold_red = "\x1b[31;1m"
+    reset = "\x1b[0m"
+    format = "[%(levelname)s(%(asctime)s)][%(filename)s:%(lineno)s/%(funcName)s] - %(message)s"
+
+    FORMATS = {
+        logging.DEBUG: grey + format + reset,
+        logging.INFO: grey + format + reset,
+        logging.WARNING: yellow + format + reset,
+        logging.ERROR: red + format + reset,
+        logging.CRITICAL: bold_red + format + reset
+    }
+
+    def format(self, record):
+        log_fmt = self.FORMATS.get(record.levelno)
+        formatter = logging.Formatter(log_fmt, datefmt='%Y:%m:%d-%I:%M:%S')
+        return formatter.format(record)
 
 def configure_logger(level: int = logging.INFO) -> logging.Logger:
     """Configure the logger."""
     logger = logging.getLogger(__name__)
     # create console handler and set level to debug
     ch = logging.StreamHandler()
-    # create formatter
-    formatter = logging.Formatter(
-        '[%(levelname)s(%(asctime)s)][%(filename)s:%(lineno)s/%(funcName)s] - %(message)s',
-        datefmt='%Y:%m:%d-%I:%M:%S'
-    )
-    ch.setFormatter(formatter)
+    ch.setFormatter(CustomFormatter())
     logger.addHandler(ch)
     logger.setLevel(level)
     return logger
+
+#######################################################################
 
 def create_docker_container(docker_image) -> str:
     """
@@ -158,9 +140,6 @@ def kill_docker_container(docker_container_id: str) -> str:
     docker.check_returncode()
     logger.info("Docker container removed")
 
-
-
-
 def set_nested(d: dict, path :str, value: str) -> None:
     """
     Helper function to create the right nested configuration (JSON)
@@ -171,26 +150,44 @@ def set_nested(d: dict, path :str, value: str) -> None:
 
     _get_nested_default(d, path[:-1])[path[-1]] = value
 
-def get_val_with_unit(path: List[str], val: any) -> str:
-    updated_val = str(val)
-    if path[-1] == "speed":
-        updated_val = str(2**int(val))+"Gf"
-    elif "bandwidth" in path[-1] or "disk" in path[-1]:
-        updated_val = str(2**int(val))+"MBps"
-    elif "latency" in path[-1]:
-        updated_val = str(2**int(val))+"us"
-    elif "OVERHEAD" in path[-1] or "DELAY" in path[-1]:
-        updated_val = str(2**int(val))+"ms"
-    elif "BUFFER_SIZE" in path[-1]:
-        updated_val = "infinity" if isnan(val) else str(2**int(val))
-    elif "MAX_NUM_CONCURRENT_DATA_CONNECTIONS" in path[-1]:
-        updated_val = "infinity" if isnan(val) else str(int(val))
-    else:
-        try:
-            updated_val = str(2**int(val))
-        except ValueError as e:
-            pass
-    return updated_val
+# Should depend upon ConfigSpace from DeepHyper
+class CalibrationConfiguration(object):
+    """
+    This class represents a configuration for a calibration.
+    """
+    def __init__(self, 
+                config: Path,
+                logger: logging.Logger = None) -> None:
+
+        self.logger = logger if logger else logging.getLogger(__name__)
+        self.config: JSON = self._load_json(config)
+        self.ranges = self.config["calibration_ranges"]
+
+    def _load_json(self, path: Path) -> JSON:
+        """Load the JSON file that define the experiments."""
+        with open(path, 'r') as stream:
+            return json.load(stream)
+
+    def get_range(self, key: str, strict: bool = False):
+        """ 
+        Quickly find the range that matches.
+        If strict is True we match exactly, otherwise
+        we match if substring
+        """
+        def get_recursively(search_dict, field, strict):
+            if isinstance(search_dict, dict):
+                if field in search_dict:
+                    return search_dict[field]
+                if not strict:
+                    potential_match = dict(filter(lambda item: field in item[0], search_dict.items()))
+                    if potential_match != {}:
+                        return potential_match
+                for key in search_dict:
+                    item = get_recursively(search_dict[key], field, strict)
+                    if item is not None:
+                        return item
+        return get_recursively(self.ranges, field = key, strict = strict) 
+
 
 class Calibrator(object):
     """
@@ -260,7 +257,6 @@ class Calibrator(object):
                 logger: logging.Logger = None) -> None:
 
         self.logger = logger if logger else logging.getLogger(__name__)
-        self.config: JSON = self._load_json(config)
         self.random_search = random_search
         self.max_evals = max_evals
         self.timeout = timeout
@@ -271,6 +267,13 @@ class Calibrator(object):
         self.network_topology_scheme = network_topology_scheme
         self.consider_payloads = consider_payloads
         self.consider_properties = consider_properties
+        self.config_path = str(config)
+        self.config: JSON = self._load_json(config)
+
+        # Default seed is 0
+        self.seed = int(self.config.get("seed")) if self.config.get("seed") else 0
+        global SEED
+        SEED = self.seed
 
         # global docker_container_id
         # self.docker_container_id = docker_container_id
@@ -279,7 +282,11 @@ class Calibrator(object):
         # self.configspace = cs.ConfigurationSpace()
         # self.configspace.seed(SEED)
         self.problem = HpProblem()
-        self.problem.space.seed(SEED)
+        self.problem.space.seed(self.seed)
+
+        # Contains all ranges for all properties/payloads used under the form:
+        #   {'property1': {'min': 0, 'max': 6, 'scale': 'log', 'unit': 'ms'}}
+        self.calibration_ranges = self.config["calibration_ranges"]
 
         if cores:
             self.num_cpus = cores
@@ -324,6 +331,8 @@ class Calibrator(object):
         if self.consider_payloads:
             self.logger.info(f"We are calibrating payloads.")
 
+        self.sampling = self.get_sampling_method(self.config)
+
         self.schemes: Dict = SCHEMES
         # Override the schemes for compute, storage and topology (if needed)
         if compute_service_scheme:
@@ -366,7 +375,7 @@ class Calibrator(object):
             self.search = CBO(
                 problem=self.problem,
                 evaluator=self.evaluator,
-                random_state=SEED,
+                random_state=self.seed,
                 n_jobs=self.n_jobs,
                 surrogate_model="DUMMY",
                 log_dir=self.output_dir,
@@ -375,11 +384,47 @@ class Calibrator(object):
             self.search = CBO(
                 problem=self.problem,
                 evaluator=self.evaluator,
-                random_state=SEED,
+                random_state=self.seed,
                 n_jobs=self.n_jobs,
                 surrogate_model="RF",
                 log_dir=self.output_dir
             )
+
+    def get_sampling_method(self, config: JSON) -> str:
+        sampling = config["sampling"]
+        self.logger.info(f"Using sampling = {sampling}")
+        return sampling
+
+    def _load_json(self, path: Path) -> JSON:
+        """Load the JSON file that define the experiments."""
+        with open(path, 'r') as stream:
+            return json.load(stream)
+
+    def write_json(self, data: JSON, path: Path) -> None:
+        """Write a dict in a JSON file."""
+        with open(path, 'w') as f:
+            json_data = json.dumps(data, indent=4)
+            f.write(json_data)
+
+    def _get_range(self, key: str, strict: bool = False):
+        """ 
+        Quickly find the range that matches.
+        If strict is True we match exactly, otherwise
+        we match if substring
+        """
+        def get_recursively(search_dict, field, strict):
+            if isinstance(search_dict, dict):
+                if field in search_dict:
+                    return search_dict[field]
+                if not strict:
+                    potential_match = dict(filter(lambda item: field in item[0], search_dict.items()))
+                    if potential_match != {}:
+                        return potential_match
+                for key in search_dict:
+                    item = get_recursively(search_dict[key], field, strict)
+                    if item is not None:
+                        return item
+        return get_recursively(self.config["calibration_ranges"], key, strict = strict) 
 
     @staticmethod
     def _verify_range(a: int, b: int, sampling: str) -> Tuple[int, int, str] | List[int]:
@@ -397,72 +442,74 @@ class Calibrator(object):
             raise ValueError(f"invalid range {a} not < {b}")
 
     def _add_parameter(self, name: str) -> None:
+        """
+        Function that add the right parameter with its range.
+        """
         line = name.split("-")
-        if "core" in line[2]:
-            self.problem.add_hyperparameter(
-                Calibrator._verify_range(MIN_CORES, MAX_CORES, SAMPLING), name)
-        elif "host" in line[2]:
-            self.problem.add_hyperparameter(
-                Calibrator._verify_range(MIN_HOSTS, MAX_HOSTS, SAMPLING), name)
-        elif "speed" in line[2]:
-            self.problem.add_hyperparameter(
-                Calibrator._verify_range(MIN_PROC_SPEED, MAX_PROC_SPEED, SAMPLING), name)
-        elif "bandwidth" in line[2]:
-            self.problem.add_hyperparameter(
-                Calibrator._verify_range(MIN_BANDWIDTH, MAX_BANDWIDTH, SAMPLING), name)
-        elif "disk" in line[2]:
-            self.problem.add_hyperparameter(
-                Calibrator._verify_range(MIN_BANDWIDTH, MAX_BANDWIDTH, SAMPLING), name)
-        elif "payload" in line[2]:
-            self.problem.add_hyperparameter(
-                Calibrator._verify_range(MIN_PAYLOADS_VAL, MAX_PAYLOADS_VAL, SAMPLING), name)
-        elif "latency" in line[2]:
-            self.problem.add_hyperparameter(
-                Calibrator._verify_range(MIN_LATENCY, MAX_LATENCY, SAMPLING), name)
-        elif "properties" in line[2]:
-            l = name.split('::')
-            if "OVERHEAD" in l[-1] or "DELAY" in l[-1]:
-                self.problem.add_hyperparameter(
-                    Calibrator._verify_range(MIN_SCHED_OVER, MAX_SCHED_OVER, SAMPLING), name)
-            elif "BATCH_SCHEDULING_ALGORITHM" == l[-1]:
-                self.problem.add_hyperparameter(SCHEDULING_ALGO, name)
-            elif "BUFFER_SIZE" == l[-1]:
+        # We do that to handle property like SimpleStorageServiceProperty::MAX_NUM_CONCURRENT_DATA_CONNECTIONS
+        # this give us -> "max_num_concurrent_data_connections"
+        value = line[-1].split("::")[-1].lower()
+        # Get the range defined in the config file
+        ranges = self._get_range(value, strict = True)
+        if "payloads" in name or "Payload" in name:
+            ranges = self._get_range("payloads", strict = True)
+        if ranges:
+            is_log = ranges["scale"] == "log2"
+            if value == "buffer_size":
                 # Model the concurrent access/buffer size with two variables:
                 # - inf or not inf
                 #   - if not inf we pick a discrete value between MIN and MAX
                 buffer_size_categorical = csh.CategoricalHyperparameter(
                     "CAT_"+name, choices=["infinity", "finite"])
-                # Express as power of 2^x : if range goes to 8 to 10 then the values will range from 2^8 to 2^10
                 buffer_size_discrete = csh.UniformIntegerHyperparameter(
-                    name, lower=MIN_BUFFER_SIZE, upper=MAX_BUFFER_SIZE, log=True)
-                self.problem.add_hyperparameter(
-                    buffer_size_categorical)
-                self.problem.add_hyperparameter(
-                    buffer_size_discrete)
+                    name, lower=ranges["min"], upper=ranges["max"], log=is_log)
+                self.problem.add_hyperparameter(buffer_size_categorical)
+                self.problem.add_hyperparameter(buffer_size_discrete)
                 # If we choose "finite" then we sample a discrete value for the buffer size
                 self.problem.add_condition(cs.EqualsCondition(
                     buffer_size_discrete, buffer_size_categorical, "finite"))
-            elif "MAX_NUM_CONCURRENT_DATA_CONNECTIONS" == l[-1]:
+            elif value == "max_num_concurrent_data_connections":
                 conc_conn_categorical = csh.CategoricalHyperparameter(
                     "CAT_"+name, choices=["infinity", "finite"])
                 conc_conn_discrete = csh.UniformIntegerHyperparameter(
-                    name, lower=MIN_CONCURRENT_DATA_CONNECTIONS, upper=MAX_CONCURRENT_DATA_CONNECTIONS, log=False)
+                    name, lower=ranges["min"], upper=ranges["max"], log=is_log)
                 self.problem.add_hyperparameter(conc_conn_categorical)
                 self.problem.add_hyperparameter(conc_conn_discrete)
-                self.problem.add_condition(cs.EqualsCondition(
-                    conc_conn_discrete, conc_conn_categorical, "finite"))
+                self.problem.add_condition(
+                    cs.EqualsCondition(conc_conn_discrete, conc_conn_categorical, "finite")
+                )
+            else:
+                self.problem.add_hyperparameter(
+                    Calibrator._verify_range(ranges["min"], ranges["max"], self.sampling), name
+                )
+            logger.info(
+                f'Added parameter {line[-1]} for '
+                f'calibration (min={ranges["min"]}, '
+                f'max={ranges["max"]}, '
+                f'scale={ranges["scale"]}, '
+                f'unit={ranges.get("unit")})'
+            )
         else:
-            logger.warn(f"Did not find how to add parameter {name}")
-            return None
+            logger.warning(f"Did not find calibration ranges for {line[-1]}. Ignored.")
 
-        logger.info(f"Added parameter {line[-1]} for calibration.")
-
-
-    def add_parameters(self):        
+    def add_parameters(self):
+        """
+        In DeepHyper we can add only unique parameter, so we build a unique parameter
+        name by containing the hierarchy. For example, we want to add num_cores as parameter:
+            "compute_service_scheme_parameters": {
+                "all_bare_metal": {
+                    "submit_host": {
+                        "num_cores": "16"
+                    }
+                }
+            }
+        Then, we will add it as "compute_service_scheme_parameters-all_bare_metal-submit_host-num_cores"
+        """
         self.problem.add_hyperparameter([str(self.simulator)], "simulator")
         self.problem.add_hyperparameter([str(wf) for wf in self.workflows], "workflow")
         self.problem.add_hyperparameter([str(self.output_dir)], "output_dir")
         self.problem.add_hyperparameter([str(self.timeout)], "timeout")
+        self.problem.add_hyperparameter([str(self.config_path)], "config_path")
 
         # if self.use_docker:
         #     self.problem.add_hyperparameter([str(self.docker_container_id)], "docker_container_id")
@@ -473,8 +520,9 @@ class Calibrator(object):
 
         self.problem.add_hyperparameter(
             [str(self.simulator_config["workflow"]["reference_flops"])], "reference_flops")
+        ranges = self._get_range("scheduling_overhead")
         self.problem.add_hyperparameter(
-            Calibrator._verify_range(MIN_SCHED_OVER, MAX_SCHED_OVER, SAMPLING), "scheduling_overhead")
+            Calibrator._verify_range(ranges["min"], ranges["max"], self.sampling), "scheduling_overhead")
 
         for _, name_scheme in self.schemes.items():
             cs_scheme = self.simulator_config[name_scheme]
@@ -510,32 +558,71 @@ class Calibrator(object):
         else:
             return (True, test_simu.stdout)
 
-    def _load_json(self, path: Path) -> JSON:
-        """Load the JSON file that define the experiments."""
-        with open(path, 'r') as stream:
-            return json.load(stream)
+    @staticmethod
+    def get_real_values_with_unit(name: str, val: any, calib_conf: CalibrationConfiguration) -> str:
+        line = name.split('-')
+        key = line[-1].split("::")[-1].lower()
+        
+        logger = logging.getLogger(__name__)
 
-    def write_json(self, data: JSON, path: Path) -> None:
-        """Write a dict in a JSON file."""
-        with open(path, 'w') as f:
-            json_data = json.dumps(data, indent=4)
-            f.write(json_data)
+        if "payloads" in name or "Payload" in name:
+            ranges = calib_conf.get_range("payloads", strict = True)
+        else:
+            ranges = calib_conf.get_range(key, strict = True)
+
+        if ranges:
+            is_log = ranges["scale"] == "log2"
+            unit = str(ranges.get("unit")) if ranges.get("unit") else ""
+            if key == "buffer_size":
+                if isnan(val):
+                    # Here nan means the value must be infinite 
+                    # and WRENCH understands it as "infinity"
+                    updated_val = "infinity"
+                else:
+                    if is_log:
+                        updated_val = str(2**int(val)) + unit
+                    else:
+                        updated_val = str(int(val)) + unit
+            elif key == "max_num_concurrent_data_connections":
+                if isnan(val):
+                    updated_val = "infinity"
+                else:
+                    if is_log:
+                        updated_val = str(2**int(val)) + unit
+                    else:
+                        updated_val = str(int(val)) + unit
+            else:
+                if is_log:
+                    updated_val = str(2**int(val)) + unit
+                else:
+                    updated_val = str(int(val)) + unit
+        else:
+            logger.warning(f"Did not find calibration ranges for {line[-1]}. Ignored.")
+
+        return updated_val
 
     @staticmethod
-    def setup_configuration(config: Dict) -> Dict:
+    def create_wrench_configuration(config: Dict) -> Dict:
         """
         Create a platform file and a WRENCH configuration 
         based on what DeepHyper picked.
         """
         wrench_conf = {}
         param_names = [x+"_parameters" for x in SCHEMES.values()]
+        calibration_config = CalibrationConfiguration(config["config_path"])
 
         wrench_conf["workflow"] = {}
         wrench_conf["workflow"]["file"] = config["workflow"]
         wrench_conf["workflow"]["reference_flops"] = str(config["reference_flops"])
 
-        wrench_conf["scheduling_overhead"] = str(
-            2**int(config["scheduling_overhead"]))+"ms"
+        ranges = calibration_config.get_range("scheduling_overhead")
+
+        if ranges["scale"] == "log2":
+            wrench_conf["scheduling_overhead"] = str(2**int(config["scheduling_overhead"]))
+        else:
+            wrench_conf["scheduling_overhead"] = str(int(config["scheduling_overhead"]))
+
+        wrench_conf["scheduling_overhead"] += ranges["unit"]
 
         for val in SCHEMES.values():
             wrench_conf[val] = config[val]
@@ -545,11 +632,8 @@ class Calibrator(object):
         for key, val in config.items():
             path = key.split('-')
             if path[0] in param_names:
-                updated_val = get_val_with_unit(path, val)
-                # print (path, val, updated_val)
+                updated_val = Calibrator.get_real_values_with_unit(key, val, calibration_config)
                 set_nested(wrench_conf, path, updated_val)
-
-        # print(json.dumps(wrench_conf, indent=4))
 
         return wrench_conf
 
@@ -561,13 +645,15 @@ class Calibrator(object):
         """
         # We must use a global variable here to ensure the seed used by DeepHyper
         # when using Docker or not remain the same...
+        logger = logging.getLogger(__name__)
         global docker_container_id
         err = 0.0
-        logger = logging.getLogger(__name__)
+        # TODO: Make sure the seed is set correctly and == self.seed
+        global SEED
         config["seed"] = SEED
 
         config_path = Path(f"{config['output_dir']}/config-{config['job_id']}.json")
-        wrench_conf: Dict = Calibrator.setup_configuration(config)
+        wrench_conf: Dict = Calibrator.create_wrench_configuration(config)
         use_docker: bool = "docker_container_id" in config
 
         # We write the configuration we got from DeepHyper as a JSON file for the simulator
@@ -647,7 +733,7 @@ class Calibrator(object):
         i_max = self.df.objective.argmax()
         data = self.df.iloc[i_max].to_dict()
 
-        conf = Calibrator.setup_configuration(data)
+        conf = Calibrator.create_wrench_configuration(data)
 
         conf["calibration"] = {}
         conf["calibration"]["error"] = str(abs(data["objective"])**0.5)
@@ -684,8 +770,6 @@ class Calibrator(object):
         plt.savefig(f"{self.output_dir}/{filename}")
         if show:
             plt.show()
-
-
 
 def plot(df: pd.DataFrame, output: str, plot_rs: bool=True, show: bool=False):
     """
@@ -725,6 +809,12 @@ def plot(df: pd.DataFrame, output: str, plot_rs: bool=True, show: bool=False):
         plt.show()
 
 if __name__ == "__main__":
+
+    plt.rcParams.update({
+        "text.usetex": True,
+        "font.family": "serif",
+        "font.serif": ["sans-serif"],
+    })
 
     logger = configure_logger(level=logging.INFO)
 
