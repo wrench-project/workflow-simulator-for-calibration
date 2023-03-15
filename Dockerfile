@@ -66,7 +66,7 @@ RUN git clone https://github.com/wfcommons/wfcommons.git && cd wfcommons && git 
 #################################################
 
 # Clone workflow-simulator-for-calibration and install the simulator and deephyper
-RUN git clone https://github.com/wrench-project/workflow-simulator-for-calibration.git && cd workflow-simulator-for-calibration && mkdir build && cd build && cmake .. && make -j4 && make install && cd .. 
+RUN git clone https://github.com/wrench-project/workflow-simulator-for-calibration.git && cd workflow-simulator-for-calibration && mkdir build && cd build && cmake .. && make -j4 && make install && cd ..
 
 RUN cd workflow-simulator-for-calibration && python3 -m pip install -r calibration/requirements.txt && cd .. && rm -rf workflow-simulator-for-calibration
 
