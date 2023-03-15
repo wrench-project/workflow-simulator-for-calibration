@@ -19,7 +19,7 @@
             },
             "reference_flops": {
                 "min": 3,
-                "max": 8,
+                "max": 3,
                 "scale": "log2",
                 "unit" : "Gf"
             },

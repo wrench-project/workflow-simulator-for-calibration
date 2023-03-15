@@ -31,6 +31,7 @@ import re
 import json
 import logging
 import pandas as pd
+import numpy as np
 from pathlib import Path
 import matplotlib.pyplot as plt
 
@@ -45,7 +46,7 @@ from warnings import filterwarnings
 from typing import Dict, List, Any, Union, Type, Tuple
 
 from deephyper.search.hps import CBO
-from deephyper.evaluator.callback import LoggerCallback, SearchEarlyStopping
+from deephyper.evaluator.callback import Callback, LoggerCallback, SearchEarlyStopping
 from deephyper.evaluator import Evaluator
 from deephyper.problem import HpProblem
 import ConfigSpace as cs
@@ -60,6 +61,7 @@ SCHEMES = {"error": "error_computation_scheme",
 # Docker container ID as a global variable
 docker_container_id = ""
 SEED = 0
+LOGGER_NAME = __name__
 
 ##########################   Logging   ################################
 
@@ -77,8 +79,8 @@ class CustomFormatter(logging.Formatter):
     FORMATS = {
         logging.DEBUG: grey + format + reset,
         logging.INFO: grey + format + reset,
-        logging.WARNING: yellow + format + reset,
-        logging.ERROR: red + format + reset,
+        logging.WARNING: grey + format + reset,
+        logging.ERROR: yellow + format + reset,
         logging.CRITICAL: bold_red + format + reset
     }
 
@@ -87,15 +89,61 @@ class CustomFormatter(logging.Formatter):
         formatter = logging.Formatter(log_fmt, datefmt='%Y:%m:%d-%I:%M:%S')
         return formatter.format(record)
 
-def configure_logger(level: int = logging.INFO) -> logging.Logger:
+def configure_logger(name: str = LOGGER_NAME, level: int = logging.WARNING) -> logging.Logger:
     """Configure the logger."""
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger(LOGGER_NAME)
     # create console handler and set level to debug
     ch = logging.StreamHandler()
     ch.setFormatter(CustomFormatter())
     logger.addHandler(ch)
     logger.setLevel(level)
+
+    logging.basicConfig(
+        level=level,
+        handlers=[ch]
+    )
+
     return logger
+
+class MyLoggerCallback(Callback):
+    """Print information when jobs are completed by the ``Evaluator``.
+
+    An example usage can be:
+
+    >>> evaluator.create(method="ray", method_kwargs={..., "callbacks": [LoggerCallback()]})
+    """
+
+    def __init__(self):
+        self._best_objective = None
+        self._n_done = 0
+
+    def on_done(self, job):
+        self._n_done += 1
+        # Test if multi objectives are received
+        if np.ndim(job.result) > 0:
+            if np.isreal(job.result).all():
+                if self._best_objective is None:
+                    self._best_objective = np.sum(job.result)
+                else:
+                    self._best_objective = max(np.sum(job.result), self._best_objective)
+
+                logging.warning(
+                    f"[{self._n_done:05d}] -- best sum(objective): {self._best_objective:.5f} -- received sum(objective): {np.sum(job.result):.5f}"
+                )
+            elif np.any(type(res) is str and "F" == res[0] for res in job.result):
+                logging.error(f"[{self._n_done:05d}] -- received failure: {job.result}")
+        elif np.isreal(job.result):
+            if self._best_objective is None:
+                self._best_objective = job.result
+            else:
+                self._best_objective = max(job.result, self._best_objective)
+
+            logging.warning(
+                f"[{self._n_done:05d}] -- best objective: {self._best_objective:.5f} -- received objective: {job.result:.5f}"
+            )
+        elif type(job.result) is str and "F" == job.result[0]:
+            logging.error(f"[{self._n_done:05d}] -- received failure: {job.result}")
+
 
 #######################################################################
 
@@ -104,7 +152,7 @@ def create_docker_container(docker_image) -> str:
     Create a Docker container to run the simulator.
     Returns the container ID.
     """
-    logger.info(f"Starting Docker container for image {docker_image}")
+    logging.warning(f"Starting Docker container for image {docker_image}")
     cmd = "docker run -it -d -v " + getcwd() + ":/home/wrench " + docker_image
     docker = run(cmd.split(" "), capture_output=True, text=True, timeout=int(10))
     if docker.stdout == '':
@@ -112,12 +160,13 @@ def create_docker_container(docker_image) -> str:
     docker.check_returncode()
     global docker_container_id
     docker_container_id = docker.stdout.strip()
-    logger.info(f"Docker container started ({docker_container_id[0:11]})")
+    logging.warning(f"Docker container started ({docker_container_id[0:11]})")
     return docker.stdout.strip()
+
 
 def kill_docker_container(docker_container_id: str) -> str:
     """Kill a Docker container."""
-    logger.info(f"Waiting for Docker container to idle...")
+    logging.warning(f"Waiting for Docker container to idle...")
     zero_count = 0
     while zero_count < 3:
         time.sleep(1)
@@ -129,16 +178,17 @@ def kill_docker_container(docker_container_id: str) -> str:
         # print(cpu_load)
         if (cpu_load <= 0):
             zero_count += 1
-    logger.info(f"Killing Docker container ({docker_container_id[0:11]})...")
+    logging.warning(f"Killing Docker container ({docker_container_id[0:11]})...")
     cmd = "docker kill " + docker_container_id
     docker = run(cmd.split(" "), capture_output=True, text=True, timeout=int(10))
     docker.check_returncode()
-    logger.info("Docker container killed")
+    logging.warning("Docker container killed")
     time.sleep(1)
     cmd = "docker rm " + docker_container_id
     docker = run(cmd.split(" "), capture_output=True, text=True, timeout=int(10))
     docker.check_returncode()
-    logger.info("Docker container removed")
+    logging.warning("Docker container removed")
+
 
 def set_nested(d: dict, path :str, value: str) -> None:
     """
@@ -155,11 +205,9 @@ class CalibrationConfiguration(object):
     """
     This class represents a configuration for a calibration.
     """
-    def __init__(self, 
-                config: Path,
-                logger: logging.Logger = None) -> None:
+    def __init__(self, config: Path) -> None:
 
-        self.logger = logger if logger else logging.getLogger(__name__)
+        self.logger = logging
         self.config: JSON = self._load_json(config)
         self.ranges = self.config["calibration_ranges"]
 
@@ -256,7 +304,7 @@ class Calibrator(object):
                 network_topology_scheme: str = None,
                 logger: logging.Logger = None) -> None:
 
-        self.logger = logger if logger else logging.getLogger(__name__)
+        self.logger = logging
         self.random_search = random_search
         self.max_evals = max_evals
         self.timeout = timeout
@@ -300,11 +348,11 @@ class Calibrator(object):
 
         self.simulator = self.config["simulator"]
 
-        self.logger.info(f"Trying to run {self.simulator} --version...")
+        self.logger.warning(f"Trying to run {self.simulator} --version...")
         simu_ok = self._test_simulator()
 
         if simu_ok[0]:
-            self.logger.info(f"Success")
+            self.logger.warning(f"Success")
         else:
             simu_name = self.config["simulator"]
             self.logger.error(f"Failed to run the simulator (make sure that the simulator '{simu_name}' exists and is "
@@ -321,15 +369,15 @@ class Calibrator(object):
         
         for wf in self.workflows:
             if Path.is_file(wf):
-                self.logger.info(f"Calibrating {wf}")
+                self.logger.warning(f"Calibrating {wf}")
             else:
                 self.logger.error(f"The file {wf} does not exist.")
                 exit(1)
 
         if self.consider_properties:
-            self.logger.info(f"We are calibrating properties")
+            self.logger.warning(f"We are calibrating properties")
         if self.consider_payloads:
-            self.logger.info(f"We are calibrating payloads.")
+            self.logger.warning(f"We are calibrating payloads.")
 
         self.sampling = self.get_sampling_method(self.config)
 
@@ -353,7 +401,7 @@ class Calibrator(object):
 
         self.add_parameters()
 
-        callbacks = [LoggerCallback()]
+        callbacks = [MyLoggerCallback()]
         # Stop after EARLY_STOP evaluations that did not improve the search
         if self.early_stop:
             callbacks.append(SearchEarlyStopping(patience=self.early_stop))
@@ -368,7 +416,7 @@ class Calibrator(object):
             },
         )
 
-        self.logger.info(f"Evaluator has {self.evaluator.num_workers} available workers")
+        self.logger.warning(f"Evaluator has {self.evaluator.num_workers} available workers")
 
         if self.random_search:
             # When surrogate_model=DUMMY it performs a Random Search
@@ -392,7 +440,7 @@ class Calibrator(object):
 
     def get_sampling_method(self, config: JSON) -> str:
         sampling = config["sampling"]
-        self.logger.info(f"Using sampling = {sampling}")
+        self.logger.warning(f"Using sampling = {sampling}")
         return sampling
 
     def _load_json(self, path: Path) -> JSON:
@@ -403,8 +451,8 @@ class Calibrator(object):
     def write_json(self, data: JSON, path: Path) -> None:
         """Write a dict in a JSON file."""
         with open(path, 'w') as f:
-            json_data = json.dumps(data, indent=4)
-            f.write(json_data)
+            json.dump(data, f, indent=4)
+            f.write('\n')
 
     def _get_range(self, key: str, strict: bool = False):
         """ 
@@ -480,7 +528,7 @@ class Calibrator(object):
                 self.problem.add_hyperparameter(
                     Calibrator._verify_range(ranges["min"], ranges["max"], self.sampling), name
                 )
-            logger.info(
+            self.logger.warning(
                 f'Added parameter {line[-1]} for '
                 f'calibration (min={ranges["min"]}, '
                 f'max={ranges["max"]}, '
@@ -488,7 +536,7 @@ class Calibrator(object):
                 f'unit={ranges.get("unit")})'
             )
         else:
-            logger.warning(f"Did not find calibration ranges for {line[-1]}. Ignored.")
+            self.logger.error(f"Did not find calibration ranges for {line[-1]}. Ignored.")
 
     def add_parameters(self):
         """
@@ -509,19 +557,12 @@ class Calibrator(object):
         self.problem.add_hyperparameter([str(self.timeout)], "timeout")
         self.problem.add_hyperparameter([str(self.config_path)], "config_path")
 
-        # if self.use_docker:
-        #     self.problem.add_hyperparameter([str(self.docker_container_id)], "docker_container_id")
-
         for scheme in self.schemes.values():
             self.problem.add_hyperparameter(
                 [self.simulator_config[scheme]], scheme)
 
-        self.problem.add_hyperparameter(
-            [str(self.simulator_config["workflow"]["reference_flops"])], "reference_flops")
-        
-        ranges = self._get_range("scheduling_overhead")
-        self.problem.add_hyperparameter(
-            Calibrator._verify_range(ranges["min"], ranges["max"], self.sampling), "scheduling_overhead")
+        self._add_parameter("reference_flops")
+        self._add_parameter("scheduling_overhead")
 
         for _, name_scheme in self.schemes.items():
             cs_scheme = self.simulator_config[name_scheme]
@@ -560,8 +601,8 @@ class Calibrator(object):
     @staticmethod
     def get_real_values_with_unit(name: str, val: any, calib_conf: CalibrationConfiguration) -> str:
         line = name.split('-')        
-        logger = logging.getLogger(__name__)
         updated_val = val
+        configure_logger()
 
         if "payloads" in name or "Payload" in name:
             ranges = calib_conf.get_range("payloads", strict = True)
@@ -596,10 +637,10 @@ class Calibrator(object):
                 else:
                     updated_val = str(int(val)) + unit
         else:
-            logger.warning(f"Did not find calibration ranges for {line[-1]}. Ignored.")
+            logging.critical(f"Did not find calibration ranges for {line[-1]}. Ignored.")
 
         if updated_val == val:
-            logger.warning(f"Value {val} has not been updated and scaled.")
+            logging.error(f"Value {val} has not been updated and scaled.")
 
         return updated_val
 
@@ -615,10 +656,15 @@ class Calibrator(object):
 
         wrench_conf["workflow"] = {}
         wrench_conf["workflow"]["file"] = config["workflow"]
-        wrench_conf["workflow"]["reference_flops"] = str(config["reference_flops"])
+
+        ranges = calibration_config.get_range("reference_flops")
+        if ranges["scale"] == "log2":
+            wrench_conf["workflow"]["reference_flops"] = str(2**int(config["reference_flops"]))
+        else:
+            wrench_conf["workflow"]["reference_flops"] = str(int(config["reference_flops"]))
+        wrench_conf["workflow"]["reference_flops"] += ranges["unit"]
 
         ranges = calibration_config.get_range("scheduling_overhead")
-
         if ranges["scale"] == "log2":
             wrench_conf["scheduling_overhead"] = str(2**int(config["scheduling_overhead"]))
         else:
@@ -647,12 +693,13 @@ class Calibrator(object):
         """
         # We must use a global variable here to ensure the seed used by DeepHyper
         # when using Docker or not remain the same...
-        logger = logging.getLogger(__name__)
         global docker_container_id
         err = 0.0
         # TODO: Make sure the seed is set correctly and == self.seed
         global SEED
         config["seed"] = SEED
+
+        configure_logger()
 
         config_path = Path(f"{config['output_dir']}/config-{config['job_id']}.json")
         wrench_conf: Dict = Calibrator.create_wrench_configuration(config)
@@ -660,8 +707,8 @@ class Calibrator(object):
 
         # We write the configuration we got from DeepHyper as a JSON file for the simulator
         with open(config_path, 'w') as temp_config:
-            json_config = json.dumps(wrench_conf, indent=4)
-            temp_config.write(json_config)
+            json.dump(wrench_conf, temp_config, indent=4)
+            temp_config.write('\n')
         try:
             if use_docker:
                 cmd = ["docker", "exec", docker_container_id, config["simulator"], str(config_path)]
@@ -677,11 +724,10 @@ class Calibrator(object):
             err = float(simulation.stdout.strip().split(':')[2])
         except (CalledProcessError, FileNotFoundError) as e:
             error = simulation.stderr.strip()
-            logger.error(error)
-            logger.error(f"To reproduce that error you can run: {' '.join(cmd)}")
+            logging.error(f"\"{error}\" => To reproduce that error you can run: {' '.join(cmd)}")
             return str('-inf')
         except TimeoutExpired:
-            logger.error(f"Timeout of the sub-process, process got killed {config_path}")
+            logging.error(f"Timeout of the sub-process, process got killed {config_path}")
             return str('-inf')
         else:
             try:
@@ -733,14 +779,16 @@ class Calibrator(object):
             return None
 
         i_max = self.df.objective.argmax()
-        data = self.df.iloc[i_max].to_dict()
+        data_start = self.df.iloc[0].to_dict()
+        data_best = self.df.iloc[i_max].to_dict()
+        runtime = float(data_best["timestamp_gather"]) - float(data_start["timestamp_submit"])
 
-        conf = Calibrator.create_wrench_configuration(data)
+        conf = Calibrator.create_wrench_configuration(data_best)
 
         conf["calibration"] = {}
-        conf["calibration"]["error"] = str(abs(data["objective"])**0.5)
-        conf["calibration"]["timestamp_submit"] = str(data["timestamp_submit"])
-        conf["calibration"]["timestamp_gather"] = str(data["timestamp_gather"])
+        conf["calibration"]["error"] = str(abs(data_best["objective"])**0.5)
+        conf["calibration"]["nb_iter"] = str(int(i_max)+1)
+        conf["calibration"]["runtime_sec"] = str(runtime)
 
         return conf
 
@@ -818,7 +866,7 @@ if __name__ == "__main__":
         "font.serif": ["sans-serif"],
     })
 
-    logger = configure_logger(level=logging.INFO)
+    logger = configure_logger(level = logging.WARNING)
 
     parser = ArgumentParser(description='Calibrate a WRENCH simulator using DeepHyper.')
     parser.add_argument('--config', '-c', dest='conf', action='store',
@@ -934,6 +982,7 @@ if __name__ == "__main__":
         }
     )
 
+    is_inf = False
     if args.all:
         baseline = Calibrator(
             config=args.conf,
@@ -966,17 +1015,20 @@ if __name__ == "__main__":
                 'err_rs': df_baseline["objective"].abs()**0.5,
             }
         )
+        is_inf = np.isinf(df['err_rs']).any()
 
-    print(f"=============== {exp_id} ===============")
-    print(f"Best error:")
-    print("\tBayesian Optimization    (BO): {:.3%}".format(
-        min(df['err_bo'])))
-    if args.all:
+    if not np.isinf(df['err_bo']).any():
+        print(f"=============== {exp_id} ===============")
+        print(f"Best error:")
+        print("\tBayesian Optimization    (BO): {:.3%}".format(
+            min(df['err_bo'])))
+    if args.all and not is_inf:
         print("\tRandom Search - baseline (RS): {:.3%}".format(
             min(df['err_rs'])))
 
-    # Plot
-    plot(df*100, output=f"{exp_id}/results.pdf",
-         plot_rs=args.all, show=False)
-    # Save data
-    df.to_csv(f"{exp_id}/global-results.csv", index=False)
+    if not (np.isinf(df['err_bo']).any() and is_inf):
+        # Plot
+        plot(df*100, output=f"{exp_id}/results.pdf",
+             plot_rs=args.all, show=False)
+        # Save data
+        df.to_csv(f"{exp_id}/global-results.csv", index=False)
