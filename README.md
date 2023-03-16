@@ -161,12 +161,13 @@ Sofware:
 
 Experimental ground truth data:
  - [ ] Rafael: Run more workflows, at least 5 per instance (10 if the variance is too high)
+ - [X] All executions are using 16 cores on each compute node on CC
 
 Calibration experiments:
- - [ ] Jesse: Convert all current pegagus logs in google drive to usable .json files
-   - Question: some runs are on non-homegeneous setups (one node 32 cores, the others 64 cores). So we may need to annotate one of them as the submit node while parsing the Pegasus log. **ANSWER**: no! it's all 16 cores
  - [ ] Pick simulator configurations: `all_bare_metal`/`htcondor_bare_metal`, `submit_only`/`submit_and_compute_hosts`, and `one_link`/`many_links`/`one_link_then_many_links`
     - For now pick `all_bare_metal`/`submit_only`/`one_link`  (the most abstract/simple simulator)
+ - [ ] Buffer size: likely for now set it to 0 and do not calibrate? 
+    - Interesting: it impacts execution time
  - [ ] One-workflow, overfitting experiments
     - For EACH workflow run, compare Bayesian and Random and see what the errors are
  - [ ] Non-overfitting experiments

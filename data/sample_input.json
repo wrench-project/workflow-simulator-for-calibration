@@ -17,11 +17,11 @@
         "all_bare_metal": {
             "submit_host": {
                 "num_cores": "16",
-                "speed": "123Gf"
+                "speed": "12345Gf"
             },
             "compute_hosts": {
                 "num_cores": "16",
-                "speed": "423Gf"
+                "speed": "1f"
             },
             "properties": {
                 "BareMetalComputeServiceProperty::THREAD_STARTUP_OVERHEAD": "42s"
