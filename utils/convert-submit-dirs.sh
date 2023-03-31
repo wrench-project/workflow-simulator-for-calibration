@@ -77,13 +77,13 @@ if [ $(find "$OUTPUT_DIR" -mindepth 1 -maxdepth 1 | wc -l) -ne 0 ]; then
 	esac
 fi
 # We need that dependency
-${PYTHON} -m pip --disable-pip-version-check -q install wfcommons
+#${PYTHON} -m pip --disable-pip-version-check -q install wfcommons
 
 # Dev mode (useful to get latest bugfixes..)
 if true; then
   echo -n "Installing wfcommons from master branch ..."
   if [ ! -d "wfcommons" ]; then 
-      git clone --quiet git@github.com:wfcommons/wfcommons.git
+      git clone --quiet https://github.com/wfcommons/wfcommons.git
   fi
   if ${PYTHON} -m pip install --disable-pip-version-check -q -e wfcommons ; then
       echo -e " [ ${GREEN}OK${NC} ]"
