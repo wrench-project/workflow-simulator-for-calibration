@@ -215,9 +215,10 @@ int main(int argc, char **argv) {
     simulation->init(&argc, argv);
 
     // Check command-line arguments
-    if (argc != 2) {
-        std::cerr << "Usage: " << argv[0] << " <json input file>" << std::endl;
-        std::cerr << "       " << argv[0] << " --help" << std::endl;
+    if (argc != 2 and argc != 3) {
+        std::cerr << "Usage: " << argv[0] << " <JSON input file> [JSON workflow file]" << std::endl;
+        std::cerr << "          (if JSON workflow file is provided, it overrides the workflow file specified in the JSON input file" << std::endl;
+        std::cerr << "       " << argv[0] << " --help     Displays usage" << std::endl;
         exit(1);
     }
 
@@ -238,6 +239,10 @@ int main(int argc, char **argv) {
     try {
         // Read JSON input
         json_input = readJSONFromFile(argv[1]);
+        // Override the workflow file spec if needed
+        if (argc == 3) {
+            json_input["workflow"].as_object()["file"] = std::string(argv[2]);
+        }
         // Create the workflow for the WRENCH simulation
         workflow = create_workflow(json_input, &observed_real_makespan, &num_compute_hosts);
 
