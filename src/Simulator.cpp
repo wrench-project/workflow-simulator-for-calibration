@@ -11,7 +11,7 @@
 #include <boost/json.hpp>
 #include <PlatformCreator.h>
 
-#define NETWORK_TIMEOUT 1000.0
+#define NETWORK_TIMEOUT 100000000.0
 
 /**
  * All implemented schemes as ugly globals
