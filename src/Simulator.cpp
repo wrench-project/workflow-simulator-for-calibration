@@ -246,6 +246,10 @@ int main(int argc, char **argv) {
         // Create the workflow for the WRENCH simulation
         workflow = create_workflow(json_input, &observed_real_makespan, &num_compute_hosts);
 
+//        for (auto const &f : workflow->getFileMap()) {
+//            std::cout << "---> " << f.first << " " << f.second->getSize()/(1024*1024*1024) << " IN GBYTES\n";
+//        }
+
         if (num_compute_hosts <= 0) {
             throw std::invalid_argument("The Workflow JSON does not specify 'machines', and thus we can't determine "
                                         "the number of compute hosts used");

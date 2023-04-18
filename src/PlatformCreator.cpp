@@ -92,7 +92,7 @@ void PlatformCreator::create_platform() {
     auto submit_host_disk = submit_host->create_disk("submit_host_hard_drive",
                                                      boost::json::value_to<std::string>(disk_specs["bandwidth_submit_disk_read"]),
                                                      boost::json::value_to<std::string>(disk_specs["bandwidth_submit_disk_write"]));
-    submit_host_disk->set_property("size", "5000GiB");
+    submit_host_disk->set_property("size", "5000EiB");
     submit_host_disk->set_property("mount", "/");
 
     // Create all compute hosts
@@ -141,7 +141,7 @@ void PlatformCreator::create_platform() {
                                                                  disk_specs["bandwidth_compute_host_disk_read"]),
                                                          boost::json::value_to<std::string>(
                                                                  disk_specs["bandwidth_compute_host_write"]));
-            scratch_disk->set_property("size", "500000EiB");
+            scratch_disk->set_property("size", "5000EiB");
             scratch_disk->set_property("mount", "/scratch");
         }
 
