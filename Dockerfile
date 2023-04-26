@@ -50,7 +50,7 @@ RUN git clone https://framagit.org/simgrid/simgrid.git && cd simgrid && git chec
 RUN wget --no-check-certificate https://github.com/nlohmann/json/archive/refs/tags/v3.10.5.tar.gz && tar -xf v3.10.5.tar.gz && cd json-3.10.5 && cmake . && make -j4 && make install && cd .. && rm -rf v3.10.5* json-3.10.5
 
 # install WRENCH
-RUN git clone https://github.com/wrench-project/wrench.git && cd wrench && git checkout cb3befe95bf0f04052a8b37c37e0f8e1b0416428 && mkdir build && cd build && cmake .. && make -j4 && make install && cd .. && rm -rf wrench
+RUN git clone https://github.com/wrench-project/wrench.git && cd wrench && git checkout 7f5613436b43f344296989d040e221d41e41528a && mkdir build && cd build && cmake .. && make -j4 && make install && cd .. && rm -rf wrench
 
 #################################################
 ## WfCommons
@@ -59,7 +59,7 @@ RUN git clone https://github.com/wrench-project/wrench.git && cd wrench && git c
 RUN apt-get install -y gfortran
 RUN apt-get install -y libopenblas-dev
 
-RUN git clone https://github.com/wfcommons/wfcommons.git && cd wfcommons && git checkout 29c69989fe5701bc07eb66c0077531f60e8a4414 && python3 -m pip install . && cd .. && rm -rf wfcommons
+RUN git clone https://github.com/wfcommons/wfcommons.git && cd wfcommons && git checkout a87dd50f06cad0df88d0b2e4a1760e369a09848d && python3 -m pip install . && cd .. && rm -rf wfcommons
 
 #################################################
 # Workflow simulation calibrator
