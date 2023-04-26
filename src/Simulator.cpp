@@ -121,7 +121,7 @@ std::shared_ptr<wrench::Workflow> create_workflow(boost::json::object &json_inpu
     boost::json::object json_workflow;
     try {
         json_workflow = readJSONFromFile(workflow_file);
-        *observed_real_makespan = boost::json::value_to<double>(json_workflow["workflow"].as_object()["makespan"]);
+        *observed_real_makespan = boost::json::value_to<double>(json_workflow["workflow"].as_object()["makespanInSeconds"]);
         *num_compute_hosts = json_workflow["workflow"].as_object()["machines"].as_array().size();
     } catch (std::exception &e) {
         throw;
