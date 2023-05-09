@@ -38,7 +38,7 @@ pushd /tmp && git clone https://framagit.org/simgrid/simgrid.git && cd simgrid &
 
 pushd /tmp && wget --no-check-certificate https://github.com/nlohmann/json/archive/refs/tags/v3.10.5.tar.gz && tar -xf v3.10.5.tar.gz && cd json-3.10.5 && cmake . && make -j16 && sudo make install && cd .. && sudo /bin/rm -rf v3.10.5* json-3.10.5 && popd
 
-pushd /tmp && git clone https://github.com/wrench-project/wrench.git && cd wrench && git checkout 9e49547ec52def90d37d9cd06a49e8ad432f82f0 && mkdir build && cd build && cmake .. && make -j16 && sudo make install && cd .. && sudo /bin/rm -rf wrench && popd
+pushd /tmp && git clone https://github.com/wrench-project/wrench.git && cd wrench && git checkout 92cb79e361a5de5efe302ffc256412da57204bd9 && mkdir build && cd build && cmake .. && make -j16 && sudo make install && cd .. && sudo /bin/rm -rf wrench && popd
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/
 
