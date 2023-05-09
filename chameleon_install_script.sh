@@ -34,11 +34,11 @@ sudo apt-get install -y texlive-base texlive-latex-extra cm-super dvipng
 # Install WRENCH stuff
 pushd /tmp && wget --no-check-certificate https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.tar.gz && tar -xvf boost_1_80_0.tar.gz && cd boost_1_80_0 && ./bootstrap.sh && ./b2 && sudo ./b2 install && cd .. && sudo /bin/rm -rf boost_1_80_0* && popd
 
-pushd /tmp && git clone https://framagit.org/simgrid/simgrid.git && cd simgrid && git checkout 06aa17e07479ef1c08e2c0ae405bc18b8530dfef && mkdir build && cd build && cmake .. && make -j16 && sudo make install && cd ../.. && sudo /bin/rm -rf simgrid && popd
+pushd /tmp && /bin/rm -rf ./simgrid && git clone https://framagit.org/simgrid/simgrid.git && cd simgrid && mkdir build && cd build && cmake .. && make -j16 && sudo make install && cd ../.. && sudo /bin/rm -rf simgrid && popd
 
 pushd /tmp && wget --no-check-certificate https://github.com/nlohmann/json/archive/refs/tags/v3.10.5.tar.gz && tar -xf v3.10.5.tar.gz && cd json-3.10.5 && cmake . && make -j16 && sudo make install && cd .. && sudo /bin/rm -rf v3.10.5* json-3.10.5 && popd
 
-pushd /tmp && git clone https://github.com/wrench-project/wrench.git && cd wrench && git checkout 92cb79e361a5de5efe302ffc256412da57204bd9 && mkdir build && cd build && cmake .. && make -j16 && sudo make install && cd .. && sudo /bin/rm -rf wrench && popd
+pushd /tmp && /bin/rm -rf ./wrench && git clone https://github.com/wrench-project/wrench.git && cd wrench && mkdir build && cd build && cmake .. && make -j16 && sudo make install && cd .. && sudo /bin/rm -rf wrench && popd
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/
 
