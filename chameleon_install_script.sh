@@ -34,7 +34,7 @@ sudo apt-get install -y texlive-base texlive-latex-extra cm-super dvipng
 # Install WRENCH stuff
 pushd /tmp && wget --no-check-certificate https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.tar.gz && tar -xvf boost_1_80_0.tar.gz && cd boost_1_80_0 && ./bootstrap.sh && ./b2 && sudo ./b2 install && cd .. && sudo /bin/rm -rf boost_1_80_0* && popd
 
-pushd /tmp && git clone https://framagit.org/simgrid/simgrid.git && cd simgrid && git checkout d685808894710dda03e4734a9e39f617adda0508 && mkdir build && cd build && cmake .. && make -j16 && sudo make install && cd ../.. && sudo /bin/rm -rf simgrid && popd
+pushd /tmp && git clone https://framagit.org/simgrid/simgrid.git && cd simgrid && git checkout 06aa17e07479ef1c08e2c0ae405bc18b8530dfef && mkdir build && cd build && cmake .. && make -j16 && sudo make install && cd ../.. && sudo /bin/rm -rf simgrid && popd
 
 pushd /tmp && wget --no-check-certificate https://github.com/nlohmann/json/archive/refs/tags/v3.10.5.tar.gz && tar -xf v3.10.5.tar.gz && cd json-3.10.5 && cmake . && make -j16 && sudo make install && cd .. && sudo /bin/rm -rf v3.10.5* json-3.10.5 && popd
 
