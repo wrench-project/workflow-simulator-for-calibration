@@ -133,7 +133,19 @@
             "htcondor_properties": {
                 "HTCondorComputeServiceProperty::NEGOTIATOR_OVERHEAD": {
                     "min": 1,
-                    "max": 20,
+                    "max": 60,
+                    "scale": "linear",
+                    "unit" : "ms"
+                },
+                "HTCondorComputeServiceProperty::GRID_PRE_EXECUTION_DELAY": {
+                    "min": 1,
+                    "max": 60,
+                    "scale": "linear",
+                    "unit" : "ms"
+                },
+                "HTCondorComputeServiceProperty::GRID_POST_EXECUTION_DELAY": {
+                    "min": 1,
+                    "max": 60,
                     "scale": "linear",
                     "unit" : "ms"
                 }
