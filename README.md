@@ -160,18 +160,29 @@ Sofware:
  - Nothing for now
 
 Experimental ground truth data:
- - [ ] Rafael: Run more workflows, at least 5 per instance (10 if the variance is too high)
  - [X] All executions are using 16 cores on each compute node on CC
+ - [ ] Henri is still running workflows
 
 Calibration experiments:
- - [ ] Pick simulator configurations: `all_bare_metal`/`htcondor_bare_metal`, `submit_only`/`submit_and_compute_hosts`, and `one_link`/`many_links`/`one_link_then_many_links`
-    - For now pick `all_bare_metal`/`submit_only`/`one_link`  (the most abstract/simple simulator)
- - [ ] Buffer size: likely for now set it to 0 and do not calibrate? 
-    - Interesting: it impacts execution time
- - [ ] One-workflow, overfitting experiments
-    - For EACH workflow run, compare Bayesian and Random and see what the errors are
+ - [ ] Pick simulator "versions": `all_bare_metal`/`htcondor_bare_metal`, `submit_only`/`submit_and_compute_hosts`, and `one_link`/`many_links`/`one_link_then_many_links`
+    - VERSIONSIMPLE: `all_bare_metal`/`submit_only`/`one_link` 
+    - VERSIONCOMPLEX: `htcondor_bare_metal/submit_and_compute_hosts/one_link_then_many_links`
+ - [ ] Buffer size: Experiment with it (calibrate it or not, as it impacts simulation time)
+    - For now, it's being calibrated between 20MB and 30MB, which is weird
+    - **For next runs, let's fix it to 100MB**
  - [ ] Non-overfitting experiments
-    - Calibrate for one workflow application using n nodes, and see how good things are for 2n nodes
+    - Calibrate for one workflow application using n tasks, and see how good things are for more tasks
+      - Subset of results: 
+	- Arch: HASWELL
+	- #nodes: 4 
+	- workflows: chain, forkjoin, seismology, montage, genome
+      - Question #1: How close is RS from BO for the VERSIONSIMPLE simulator and for VERSIONCOMPLEX?
+        - Looks pretty close for VERSIONSIMPLE
+	- Need to run it for VERSIONCOMPLEX
+	- Plot on the x axis the calibration attempt sorted by increase %error for RS, and on the y axis the average %error (over all 5 trials) for RS and BO
+        - If always close, then let's increase the ranges of, e.g., bandwidth
+    - Calibrate for one workflow application using n nodes, and see how good things are for more nodes
     - Calibrate for one workflow using n nodes, and see how good things are for OTHER workflows using n nodes
     - There are other dimentions (number of tasks, data size)
+
 
