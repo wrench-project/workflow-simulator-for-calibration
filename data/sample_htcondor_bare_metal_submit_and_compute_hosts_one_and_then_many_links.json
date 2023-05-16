@@ -1,0 +1,107 @@
+{
+    "workflow": {
+        "file": "data/sample_workflow.json",
+        "reference_flops": "100Mf"
+    },
+
+    "error_computation_scheme": "makespan",
+    "error_computation_scheme_parameters": {
+        "makespan": {
+        }
+    },
+
+    "scheduling_overhead": "10ms",
+
+    "compute_service_scheme": "htcondor_bare_metal",
+    "compute_service_scheme_parameters": {
+        "all_bare_metal": {
+            "submit_host": {
+                "num_cores": "16",
+                "speed": "12345Gf"
+            },
+            "compute_hosts": {
+                "num_cores": "16",
+                "speed": "1f"
+            },
+            "properties": {
+                "BareMetalComputeServiceProperty::THREAD_STARTUP_OVERHEAD": "42s"
+            },
+            "payloads": {
+            }
+        },
+        "htcondor_bare_metal": {
+            "submit_host": {
+                "num_cores": "1231",
+                "speed": "123Gf"
+            },
+            "compute_hosts":
+            {
+                "num_cores": "16",
+                "speed": "423Gf"
+            },
+            "bare_metal_properties": {
+                "BareMetalComputeServiceProperty::THREAD_STARTUP_OVERHEAD": "42s"
+            },
+            "bare_metal_payloads": {
+            },
+            "htcondor_properties": {
+                "HTCondorComputeServiceProperty::NEGOTIATOR_OVERHEAD": "1.0ms",
+                "HTCondorComputeServiceProperty::GRID_PRE_EXECUTION_DELAY": "10.0s",
+                "HTCondorComputeServiceProperty::GRID_POST_EXECUTION_DELAY": "10.0"
+            },
+            "htcondor_payloads": {
+            }
+        }
+    },
+
+    "storage_service_scheme": "submit_and_compute_hosts",
+    "storage_service_scheme_parameters": {
+        "submit_only": {
+            "bandwidth_submit_disk_read": "10000MBps",
+            "bandwidth_submit_disk_write": "10000MBps",
+            "submit_properties": {
+                "StorageServiceProperty::BUFFER_SIZE": "42MB",
+                "SimpleStorageServiceProperty::MAX_NUM_CONCURRENT_DATA_CONNECTIONS": "8"
+            },
+            "submit_payloads": {
+                "StorageServiceMessagePayload::FILE_READ_REQUEST_MESSAGE_PAYLOAD": "666"
+            }
+        },
+        "submit_and_compute_hosts": {
+            "bandwidth_submit_disk_read": "100MBps",
+            "bandwidth_submit_disk_write": "10MBps",
+            "submit_properties": {
+                "StorageServiceProperty::BUFFER_SIZE": "42000000",
+                "SimpleStorageServiceProperty::MAX_NUM_CONCURRENT_DATA_CONNECTIONS": "8"
+            },
+            "submit_payloads": {
+            },
+            "bandwidth_compute_host_disk_read": "100MBps",
+            "bandwidth_compute_host_write": "10MBps",
+            "compute_host_properties": {
+                "StorageServiceProperty::BUFFER_SIZE": "1048576B",
+                "SimpleStorageServiceProperty::MAX_NUM_CONCURRENT_DATA_CONNECTIONS": "8"
+            },
+            "compute_host_payloads": {
+            }
+        }
+    },
+
+    "network_topology_scheme": "one_and_then_many_links",
+    "network_topology_scheme_parameters": {
+        "one_link": {
+            "bandwidth": "4MBps",
+            "latency": "10us"
+        },
+        "one_and_then_many_links": {
+            "bandwidth_out_of_submit": "4MBps",
+            "latency_out_of_submit": "10us",
+            "bandwidth_to_compute_hosts": "4MBps",
+            "latency_to_compute_hosts": "10us"
+        },
+        "many_links": {
+            "bandwidth_submit_to_compute_host": "4000MBps",
+            "latency_submit_to_compute_host": "10us"
+        }
+    }
+}
