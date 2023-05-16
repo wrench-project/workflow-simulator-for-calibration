@@ -98,54 +98,6 @@ docker run -it --rm -v `pwd`:/home/wrench wrenchproject/workflow-calibration:lat
 ```
 
 
-## How to generated workflow JSONS for Pegasus workflows
-
-There are three scripts under `utils/`:
-- `pegasus-submit-to-json.py`: takes a Pegasus submit directory path as input (like `run0000/` etc) and produces a workflow instance compatible with `calibrate.py` (JSON file);
-- `convert-submit-dirs.sh`: converts a directory `dir` containing Pegasus submit directories with `./convert-submit-dirs.sh -d dir`;
-- `run-calibration.sh`: takes a directory `dir` containing workflows represented as JSON files and calibrate each of them.
-
-### Example
-
-#### Convert Pegasus submit directory
-
-If you have a directory containing various Pegasus runs:
-```bash
-data/
-└── cascadelake
-    └── 4-nodes
-        ├── 1000genome
-        │   └── genome-250-50-1000-0.6-cascadelake
-        ├── bwa
-        │   └── bwa-250-50-10-0.6-cascadelake
-        ├── cycles
-        │   └── cycles-250-50-10-0.6-cascadelake
-        ├── montage
-        │   └── montage-250-50-1000-0.6-cascadelake
-        └── seismology
-            └── seismology-250-50-10-0.6-cascadelake
-```
-The first step is to convert all these submit directory: `./convert-submit-dirs.sh -d data`. This step will produce 5 JSON files (`genome-250-50-1000.json`, `bwa-250-50-10'json` etc).
-
-Then, we can calibrate these 5 workflows, we will need to set up a configuration file for calibration. You can find an example under `calibration/config.json`:
-```json
-{
-    "simulator": "workflow-simulator-for-calibration",
-    "config": "data/sample_input.json",
-    "calibration_ranges": {
-        "platform": {
-            "scheduling_overhead": [0, 6],
-        },
-        "payloads": [0, 20],
-        "properties": {
-            "batch_scheduling_algorithm" : ["fcfs", "conservative_bf", "conservative_bf_core_level"],
-            "max_num_concurrent_data_connections": [1, 64],
-        }
-    }
-}
-```
-Before running a calibration process you must make sure that _simulator_ and _config_ are reachable (prefer absolute path if possible). 
-
 #### How to read a configuration file
 
 The field **calibration_ranges** defines, for each variable that can be calibrated (e.g., *scheduling_overhead*, *payloads*, etc), a range of possible values. For example *batch_scheduling_algorithm* can take three discrete values, *max_num_concurrent_data_connections* can range from 1 to 64. For some values like *payloads*, the values are ranging from $2^0$ to $2^20$ bytes.
@@ -157,7 +109,11 @@ Once the path in your config file `config.json` are correct, you can run `./run-
 # TODO
 
 Sofware:
- - Nothing for now
+ - [ ] Kyle scripts
+   - [ ] Push scripts to repo in the calibration/ directory
+   - [ ] Make it so that the script includes the JSON calibration inline in the big result file, rather than reference some experiment hash
+   - [ ] Add an option --keep-exp-directory to the script, by default, the exp directory is removed
+
 
 Experimental ground truth data:
  - [X] All executions are using 16 cores on each compute node on CC
