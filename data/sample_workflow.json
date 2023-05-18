@@ -2,7 +2,7 @@
     "name": "genome-250-50-10-0.6-cascadelake",
     "description": "Instance generated with WfCommons - https://wfcommons.org",
     "createdAt": "2023-01-25T20:35:28.838294",
-    "schemaVersion": "1.3",
+    "schemaVersion": "1.4",
     "author": {
         "name": "pottier1",
         "email": "support@wfcommons.org"
