@@ -518,7 +518,7 @@ class Calibrator(object):
             is_log = ranges["scale"] == "log2"
             sampling = "log-" + self.sampling if is_log else self.sampling
             # We allow infinite value for that parameter (must be supported by WRENCH)
-            is_infinite = ranges.get("infinity")
+            is_infinite = ranges.get("infinity_allowed")
             value = line[-1].split("::")[-1] # We split in case of properties
             if value == "BUFFER_SIZE" and is_infinite:
                 if ranges["min"] == ranges["max"]:
