@@ -13,8 +13,8 @@
             },
             "scheduling_overhead": {
                 "min": 0,
-                "max": 60,
-                "scale": "log2",
+                "max": 60000,
+                "scale": "linear",
                 "unit" : "ms"
             },
             "reference_flops": {
@@ -62,7 +62,7 @@
             "latency_out_of_submit": {
                 "min": 0,
                 "max": 100,
-                "scale": "log2",
+                "scale": "linear",
                 "unit": "us"
             },
             "bandwidth_to_compute_hosts": {
@@ -74,7 +74,7 @@
             "latency_to_compute_hosts": {
                 "min": 0,
                 "max": 100,
-                "scale": "log2",
+                "scale": "linear",
                 "unit": "us"
             },
             "bandwidth_submit_to_compute_host": {
@@ -86,7 +86,7 @@
             "latency_submit_to_compute_host": {
                 "min": 0,
                 "max": 100,
-                "scale": "log2",
+                "scale": "linear",
                 "unit": "us"
             },
             "bandwidth": {
@@ -98,7 +98,7 @@
             "latency": {
                 "min": 0,
                 "max": 100,
-                "scale": "log2",
+                "scale": "linear",
                 "unit": "us"
             }
         },
