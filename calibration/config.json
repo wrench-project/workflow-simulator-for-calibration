@@ -60,7 +60,7 @@
                 "unit" : "MBps"
             },
             "latency_out_of_submit": {
-                "min": 0,
+                "min": 1,
                 "max": 100,
                 "scale": "linear",
                 "unit": "us"
@@ -72,7 +72,7 @@
                 "unit" : "MBps"
             },
             "latency_to_compute_hosts": {
-                "min": 0,
+                "min": 1,
                 "max": 100,
                 "scale": "linear",
                 "unit": "us"
@@ -84,7 +84,7 @@
                 "unit" : "MBps"
             },
             "latency_submit_to_compute_host": {
-                "min": 0,
+                "min": 1,
                 "max": 100,
                 "scale": "linear",
                 "unit": "us"
@@ -96,14 +96,14 @@
                 "unit" : "MBps"
             },
             "latency": {
-                "min": 0,
+                "min": 1,
                 "max": 100,
                 "scale": "linear",
                 "unit": "us"
             }
         },
         "payloads": {
-            "min": 0,
+            "min": 1,
             "max": 20,
             "scale": "log2",
             "unit": "B"
@@ -113,13 +113,15 @@
                 "SimpleStorageServiceProperty::MAX_NUM_CONCURRENT_DATA_CONNECTIONS": {
                     "min": 1,
                     "max": 64,
-                    "scale": "linear"
+                    "scale": "linear",
+                    "infinity_allowed": false
                 },
                 "StorageServiceProperty::BUFFER_SIZE": {
                     "min": 100,
                     "max": 100,
-                    "scale": "log2",
-                    "unit": "MB"
+                    "scale": "linear",
+                    "unit": "MB",
+                    "infinity_allowed": false
                 }
             },
             "bare_metal_properties": {
