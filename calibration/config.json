@@ -13,7 +13,7 @@
             },
             "scheduling_overhead": {
                 "min": 0,
-                "max": 10,
+                "max": 60,
                 "scale": "log2",
                 "unit" : "ms"
             },
@@ -25,79 +25,79 @@
             },
             "speed": {
                 "min": 3,
-                "max": 8,
+                "max": 10,
                 "scale": "log2",
                 "unit" : "Gf"
             },
             "bandwidth_submit_disk_read": {
-                "min": 6,
-                "max": 17,
+                "min": 3,
+                "max": 20,
                 "scale": "log2",
                 "unit" : "MBps"
             },
             "bandwidth_submit_disk_write": {
-                "min": 6,
-                "max": 17,
+                "min": 3,
+                "max": 20,
                 "scale": "log2",
                 "unit" : "MBps"
             },
             "bandwidth_compute_host_disk_read": {
-                "min": 6,
-                "max": 17,
+                "min": 3,
+                "max": 20,
                 "scale": "log2",
                 "unit" : "MBps"
             },
             "bandwidth_compute_host_write": {
-                "min": 6,
-                "max": 17,
+                "min": 3,
+                "max": 20,
                 "scale": "log2",
                 "unit" : "MBps"
             },
             "bandwidth_out_of_submit": {
-                "min": 6,
-                "max": 17,
+                "min": 3,
+                "max": 20,
                 "scale": "log2",
                 "unit" : "MBps"
             },
             "latency_out_of_submit": {
                 "min": 0,
-                "max": 12,
+                "max": 100,
                 "scale": "log2",
                 "unit": "us"
             },
             "bandwidth_to_compute_hosts": {
-                "min": 6,
-                "max": 17,
+                "min": 3,
+                "max": 20,
                 "scale": "log2",
                 "unit" : "MBps"
             },
             "latency_to_compute_hosts": {
                 "min": 0,
-                "max": 12,
+                "max": 100,
                 "scale": "log2",
                 "unit": "us"
             },
             "bandwidth_submit_to_compute_host": {
-                "min": 6,
-                "max": 17,
+                "min": 3,
+                "max": 20,
                 "scale": "log2",
                 "unit" : "MBps"
             },
             "latency_submit_to_compute_host": {
                 "min": 0,
-                "max": 12,
+                "max": 100,
                 "scale": "log2",
                 "unit": "us"
             },
             "bandwidth": {
-                "min": 6,
-                "max": 17,
+                "min": 3,
+                "max": 20,
                 "scale": "log2",
                 "unit" : "MBps"
             },
             "latency": {
                 "min": 0,
-                "max": 12,
+                "max": 100,
                 "scale": "log2",
                 "unit": "us"
             }
@@ -116,16 +116,16 @@
                     "scale": "linear"
                 },
                 "StorageServiceProperty::BUFFER_SIZE": {
-                    "min": 20,
-                    "max": 30,
+                    "min": 100,
+                    "max": 100,
                     "scale": "log2",
                     "unit": "MB"
                 }
             },
             "bare_metal_properties": {
                 "BareMetalComputeServiceProperty::THREAD_STARTUP_OVERHEAD": {
-                    "min": 5,
-                    "max": 30,
+                    "min": 1,
+                    "max": 10000,
                     "scale": "linear",
                     "unit" : "ms"
                 }
@@ -133,19 +133,19 @@
             "htcondor_properties": {
                 "HTCondorComputeServiceProperty::NEGOTIATOR_OVERHEAD": {
                     "min": 1,
-                    "max": 60,
+                    "max": 60000,
                     "scale": "linear",
                     "unit" : "ms"
                 },
                 "HTCondorComputeServiceProperty::GRID_PRE_EXECUTION_DELAY": {
                     "min": 1,
-                    "max": 60,
+                    "max": 60000,
                     "scale": "linear",
                     "unit" : "ms"
                 },
                 "HTCondorComputeServiceProperty::GRID_POST_EXECUTION_DELAY": {
                     "min": 1,
-                    "max": 60,
+                    "max": 60000,
                     "scale": "linear",
                     "unit" : "ms"
                 }
