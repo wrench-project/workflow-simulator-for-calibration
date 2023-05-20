@@ -479,6 +479,22 @@ class Calibrator(object):
                         return item
         return get_recursively(self.config["calibration_ranges"], key, strict = strict) 
 
+
+    @staticmethod
+    def _verify_range(a: int, b: int, sampling: str = None) -> Tuple[int, int, str] | List[int]:
+        """We must verify that if a == b. Constants parameters cannot add it as hyperparameters 
+        to DeepHyper and must be treated as a list of one element
+            - if a > b we must return (a, b, sampling)
+            - if a == b, we return [a]
+            - if a < b -> raise an error
+        """
+        if a < b:
+            return (a, b, sampling)
+        elif a == b:
+            return [a]
+        else:
+            raise ValueError(f"invalid range {a} not < {b}")
+
     @staticmethod
     def _verify_range(a: int, b: int, sampling: str) -> Tuple[int, int, str] | List[int]:
         """We must verify that if a == b. Constants parameters cannot add it as hyperparameters 
@@ -505,8 +521,14 @@ class Calibrator(object):
             ranges = self._get_range("payloads", strict = True)
         if ranges:
             is_log = ranges["scale"] == "log2"
+            sampling = "log-" + self.sampling if is_log else self.sampling
+            # We allow infinite value for that parameter (must be supported by WRENCH)
+            is_infinite = ranges.get("infinity_allowed")
             value = line[-1].split("::")[-1] # We split in case of properties
-            if value == "BUFFER_SIZE":
+            if value == "BUFFER_SIZE" and is_infinite:
+                if ranges["min"] == ranges["max"]:
+                    raise ValueError(f"Infinite value for {value} is not allowed for ranges "
+                        f"where min == max (here {ranges['max']})")
                 # Model the concurrent access/buffer size with two variables:
                 # - inf or not inf
                 #   - if not inf we pick a discrete value between MIN and MAX
@@ -519,7 +541,10 @@ class Calibrator(object):
                 # If we choose "finite" then we sample a discrete value for the buffer size
                 self.problem.add_condition(cs.EqualsCondition(
                     buffer_size_discrete, buffer_size_categorical, "finite"))
-            elif value == "MAX_NUM_CONCURRENT_DATA_CONNECTIONS":
+            elif value == "MAX_NUM_CONCURRENT_DATA_CONNECTIONS" and is_infinite:
+                if ranges["min"] == ranges["max"]:
+                    raise ValueError(f"Infinite value for {value} is not allowed for ranges "
+                        f"where min == max (here {ranges['max']})")
                 conc_conn_categorical = csh.CategoricalHyperparameter(
                     "CAT_"+name, choices=["infinity", "finite"])
                 conc_conn_discrete = csh.UniformIntegerHyperparameter(
@@ -531,7 +556,7 @@ class Calibrator(object):
                 )
             else:
                 self.problem.add_hyperparameter(
-                    Calibrator._verify_range(ranges["min"], ranges["max"], self.sampling), name
+                    Calibrator._verify_range(ranges["min"], ranges["max"], sampling), name
                 )
             self.logger.warning(
                 f'Added parameter {line[-1]} for '
