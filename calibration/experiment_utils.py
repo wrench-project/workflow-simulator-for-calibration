@@ -343,13 +343,13 @@ def calibrate(wf_list, dir_wf, config_json, num_iter, timeout, until_success=Tru
             # Otherwise return exp_hash
             if "deephyper.core.exceptions.SearchTerminationError" in calibrate_run.stdout:
                 if debug == True:
-                    print(f"Attempt {attempt}: 'deephyper.core.exceptions.SearchTerminationError' detected... Retrying... {exp_hash}")
+                    print(f"Attempt {attempt}: 'deephyper.core.exceptions.SearchTerminationError' detected... Retrying...")
             elif exp_hash == "ERROR":
                 if debug == True:
-                    print(f"Attempt {attempt}: Error during calibration... Retrying... {exp_hash}")
+                    print(f"Attempt {attempt}: Error during calibration... Retrying...")
             else:
                 if debug == True:
-                    print(f"Attempt {attempt}: Success! {exp_hash}")
+                    print(f"Attempt {attempt}: Success!")
                 return exp_hash
         except subprocess.TimeoutExpired:
             if debug == True:
