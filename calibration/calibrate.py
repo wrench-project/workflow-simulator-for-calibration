@@ -254,9 +254,12 @@ class Calibrator(object):
     :param cores: Number of workers used 
     (by default: all available = number of physical cores), defaults to [None]
     :type cores: int
-    :param timeout: Seconds after which the simulator is killed 
+    :param wrench_timeout: Seconds after which the simulator is killed 
     for each iteration (if None = infinite), defaults to [None]
-    :type timeout: int
+    :type wrench_timeout: int
+    :param deephyper_timeout: Seconds after which DeepHyper is killed 
+    (if None = infinite), defaults to [None]
+    :type deephyper_timeout: int
     :param consider_properties: Calibrate properties, defaults to [True]
     :type consider_properties: Path
     :param consider_payloads: Calibrate payloads, defaults to [True]
@@ -294,7 +297,8 @@ class Calibrator(object):
                 random_search: bool = False,
                 max_evals: int = 100,
                 cores: int = None,
-                timeout: int = None,
+                wrench_timeout: int = None,
+                deephyper_timeout: int = None,
                 consider_properties: bool = True,
                 consider_payloads: bool = True,
                 output_dir: str = None,
@@ -307,7 +311,8 @@ class Calibrator(object):
         self.logger = logging
         self.random_search = random_search
         self.max_evals = max_evals
-        self.timeout = timeout
+        self.wrench_timeout = wrench_timeout
+        self.deephyper_timeout = deephyper_timeout
         self.output_dir = output_dir
         self.early_stop = early_stop
         self.compute_service_scheme = compute_service_scheme
@@ -579,7 +584,7 @@ class Calibrator(object):
         self.problem.add_hyperparameter([str(self.simulator)], "simulator")
         self.problem.add_hyperparameter([str(wf) for wf in self.workflows], "workflow")
         self.problem.add_hyperparameter([str(self.output_dir)], "output_dir")
-        self.problem.add_hyperparameter([str(self.timeout)], "timeout")
+        self.problem.add_hyperparameter([str(self.wrench_timeout)], "timeout")
         self.problem.add_hyperparameter([str(self.config_path)], "config_path")
 
         for scheme in self.schemes.values():
@@ -764,7 +769,7 @@ class Calibrator(object):
 
     def launch(self) -> pd.DataFrame:
         """Launch the search."""
-        self.df = self.search.search(max_evals=self.max_evals, timeout=self.timeout)
+        self.df = self.search.search(max_evals=self.max_evals, timeout=self.deephyper_timeout)
 
         # Clean the dataframe and re-ordering the columns
         # self.df["workflow"] = self.df.apply(lambda row: Path(
@@ -906,6 +911,14 @@ if __name__ == "__main__":
                         type=Path, required=False,
                         help='Path to the workflows (override the paths in the config file)')
 
+    parser.add_argument('--wrench-timeout', '-wt', action='store',
+                        type=int, default=300,
+                        help='Timeout in seconds for the WRENCH simulator (default 300s)')
+
+    parser.add_argument('--deephyper-timeout', '-dt', action='store',
+                        type=int, default=300,
+                        help='Timeout in seconds for DeepHyper (default 300s)')
+
     parser.add_argument('--iter', '-i', dest='iter', action='store',
                         type=int, default=1,
                         help='Number of iterations executed by DeepHyper')
@@ -981,7 +994,8 @@ if __name__ == "__main__":
         workflows=args.workflows,
         random_search=False,
         max_evals=args.iter,
-        timeout=300,  # 5 min timeout
+        wrench_timeout=args.wrench_timeout,
+        deephyper_timeout=args.deephyper_timeout,
         cores=args.cores,
         consider_payloads=args.no_payloads,
         consider_properties=args.no_properties,
@@ -1014,7 +1028,8 @@ if __name__ == "__main__":
             workflows=args.workflows,
             random_search=True,
             max_evals=args.iter,
-            timeout=300,  # 5 min timeout
+            wrench_timeout=args.wrench_timeout,
+            deephyper_timeout=args.deephyper_timeout,
             cores=args.cores,
             consider_payloads=args.no_payloads,
             consider_properties=args.no_properties,
