@@ -6,6 +6,7 @@ import subprocess
 import json
 import time
 from argparse import ArgumentParser
+from collections import Counter
 
 import workflow_queries as wfq
 
@@ -18,6 +19,65 @@ wf_names = ["seismology", "montage", "genome", "soykb",
 workflow_sim = "workflow-simulator-for-calibration"
 calibrate_py = "calibration/calibrate.py"
 
+# Returns true if the input string is of the format
+# 3 numbers sepearated by ':'
+def valid_sim(input_string):
+    components = input_string.split(':')
+    
+    if len(components) != 3:
+        return False
+    
+    try:
+        for component in components:
+            float(component)
+    except ValueError:
+        return False
+    
+    return True
+
+# Returns the index of target in sim_list
+# sim_list = list of simulations in a calibration experiment
+# target   = workflow
+def find_sim_index(sim_list, target):
+    for i, sim in enumerate(sim_list):
+        if sim["workflow"] == target:
+            return i
+    return -1
+
+# Returns true if list1 is a proper subset of list2
+def compare_lists_subset(list1, list2):
+    counter1 = Counter(list1)
+    counter2 = Counter(list2)
+    
+    return counter1.items() < counter2.items()
+
+# Returns the index of target_list in exp_list
+# exp_list    = list of experiments from JSON file
+# target_list = list of workflow filenames
+def find_exp_subset(exp_list, target_list):
+    for i, exp in enumerate(exp_list):
+        if compare_lists_subset(exp["calibrate"]["workflows"], target_list):
+            return i
+    return -1
+
+# Returns true if elements in list1 are equal to list2 (allows elements to be in arbitrary order)
+def compare_lists_unordered(list1, list2):
+    counter1 = Counter(list1)
+    counter2 = Counter(list2)
+    
+    return counter1 == counter2
+
+# Returns the index of target_list in exp_list
+# exp_list    = list of experiments from JSON file
+# target_list = list of workflow filenames
+def find_exp_index(exp_list, target_list):
+    for i, exp in enumerate(exp_list):
+        #if exp["calibrate"]["workflows"] == target_list:                           #lists need to be in the same order
+        if compare_lists_unordered(exp["calibrate"]["workflows"], target_list):     #lists can be in arbitrary order
+            return i
+    return -1
+
+# Returns the hash from 'exp-*'
 def find_exp_hash(stdout):
     if '===============' in stdout:
         return stdout.split('===============')[1].split('===============')[0].strip()
@@ -49,11 +109,11 @@ def parse_arguments(args):
 
     parser.add_argument("-o", "--output_file", required=True,
                         action='append',
-                        help="Output file name, not including '.json' (only one)")
+                        help="output JSON file (only one)")
 
     parser.add_argument("-c", "--config_json", required=True,
                         action='append',
-                        help="Config file, including '.json' extension (only one)")
+                        help="Config file (only one)")
 
     parser.add_argument('-it', '--iter', action='store',
                         type=int, default=500,
@@ -347,6 +407,7 @@ def calibrate(wf_list, dir_wf, config_json, num_iter, timeout, until_success=Tru
             elif exp_hash == "ERROR":
                 if debug == True:
                     print(f"Attempt {attempt}: Error during calibration... Retrying...")
+                    print(calibrate_run.stdout)
             else:
                 if debug == True:
                     print(f"Attempt {attempt}: Success!")

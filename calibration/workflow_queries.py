@@ -23,6 +23,9 @@ def get_names(wf_list):
         my_set.add(wf.split('-')[0])
     return list(my_set)
 
+def name_equal(wf, name):
+    return wf.split('-')[0] == name
+
 #Returns a list of workflows from wf_list, such that
 #name == wf_name
 def filter_name(wf_list, wf_name):
