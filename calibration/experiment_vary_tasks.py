@@ -13,7 +13,8 @@ temp_best_bo = "temp_best_bo.json"
 temp_best_rs = "temp_best_rs.json"
 
 # Performs the 'vary tasks' experiment
-# I.e., everything fixed, except # of tasks
+# Calibrate on everything fixed, except # of trials
+# Simulate  on everything fixed, except # of tasks and trials
     # calibrate_list = list of workflows to calibrate
     # simulate_lsit  = list of workflows to simulate
     # config_json    = config JSON file
