@@ -27,6 +27,42 @@ def generate_random_string(length=32):
     random_prefix = ''.join(random.choice(characters) for _ in range(length))
     return random_prefix
 
+# Initializes my_dict using outfile and creates the `run-*` directory
+# Returns the name of the `run-*` directory
+# Assumes my_dict is initially an empty dictionary
+# Assumes outfile contains JSON for the experiment
+def init_experiment(dir_wf, config_json, outfile, num_iter, timeout):
+    my_dict = {}
+    if os.path.exists(outfile):
+        with open(outfile, "r") as fp:
+            my_dict = json.load(fp)
+
+            if my_dict["config"] != config_json:
+                print(f"ERROR: Config files do not match! {my_dict['config']} vs. {config_json}")
+                sys.exit(1)
+            if my_dict["timeout_seconds"] != timeout:
+                print(f"Timeout values do not match! {my_dict['timeout_seconds']} vs. {timeout}")
+                sys.exit(1)
+    else:
+        my_dict["input_dir"]           = dir_wf
+        my_dict["config"]              = config_json
+        my_dict["num_iter"]            = num_iter
+        my_dict["timeout_seconds"]     = timeout
+        my_dict["experiments"]         = list()
+
+    # Generate unique directory name
+    my_dir = "run-" + generate_random_string()
+    while os.path.isdir(my_dir):
+        my_dir = "run-" + generate_random_string()
+
+    # Create directory
+    mkdir_proc = subprocess.run(["mkdir", my_dir], capture_output=True)
+    while mkdir_proc.returncode != 0:
+        mkdir_proc = subprocess.run(["mkdir", my_dir], capture_output=True)
+    print(f"my_dir = {my_dir}")
+
+    return (my_dict, my_dir)
+
 # Returns true if the input string is of the format
 # 3 numbers sepearated by ':'
 def valid_sim(input_string):
@@ -385,14 +421,14 @@ def parse_simulate_args(config, debug=False):
         print(f"simulate_list = {simulate_list}")
     return simulate_list
 
-# Calibrates on workflows in wf_list
+# Calibrates on workflows in wf_list by running `calibrate.py`
 # Returns a dictionary `cali_dict` with "workflows", "best_bo", and "best_rs" key/values inialized
     # wf_list       = list of workflow file names to calibrate
     # dir_wf        = directory containing workflows in wf_list
     # config_json   = config JSON file
     # num_iter      = maximum number of iterations
     # timeout       = maximum number of seconds per calibration (i.e., with --all, we expect roughly 2*timeout total seconds)
-    # until_success = if true, will attempt to calibrate until sucess
+    # until_success = if true, will attempt to calibrate until success
     # max_attempts  = if until_sucess if false, the maximum number of attempts to calibrate
     # keep          = if true, does not delete the `exp-*` directory for the calibration
     # debug         = if true, prints debug statements
@@ -465,7 +501,7 @@ def calibrate(wf_list, dir_wf, config_json, num_iter, timeout, until_success=Tru
 
 # Simulates workflows in wf_list using calibrations in `exp_dict`
 # Does not re-simulate workflows that already exist in `exp_dict["simulate"]`
-# Modifies `exp_dict["simulate"]` containing new simulation results
+# Modifies `exp_dict["simulate"]` to contain new simulation results
 # Assumes `exp_dict["calibrate"]` was initialized via calibrate(...)
 # I.e., exp_dict["calibrate"]["best_bo"] and exp_dict["calibrate"]["best_rs"] contains the corresponding JSON
     # wf_list  = list of workflows to simulate
@@ -495,7 +531,7 @@ def simulate(wf_list, dir_wf, exp_dict, my_dir):
     if "simulate" in exp_dict:
         # Simulate only new workflows in wf_list
         for wf in wf_list:
-            sim_index = find_sim_index(exp_dict["simulate"], sim_wf)
+            sim_index = find_sim_index(exp_dict["simulate"], wf)
 
             if sim_index != -1:
                 # Check if the existing simulation has errors
@@ -545,3 +581,47 @@ def simulate(wf_list, dir_wf, exp_dict, my_dir):
 
     # Sort by workflow name
     exp_dict["simulate"] = sorted(exp_dict["simulate"], key=lambda x: x['workflow'])
+
+# Calibrates on all workflows in cali_list
+# Simulates on each workflow in sim_list
+    # my_dict       = experiment dictionary
+    # my_dir        = directory to write `best_bo.json` and `best_rs.json` files
+    # cali_list     = list of workflow file names to calibrate
+    # sim_list      = list of workflows to simulate
+    # dir_wf        = directory containing workflows in wf_list
+    # config_json   = config JSON file
+    # num_iter      = maximum number of iterations
+    # timeout       = maximum number of seconds per calibration (i.e., with --all, we expect roughly 2*timeout total seconds)
+    # until_success = if true, will attempt to calibrate until success
+    # max_attempts  = if until_sucess if false, the maximum number of attempts to calibrate
+    # keep          = if true, does not delete the `exp-*` directory for the calibration
+    # debug         = if true, prints debug statements
+def calibrate_and_simulate(my_dict, my_dir, cali_list, sim_list, dir_wf, config_json, num_iter, timeout, until_success=True, max_attempts=20, keep=False, debug=True):
+    # Calibrate
+    exp_index = find_exp_subset(my_dict["experiments"], cali_list)
+    if exp_index != -1:
+        # Previous calibration is missing calibration workflows
+        # Remove from dictionary and redo calibration and simulation
+        my_dict["experiments"].pop(exp_index)
+
+    exp_index = find_exp_index(my_dict["experiments"], cali_list)
+    exp_dict  = None
+    if exp_index == -1:
+        # New calibration
+        exp_dict = {}
+
+        print(f"\nCalibrating on = {cali_list}")
+        exp_dict["calibrate"] = calibrate(cali_list, dir_wf, config_json, num_iter, timeout, until_success=until_success, max_attempts=max_attempts, keep=keep, debug=debug)
+    else:
+        # Calibration already exists
+        print(f"\nSkipping calibration on = {cali_list}")
+        exp_dict = my_dict["experiments"][exp_index]
+
+    # Simulate
+    simulate(sim_list, dir_wf, exp_dict, my_dir)
+
+    # Save calibration and simulation results into my_dict
+    if exp_index == -1:
+        my_dict["experiments"].append(exp_dict)
+    else:
+        my_dict["experiments"][exp_index]["simulate"] = exp_dict["simulate"] #sorted(exp_dict["simulate"], key=lambda x: x['workflow'])

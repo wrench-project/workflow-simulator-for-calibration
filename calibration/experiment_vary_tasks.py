@@ -22,35 +22,7 @@ import experiment_utils as exp_util
     # keep           = if true, does not delete exp-* directories
     # debug          = if true, prints debug statements
 def vary_tasks(calibrate_list, simulate_list, dir_wf, config_json, outfile, num_iter=500, timeout=60, keep=False, debug=False):
-    my_dict = {}
-
-    if os.path.exists(outfile):
-        with open(outfile, "r") as fp:
-            my_dict = json.load(fp)
-
-            if my_dict["config"] != config_json:
-                print(f"Config files do not match!")
-                sys.exit(1)
-            if my_dict["timeout_seconds"] != timeout:
-                print(f"Timeout does not match!")
-                sys.exit(1)
-    else:
-        my_dict["input_dir"]           = dir_wf
-        my_dict["config"]              = config_json
-        my_dict["num_iter"]            = num_iter
-        my_dict["timeout_seconds"]     = timeout
-        my_dict["experiments"]         = list()
-
-    # Generate unique directory name
-    my_dir = "run-" + exp_util.generate_random_string()
-    while os.path.isdir(my_dir):
-        my_dir = "run-" + exp_util.generate_random_string()
-
-    # Create directory
-    mkdir_proc = subprocess.run(["mkdir", my_dir], capture_output=True)
-    while mkdir_proc.returncode != 0:
-        mkdir_proc = subprocess.run(["mkdir", my_dir], capture_output=True)
-    print(f"my_dir = {my_dir}")
+    my_dict, my_dir = exp_util.init_experiment(dir_wf, config_json, outfile, num_iter, timeout)
 
     wf_arch = wfq.get_arch(calibrate_list)
     wf_arch.sort()
@@ -92,7 +64,7 @@ def vary_tasks(calibrate_list, simulate_list, dir_wf, config_json, outfile, num_
                         wf_nodes            = wfq.get_nodes(data_footprint_list)
                         wf_nodes.sort()
 
-                        for node in wf_nodes:  #for each nodes
+                        for node in wf_nodes:  #for each node
                             if debug == True:
                                 print(f"          nodes = {node}")
                             node_list = wfq.filter_node(data_footprint_list, node)
@@ -107,25 +79,6 @@ def vary_tasks(calibrate_list, simulate_list, dir_wf, config_json, outfile, num_
                                 task_list = wfq.filter_tasks_eq(node_list, task)
                                 task_list.sort()
 
-                                exp_index = exp_util.find_exp_subset(my_dict["experiments"], task_list)
-                                if exp_index != -1:
-                                    # Previous calibration is missing calibration workflows
-                                    # Remove from dictionary and redo calibration and simulation
-                                    my_dict["experiments"].pop(exp_index)
-
-                                exp_index = exp_util.find_exp_index(my_dict["experiments"], task_list)
-                                exp_dict  = None
-                                if exp_index == -1:
-                                    # New calibration
-                                    exp_dict = {}
-
-                                    print(f"\nCalibrating on = {task_list}")
-                                    exp_dict["calibrate"] = exp_util.calibrate(task_list, dir_wf, config_json, num_iter, timeout, keep=keep)
-                                else:
-                                    # Calibration already exists
-                                    print(f"\nSkipping calibration on = {task_list}")
-                                    exp_dict = my_dict["experiments"][exp_index]
-
                                 # Simulate on everything fixed, except tasks and trials
                                 temp_sim_exp = list()
                                 sim_list = wfq.filter_nodes(
@@ -135,13 +88,8 @@ def vary_tasks(calibrate_list, simulate_list, dir_wf, config_json, outfile, num_
                                                wfq.filter_name(
                                                 wfq.filter_arch(simulate_list, arch), name), cpu_work), cpu_frac), data_footprint), node)
                                 sim_list.sort()
-                                exp_util.simulate(sim_list, dir_wf, exp_dict, my_dir)
 
-                                # Save calibration and simulation results into my_dict
-                                if exp_index == -1:
-                                    my_dict["experiments"].append(exp_dict)
-                                else:
-                                    my_dict["experiments"][exp_index]["simulate"] = exp_dict["simulate"] #sorted(exp_dict["simulate"], key=lambda x: x['workflow'])
+                                exp_util.calibrate_and_simulate(my_dict, my_dir, task_list, sim_list, dir_wf, config_json, num_iter, timeout, keep=keep)
 
                                 # Write for backup (just in case)
                                 with open(outfile, "w") as fp:
