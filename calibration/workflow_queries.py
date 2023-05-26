@@ -62,6 +62,12 @@ def tasks_leq(wf, num_tasks):
 def tasks_geq(wf, num_tasks):
     return int(wf.split('-')[1]) >= int(num_tasks)
 
+def tasks_lt(wf, num_tasks):
+    return int(wf.split('-')[1]) < int(num_tasks)
+
+def tasks_gt(wf, num_tasks):
+    return int(wf.split('-')[1]) > int(num_tasks)    
+
 #Returns a list of workflows from wf_list, such that
 #tasks == num_tasks
 def filter_tasks_eq(wf_list, num_tasks):
@@ -82,6 +88,46 @@ def filter_tasks(wf_list, num_tasks):
     return my_list
 
 #Returns a list of workflows from wf_list, such that
+#tasks <= num_tasks
+def filter_tasks_leq(wf_list, num_tasks):
+    my_list = list()
+    for wf in wf_list:
+        for task in num_tasks:
+            if tasks_leq(wf, task):
+                my_list.append(wf)
+    return my_list
+
+#Returns a list of workflows from wf_list, such that
+#tasks >= num_tasks
+def filter_tasks_geq(wf_list, num_tasks):
+    my_list = list()
+    for wf in wf_list:
+        for task in num_tasks:
+            if tasks_geq(wf, task):
+                my_list.append(wf)
+    return my_list
+
+#Returns a list of workflows from wf_list, such that
+#tasks < num_tasks
+def filter_tasks_lt(wf_list, num_tasks):
+    my_list = list()
+    for wf in wf_list:
+        for task in num_tasks:
+            if tasks_lt(wf, task):
+                my_list.append(wf)
+    return my_list
+
+#Returns a list of workflows from wf_list, such that
+#tasks > num_tasks
+def filter_tasks_gt(wf_list, num_tasks):
+    my_list = list()
+    for wf in wf_list:
+        for task in num_tasks:
+            if tasks_gt(wf, task):
+                my_list.append(wf)
+    return my_list
+
+#Returns a list of workflows from wf_list, such that
 #num_tasks_min <= tasks <= num_tasks_max
 def filter_tasks_range(wf_list, num_tasks_min, num_tasks_max):
     my_list = list()
@@ -89,8 +135,6 @@ def filter_tasks_range(wf_list, num_tasks_min, num_tasks_max):
         if tasks_geq(wf, num_tasks_min) and tasks_leq(wf, num_tasks_max):
             my_list.append(wf)
     return my_list
-
-
 
 ###############################################################################
 
