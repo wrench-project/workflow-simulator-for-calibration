@@ -5,6 +5,8 @@ import sys
 import subprocess
 import json
 import time
+import random
+import string
 from argparse import ArgumentParser
 from collections import Counter
 
@@ -18,6 +20,12 @@ wf_names = ["seismology", "montage", "genome", "soykb",
 
 workflow_sim = "workflow-simulator-for-calibration"
 calibrate_py = "calibration/calibrate.py"
+
+# Generates a random string containing letters and numbers
+def generate_random_string(length=32):
+    characters = string.ascii_letters + string.digits
+    random_prefix = ''.join(random.choice(characters) for _ in range(length))
+    return random_prefix
 
 # Returns true if the input string is of the format
 # 3 numbers sepearated by ':'
@@ -77,12 +85,19 @@ def find_exp_index(exp_list, target_list):
             return i
     return -1
 
-# Returns the hash from 'exp-*'
-def find_exp_hash(stdout):
-    if '===============' in stdout:
-        return stdout.split('===============')[1].split('===============')[0].strip()
+# Returns the 'exp-*' directory from stdout
+def find_exp_dir(stdout):
+    if '~~~~~~~~~~~~~~~' in stdout:
+        return stdout.split('~~~~~~~~~~~~~~~')[1].split('~~~~~~~~~~~~~~~')[0].strip()
     else:
         return 'ERROR'
+
+# Returns True is the calibration completed
+def valid_calibration(stdout):
+    if '===============' in stdout:
+        return True
+    else:
+        return False
 
 # Returns a list of 'exp-*'directories
 def get_exp_list():
@@ -371,16 +386,20 @@ def parse_simulate_args(config, debug=False):
     return simulate_list
 
 # Calibrates on workflows in wf_list
-# Returns the exp_hash value, i.e., directory created by calibration containing 'best-bo.json' and 'best-rs.json'
+# Returns a dictionary `cali_dict` with "workflows", "best_bo", and "best_rs" key/values inialized
     # wf_list       = list of workflow file names to calibrate
     # dir_wf        = directory containing workflows in wf_list
     # config_json   = config JSON file
     # num_iter      = maximum number of iterations
     # timeout       = maximum number of seconds per calibration (i.e., with --all, we expect roughly 2*timeout total seconds)
     # until_success = if true, will attempt to calibrate until sucess
-    # max_attempts  =  if until_sucess if false, the maximum number of attempts to calibrate
+    # max_attempts  = if until_sucess if false, the maximum number of attempts to calibrate
+    # keep          = if true, does not delete the `exp-*` directory for the calibration
     # debug         = if true, prints debug statements
-def calibrate(wf_list, dir_wf, config_json, num_iter, timeout, until_success=True, max_attempts=20, debug=True):
+def calibrate(wf_list, dir_wf, config_json, num_iter, timeout, until_success=True, max_attempts=20, keep=False, debug=True):
+    cali_dict              = {}
+    cali_dict["workflows"] = wf_list
+
     # Convert wf_list into a single string of workflows
     wf_string = ""
     for wf in wf_list:
@@ -396,32 +415,133 @@ def calibrate(wf_list, dir_wf, config_json, num_iter, timeout, until_success=Tru
     while until_success or attempt <= max_attempts:
         try:
             calibrate_run = subprocess.run(cmd_string, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding="utf-8", shell=True, timeout=full_timeout)
-
-            exp_hash = find_exp_hash(calibrate_run.stdout)
-
+            
             # Rerun if errors are found
-            # Otherwise return exp_hash
+            # Otherwise returns a tuple containing (`best_bo.json`, `best_rs.json`) as dictionaries 
+            exp_dir = find_exp_dir(calibrate_run.stdout)
             if "deephyper.core.exceptions.SearchTerminationError" in calibrate_run.stdout:
                 if debug == True:
                     print(f"Attempt {attempt}: 'deephyper.core.exceptions.SearchTerminationError' detected... Retrying...")
-            elif exp_hash == "ERROR":
+
+                # Delete failed 'exp-*' directory
+                subprocess.run(["rm", "-r", exp_dir]) 
+            elif valid_calibration(calibrate_run.stdout) == "ERROR":
                 if debug == True:
                     print(f"Attempt {attempt}: Error during calibration... Retrying...")
                     print(calibrate_run.stdout)
+
+                # Delete failed 'exp-*' directory
+                subprocess.run(["rm", "-r", exp_dir]) 
             else:
                 if debug == True:
                     print(f"Attempt {attempt}: Success!")
-                return exp_hash
+
+                # Read 'best-bo.json'
+                exp_bo = str(os.path.abspath(exp_dir)) + "/best-bo.json"
+                if not os.path.isfile(exp_bo):
+                    print(f"ERROR: {exp_bo} does not exist")
+                    continue
+                with open(exp_bo, "r") as fp:
+                    cali_dict["best_bo"] = json.load(fp)
+
+                # Read 'best-rs.json'
+                exp_rs = str(os.path.abspath(exp_dir)) + "/best-rs.json"
+                if not os.path.isfile(exp_rs):
+                    print(f"ERROR: {exp_bs} does not exist")
+                    continue
+                with open(exp_rs, "r") as fp:
+                    cali_dict["best_rs"] = json.load(fp)
+
+                # If keep = False, delete 'exp-*' directory
+                if keep == False:
+                    subprocess.run(["rm", "-r", exp_dir]) 
+
+                return cali_dict
         except subprocess.TimeoutExpired:
             if debug == True:
                 print(f"Attempt {attempt}: Calibration took too long... Retrying...")
 
         attempt += 1
 
-# Simulates wf using calibrated values from exp_json
-    # wf       = workflow to simulate
-    # dir_wf   = directory containing workflow wf
-    # exp_json = JSON file from calibration (e.g., best_bo.json or best_rs.json)
-def simluate(wf, dir_wf, exp_json):
-    simulate_run = subprocess.run([workflow_sim, exp_json, str(os.path.abspath(dir_wf)) + '/' + str(wf)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding="utf-8")
-    return simulate_run.stdout
+# Simulates workflows in wf_list using calibrations in `exp_dict`
+# Does not re-simulate workflows that already exist in `exp_dict["simulate"]`
+# Modifies `exp_dict["simulate"]` containing new simulation results
+# Assumes `exp_dict["calibrate"]` was initialized via calibrate(...)
+# I.e., exp_dict["calibrate"]["best_bo"] and exp_dict["calibrate"]["best_rs"] contains the corresponding JSON
+    # wf_list  = list of workflows to simulate
+    # dir_wf   = directory containing workflows in wf_list
+    # exp_dict = dictionary containing exp_dict["calibrate"]
+    # my_dir   = directory to write `best_bo.json` and `best_rs.json` files
+def simulate(wf_list, dir_wf, exp_dict, my_dir):
+    if "calibrate" not in exp_dict:
+        print(f"ERROR: Cannot perform simulation... exp_dict['calibrate'] does not exist!")
+        return
+    if not os.path.isdir(my_dir):
+        proc = subprocess.run(["mkdir", my_dir], capture_output=True)
+        if proc.returncode != 0:
+            print(f"Failed to create directory '{my_dir}': {result.stderr.decode().strip()}")
+            return
+
+    # Create `best_bo.json` and `best_rs.json` files
+    best_bo = str(os.path.abspath(my_dir)) + "/best_bo.json"
+    best_rs = str(os.path.abspath(my_dir)) + "/best_rs.json"
+
+    with open(best_bo, "w") as fp:
+        fp.write(json.dumps(exp_dict["calibrate"]["best_bo"], indent=4))
+    with open(best_rs, "w") as fp:
+        fp.write(json.dumps(exp_dict["calibrate"]["best_rs"], indent=4))
+
+    # Run simulations
+    if "simulate" in exp_dict:
+        # Simulate only new workflows in wf_list
+        for wf in wf_list:
+            sim_index = find_sim_index(exp_dict["simulate"], sim_wf)
+
+            if sim_index != -1:
+                # Check if the existing simulation has errors
+                if valid_sim(exp_dict["simulate"][sim_index]["bo"]) == False or valid_sim(exp_dict["simulate"][sim_index]["rs"]) == False:
+                    print(f"Error in existing simulation for {wf}... Rerunning...")
+
+                    sim_bo = subprocess.run([workflow_sim, best_bo, str(os.path.abspath(dir_wf)) + '/' + str(wf)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding="utf-8")
+                    exp_dict["simulate"][sim_index]["bo"] = sim_bo.stdout.strip()
+                    print(f"Bayesian Optimization: {exp_dict['simulate'][sim_index]['bo']}")
+
+                    sim_rs = subprocess.run([workflow_sim, best_rs, str(os.path.abspath(dir_wf)) + '/' + str(wf)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding="utf-8")
+                    exp_dict["simulate"][sim_index]["rs"] = sim_rs.stdout.strip()
+                    print(f"Random Search        : {exp_dict['simulate'][sim_index]['rs']}")
+            else:
+                # New simulation
+                exp_sim = {}
+                exp_sim["workflow"] = wf
+                print(f"Simulating {wf}")
+
+                sim_bo = subprocess.run([workflow_sim, best_bo, str(os.path.abspath(dir_wf)) + '/' + str(wf)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding="utf-8")
+                exp_sim["bo"] = sim_bo.stdout.strip()
+                print(f"Bayesian Optimization: {exp_sim['bo']}")
+
+                sim_rs = subprocess.run([workflow_sim, best_rs, str(os.path.abspath(dir_wf)) + '/' + str(wf)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding="utf-8")
+                exp_sim["rs"] = sim_rs.stdout.strip()
+                print(f"Random Search        : {exp_sim['rs']}")
+
+                exp_dict["simulate"].append(exp_sim)
+    else:
+        exp_dict["simulate"] = list()
+
+        # Simulate all workflows in wf_list
+        for wf in wf_list:
+            exp_sim = {}
+            exp_sim["workflow"] = wf
+            print(f"Simulating {wf}")
+
+            sim_bo = subprocess.run([workflow_sim, best_bo, str(os.path.abspath(dir_wf)) + '/' + str(wf)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding="utf-8")
+            exp_sim["bo"] = sim_bo.stdout.strip()
+            print(f"Bayesian Optimization: {exp_sim['bo']}")
+
+            sim_rs = subprocess.run([workflow_sim, best_rs, str(os.path.abspath(dir_wf)) + '/' + str(wf)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding="utf-8")
+            exp_sim["rs"] = sim_rs.stdout.strip()
+            print(f"Random Search        : {exp_sim['rs']}")
+
+            exp_dict["simulate"].append(exp_sim)
+
+    # Sort by workflow name
+    exp_dict["simulate"] = sorted(exp_dict["simulate"], key=lambda x: x['workflow'])

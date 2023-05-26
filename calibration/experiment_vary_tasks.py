@@ -9,9 +9,6 @@ from argparse import ArgumentParser
 import workflow_queries as wfq
 import experiment_utils as exp_util
 
-temp_best_bo = "temp_best_bo.json"
-temp_best_rs = "temp_best_rs.json"
-
 # Performs the 'vary tasks' experiment
 # Calibrate on everything fixed, except # of trials
 # Simulate  on everything fixed, except # of tasks and trials
@@ -28,18 +25,12 @@ def vary_tasks(calibrate_list, simulate_list, dir_wf, config_json, outfile, num_
     my_dict = {}
 
     if os.path.exists(outfile):
-        with open(outfile, "r+") as fp:
+        with open(outfile, "r") as fp:
             my_dict = json.load(fp)
-            # Check that JSON in outfile is consistent with this run
-            # if my_dict["input_dir"] not == dir_wf:
-            #     print(f"Workflow directories do not match!")
-            #     sys.exit(1)
+
             if my_dict["config"] != config_json:
                 print(f"Config files do not match!")
                 sys.exit(1)
-            # if my_dict["num_iter"] not == config_json:
-            #     print(f"Number of iterations do not match!")
-            #     sys.exit(1)
             if my_dict["timeout_seconds"] != timeout:
                 print(f"Timeout does not match!")
                 sys.exit(1)
@@ -50,8 +41,16 @@ def vary_tasks(calibrate_list, simulate_list, dir_wf, config_json, outfile, num_
         my_dict["timeout_seconds"]     = timeout
         my_dict["experiments"]         = list()
 
-    if keep == False:
-        keep_exp_dirs = exp_util.get_exp_list()
+    # Generate unique directory name
+    my_dir = "run-" + exp_util.generate_random_string()
+    while os.path.isdir(my_dir):
+        my_dir = "run-" + exp_util.generate_random_string()
+
+    # Create directory
+    mkdir_proc = subprocess.run(["mkdir", my_dir], capture_output=True)
+    while mkdir_proc.returncode != 0:
+        mkdir_proc = subprocess.run(["mkdir", my_dir], capture_output=True)
+    print(f"my_dir = {my_dir}")
 
     wf_arch = wfq.get_arch(calibrate_list)
     wf_arch.sort()
@@ -103,142 +102,57 @@ def vary_tasks(calibrate_list, simulate_list, dir_wf, config_json, outfile, num_
                             for task in wf_tasks:  #for each task
                                 if debug == True:
                                     print(f"            task = {task}")
-                                task_list = wfq.filter_tasks_eq(node_list, task)
-                                wf_trials = wfq.get_trials(task_list)
-                                wf_trials.sort()
 
                                 # Calibrate on task_list
+                                task_list = wfq.filter_tasks_eq(node_list, task)
                                 task_list.sort()
 
                                 exp_index = exp_util.find_exp_subset(my_dict["experiments"], task_list)
                                 if exp_index != -1:
-                                    # Previous calibration is missing additional new trials
+                                    # Previous calibration is missing calibration workflows
                                     # Remove from dictionary and redo calibration and simulation
                                     my_dict["experiments"].pop(exp_index)
 
                                 exp_index = exp_util.find_exp_index(my_dict["experiments"], task_list)
-                                if exp_index == -1:     
-                                    # New calibration and simulation experiment
-                                    exp_dict                           = {}
-                                    exp_dict["calibrate"]              = {}
-                                    exp_dict["calibrate"]["workflows"] = task_list
+                                exp_dict  = None
+                                if exp_index == -1:
+                                    # New calibration
+                                    exp_dict = {}
 
                                     print(f"\nCalibrating on = {task_list}")
-                                    exp_hash = exp_util.calibrate(task_list, dir_wf, config_json, num_iter, timeout)
-
-                                    # Read 'best-bo.json'
-                                    exp_bo = str(os.path.abspath(exp_hash)) + "/best-bo.json"
-                                    if not os.path.isfile(exp_bo):
-                                        print(f"ERROR: {exp_bo} does not exist")
-                                        continue
-                                    else:
-                                        fp = open(exp_bo)
-                                        exp_dict["calibrate"]["best_bo"] = json.load(fp)
-                                        fp.close()
-
-                                    # Read 'best-rs.json'
-                                    exp_rs = str(os.path.abspath(exp_hash)) + "/best-rs.json"
-                                    if not os.path.isfile(exp_rs):
-                                        print(f"ERROR: {exp_bs} does not exist")
-                                        continue
-                                    else:
-                                        fp = open(exp_rs)
-                                        exp_dict["calibrate"]["best_rs"] = json.load(fp)
-                                        fp.close()
-
-                                    # Simulate
-                                    temp_sim_exp = list()
-                                    sim_list = wfq.filter_nodes(
-                                                wfq.filter_data_footprint( 
-                                                 wfq.filter_cpu_frac(
-                                                  wfq.filter_cpu_work(
-                                                   wfq.filter_name(
-                                                    wfq.filter_arch(simulate_list, arch), name), cpu_work), cpu_frac), data_footprint), node)
-                                    for sim_wf in sim_list:
-                                        exp_sim = {}
-                                        exp_sim["workflow"] = sim_wf
-                                        print(f"Simulating sim_wf = {sim_wf}")
-
-                                        simulate_bo_stdout = exp_util.simluate(sim_wf, dir_wf, exp_bo)
-                                        exp_sim["bo"] = simulate_bo_stdout.strip()
-                                        print(f"Bayesian Optimization: {exp_sim['bo']}")
-
-                                        simulate_rs_stdout = exp_util.simluate(sim_wf, dir_wf, exp_rs)
-                                        exp_sim["rs"] = simulate_rs_stdout.strip()
-                                        print(f"Random Search        : {exp_sim['rs']}")
-
-                                        temp_sim_exp.append(exp_sim)
-
-                                    exp_dict["simulate"] = sorted(temp_sim_exp, key=lambda x: x['workflow'])
-                                    my_dict["experiments"].append(exp_dict)
-
-                                    # If keep = False, delete newly created 'exp-*' directories
-                                    if keep == False:
-                                        exp_to_remove = exp_util.compare_lists(keep_exp_dirs, exp_util.get_exp_list())
-                                        for exp_dir in exp_to_remove:
-                                            subprocess.run(["rm", "-r", exp_dir])
-
-                                    # Write for backup (just in case)
-                                    with open(outfile, "w") as fp:
-                                        fp.write(json.dumps(my_dict, indent=4))
+                                    exp_dict["calibrate"] = exp_util.calibrate(task_list, dir_wf, config_json, num_iter, timeout, keep=keep)
                                 else:
-                                    # Calibration already exists, check for new simulations to perform
+                                    # Calibration already exists
                                     print(f"\nSkipping calibration on = {task_list}")
-
                                     exp_dict = my_dict["experiments"][exp_index]
 
-                                    with open(temp_best_bo, "w") as fp:
-                                        fp.write(json.dumps(exp_dict["calibrate"]["best_bo"], indent=4))
-                                    with open(temp_best_rs, "w") as fp:
-                                        fp.write(json.dumps(exp_dict["calibrate"]["best_rs"], indent=4))
+                                # Simulate on everything fixed, except tasks and trials
+                                temp_sim_exp = list()
+                                sim_list = wfq.filter_nodes(
+                                            wfq.filter_data_footprint( 
+                                             wfq.filter_cpu_frac(
+                                              wfq.filter_cpu_work(
+                                               wfq.filter_name(
+                                                wfq.filter_arch(simulate_list, arch), name), cpu_work), cpu_frac), data_footprint), node)
+                                sim_list.sort()
+                                exp_util.simulate(sim_list, dir_wf, exp_dict, my_dir)
 
-                                    sim_list = wfq.filter_nodes(
-                                                wfq.filter_data_footprint( 
-                                                 wfq.filter_cpu_frac(
-                                                  wfq.filter_cpu_work(
-                                                   wfq.filter_name(
-                                                    wfq.filter_arch(simulate_list, arch), name), cpu_work), cpu_frac), data_footprint), node)
-                                                             
-                                    for sim_wf in sim_list:
-                                        sim_index = exp_util.find_sim_index(exp_dict["simulate"], sim_wf)
+                                # Save calibration and simulation results into my_dict
+                                if exp_index == -1:
+                                    my_dict["experiments"].append(exp_dict)
+                                else:
+                                    my_dict["experiments"][exp_index]["simulate"] = exp_dict["simulate"] #sorted(exp_dict["simulate"], key=lambda x: x['workflow'])
 
-                                        if sim_index != -1:
-                                            # Check if the existing simulation has errors
-                                            if exp_util.valid_sim(exp_dict["simulate"][sim_index]["bo"]) == False or exp_util.valid_sim(exp_dict["simulate"][sim_index]["rs"]) == False:
-                                                print(f"Error in existing simulation for sim_wf = {sim_wf}... Rerunning simulations...")
-
-                                                simulate_bo_stdout = exp_util.simluate(sim_wf, dir_wf, temp_best_bo)
-                                                exp_dict["simulate"][sim_index]["bo"] = simulate_bo_stdout.strip()
-                                                print(f"Bayesian Optimization: {exp_dict['simulate'][sim_index]['bo']}")
-
-                                                simulate_rs_stdout = exp_util.simluate(sim_wf, dir_wf, temp_best_rs)
-                                                exp_dict["simulate"][sim_index]["rs"] = simulate_rs_stdout.strip()
-                                                print(f"Random Search        : {exp_dict['simulate'][sim_index]['rs']}")                                      
-                                        else:
-                                            # New simulation
-                                            exp_sim = {}
-                                            exp_sim["workflow"] = sim_wf
-                                            print(f"Simulating sim_wf = {sim_wf}")
-
-                                            simulate_bo_stdout = exp_util.simluate(sim_wf, dir_wf, temp_best_bo)
-                                            exp_sim["bo"] = simulate_bo_stdout.strip()
-                                            print(f"Bayesian Optimization: {exp_sim['bo']}")
-
-                                            simulate_rs_stdout = exp_util.simluate(sim_wf, dir_wf, temp_best_rs)
-                                            exp_sim["rs"] = simulate_rs_stdout.strip()
-                                            print(f"Random Search        : {exp_sim['rs']}")
-
-                                            exp_dict["simulate"].append(exp_sim)
-
-                                    my_dict["experiments"][exp_index]["simluate"] = sorted(exp_dict["simulate"], key=lambda x: x['workflow'])
-
-                                    # Write for backup (just in case)
-                                    with open(outfile, "w") as fp:
-                                        fp.write(json.dumps(my_dict, indent=4))
-
+                                # Write for backup (just in case)
+                                with open(outfile, "w") as fp:
+                                    fp.write(json.dumps(my_dict, indent=4))
+                                    
     # Write finished my_dict
     with open(outfile, "w") as fp:
         fp.write(json.dumps(my_dict, indent=4))
+
+    # Remove my_dir
+    subprocess.run(["rm", "-r", my_dir])
 
 def main():
     # Parse arguments

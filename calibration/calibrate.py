@@ -971,6 +971,7 @@ if __name__ == "__main__":
 
     try:
         mkdir(exp_id)
+        print(f"~~~~~~~~~~~~~~~ {exp_id} ~~~~~~~~~~~~~~~")
     except OSError as e:
         print(e)
         exit(1)
