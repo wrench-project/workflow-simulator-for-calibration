@@ -109,14 +109,14 @@ Once the path in your config file `config.json` are correct, you can run `./run-
 # TODO
 
 Sofware:
- - [ ] Kyle scripts
-   - [ ] Push scripts to repo in the calibration/ directory
-   - [ ] Make it so that the script includes the JSON calibration inline in the big result file, rather than reference some experiment hash
-   - [ ] Add an option --keep-exp-directory to the script, by default, the exp directory is removed
- - [ ] calibrate.py
-   - [ ] Add "--timeout" argument to calibrate.py so that it's not longer harcoded to 5 minutes
-   - [ ] Check that the timeout actually works as intended (i.e., timeouts even if passed a huge number of iterations)
-   - [ ] If so, then just pass a huge number of iterations and just be time-out-based
+ - [x] Kyle scripts
+   - [x] Push scripts to repo in the calibration/ directory
+   - [x] Make it so that the script includes the JSON calibration inline in the big result file, rather than reference some experiment hash
+   - [x] Add an option --keep-exp-directory to the script, by default, the exp directory is removed
+ - [x] calibrate.py
+   - [x] Add "--timeout" argument to calibrate.py so that it's not longer harcoded to 5 minutes
+   - [x] Check that the timeout actually works as intended (i.e., timeouts even if passed a huge number of iterations)
+   - [x] If so, then just pass a huge number of iterations and just be time-out-based
 
 
 Experimental ground truth data:
