@@ -50,8 +50,6 @@ def vary_larger_tasks_fix_arch_wf_nodes(calibrate_list, simulate_list, dir_wf, c
                 wf_tasks  = wfq.get_tasks(node_list)
                 wf_tasks.sort()
 
-
-
                 for task in wf_tasks:  #for each task
                     if debug == True:
                         print(f"      task = {task}")

@@ -476,6 +476,7 @@ def calibrate(wf_list, dir_wf, config_json, num_iter, timeout, until_success=Tru
                 exp_bo = str(os.path.abspath(exp_dir)) + "/best-bo.json"
                 if not os.path.isfile(exp_bo):
                     print(f"ERROR: {exp_bo} does not exist")
+                    print(f"{calibrate_run.stdout}")
                     continue
                 with open(exp_bo, "r") as fp:
                     cali_dict["best_bo"] = json.load(fp)
@@ -484,6 +485,7 @@ def calibrate(wf_list, dir_wf, config_json, num_iter, timeout, until_success=Tru
                 exp_rs = str(os.path.abspath(exp_dir)) + "/best-rs.json"
                 if not os.path.isfile(exp_rs):
                     print(f"ERROR: {exp_bs} does not exist")
+                    print(f"{calibrate_run.stdout}")
                     continue
                 with open(exp_rs, "r") as fp:
                     cali_dict["best_rs"] = json.load(fp)
