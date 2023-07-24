@@ -106,6 +106,61 @@ The field **calibration_ranges** defines, for each variable that can be calibrat
 
 Once the path in your config file `config.json` are correct, you can run `./run-calibration.sh -d $(pwd) -c config.json`. By default, the process will run 300 iterations per workflow without early stopping (i.e., process will not stop even if the objective does not improve) and will use all cores available (can be change with `--cores X`).
 
+
+## Creating calibration and simulation experiment scripts
+
+`calibration/experiment_utils.py` and `calibration/workflow_queries.py` can be used to easily create custom calibration and simulation experiment scripts. 
+Experiment scripts should follow the below structure (typically steps 3, 4, and possibly 5 are written in a loop that iterates through the workflows in some manner):
+ 1. (Optional) Use the `parse_arguments(args)` function in `calibration/experiment_utils.py` to get user arguments (e.g., the directory containing workflows). The arguments are parsed via `ArgumentParser` from `argparse`.
+ 2. Use the `init_experiment(dir_wf, config_json, outfile, num_iter, timeout)` function defined in `calibration/experiment_utils.py` to intialize the run directory (where `best_bo.json` and `best_rs.json` files will be written to for each simulation) and dictionary structure for storing both calibration and simulation results.
+   - Input:
+     - `dir_wf` = directory containing workflows
+     - `config_json` = config JSON file
+     - `outfile` = output JSON file name
+     - `num_iter` = maximum number of iterations used in `calibrate.py` (`--iter`)
+     - `timeout` = maximum number of seconds used in `calibrate.py` (`--deephyper-timeout`)
+   - Returns a tuple containing the initialized dictionary structure and run directory name
+
+ 3. Create two lists of workflows to calibrate on and simulate on, respectively. The file `calibration/workflow_queries.py` defines various functions to assist in filtering a list of workflows based on various parameters (e.g., workflow name, number of tasks, etc.).
+
+ 4. Run the calibration and simulation experiements using `calibrate_and_simulate(my_dict, my_dir, cali_list, sim_list, dir_wf, config_json, num_iter, timeout, until_success=True, max_attempts=20, keep=False, debug=True)` defined in `calibration/experiment_utils.py`
+   - Input:
+     - `my_dict` = experiment dictionary
+     - `my_dir` = directory to write `best_bo.json` and `best_rs.json` files
+     - `cali_list` = list of workflow file names to calibrate
+     - `sim_list` = list of workflows to simulate
+     - `dir_wf` = directory containing workflows in wf_list
+     - `config_json` = config JSON file
+     - `num_iter` = maximum number of iterations
+     - `timeout` = maximum number of seconds per calibration (i.e., with `--all`, we expect roughly twice the total timeout)
+     - `until_success` = if true, will attempt to calibrate until success
+     - `max_attempts` = the maximum number of attempts to calibrate (if until_sucess is false)
+     - `keep` = if true, does not delete the `exp-*` directory for the calibration
+     - `debug` = if true, prints debug statements
+
+5. Write the experiment dictionary to an outfile, e.g.,
+```python
+with open(outfile, "w") as fp:
+  fp.write(json.dumps(my_dict, indent=4))
+```
+
+
+
+### Current experiment scripts
+ - `calibration/experiment_vary_tasks.py`
+   - Calibrate on everything fixed, except # of trials
+   - Simulate on everything fixed, except # of tasks and trials
+ - `calibration/experiment_vary_tasks_fix_arch_wf_nodes.py`
+   - Calibrate on fixed architecture, workflow, number of nodes, and number of tasks
+   - Simulate on fixed architecture, workflow, and number of nodes
+ - `calibration/experiment_vary_larger_tasks_fix_arch_wf_nodes.py`
+   - Calibrate on fixed architecture, workflow, number of nodes, and number of tasks less than or equal
+   - Simulate on fixed architecture, workflow, and number of nodes
+ - `calibration/experiment_vary_nodes.py`
+   - Calibrate on everything fixed, except # of tasks and trials
+   - Simulate on everything fixed, except # of nodes, tasks, and trials
+
+
 # TODO
 
 Sofware:
