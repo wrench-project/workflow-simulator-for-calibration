@@ -61,7 +61,7 @@
             },
             "latency_out_of_submit": {
                 "min": 1,
-                "max": 100,
+                "max": 1000,
                 "scale": "linear",
                 "unit": "us"
             },
@@ -73,7 +73,7 @@
             },
             "latency_to_compute_hosts": {
                 "min": 1,
-                "max": 100,
+                "max": 1000,
                 "scale": "linear",
                 "unit": "us"
             },
@@ -85,7 +85,7 @@
             },
             "latency_submit_to_compute_host": {
                 "min": 1,
-                "max": 100,
+                "max": 1000,
                 "scale": "linear",
                 "unit": "us"
             },
@@ -97,7 +97,7 @@
             },
             "latency": {
                 "min": 1,
-                "max": 100,
+                "max": 1000,
                 "scale": "linear",
                 "unit": "us"
             }
