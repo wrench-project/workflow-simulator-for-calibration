@@ -176,15 +176,12 @@ Sofware:
 
 Issues:
  - [ ] Check that an n-node workflow JSON file lists n machines since that's what's used to create the platform (if not, we'll have to write a stupid script to, e.g., replicate the machine that's listed n times)
-
  - [ ] Preliminary results show that BO is about the same as RS, but it seems not as bad as dimentionality gets larger. Question: what's a good way to increase dimentionality?
-   - [ ] Option #1: Allow for heterogeneous hosts. Issue: the workflow JSON file defines the number of nodes, and the input.json file only gives one host speed... there is some re-engineering that needs to happen here.
-   - [ ] Option #2: Add back in all kinds of message payloads (is a bit artificial perhaps?)
-   - [ ] Option #3: Other ideas?
+   - [ ] Option #1: Allow for heterogeneous hosts. Issue: the workflow JSON file defines the number of nodes, and the input.json file only gives one host speed... there is some re-engineering that needs to happen here. [AFTER DISCUSSION WITH LOIC: THIS IS A NO GO!]
+   - [ ] Option #2: Add back in all kinds of message payloads (is a bit artificial perhaps?) [WE'RE DOING IT]
 
 Experimental ground truth data:
  - [X] All executions are using 16 cores on each compute node on CC
- - [ ] Henri is still running workflows
 
 Calibration experiments:
  - [ ] Pick simulator "versions": `all_bare_metal`/`htcondor_bare_metal`, `submit_only`/`submit_and_compute_hosts`, and `one_link`/`many_links`/`one_link_then_many_links`
