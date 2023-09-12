@@ -183,6 +183,7 @@ wrench::WRENCH_MESSAGE_PAYLOADCOLLECTION_TYPE get_payloads(boost::json::object &
                                                            std::string scheme,
                                                            std::string payloads_key) {
 
+
     wrench::WRENCH_MESSAGE_PAYLOADCOLLECTION_TYPE  payload_list;
     auto specs = json_input[scheme_category].as_object()[scheme].as_object();
 
@@ -191,6 +192,7 @@ wrench::WRENCH_MESSAGE_PAYLOADCOLLECTION_TYPE get_payloads(boost::json::object &
 #if (BOOST_VERSION >= 108000)
             auto payload = wrench::ServiceMessagePayload::translateString(pl.key());
 #else
+
             auto payload = wrench::ServiceMessagePayload::translateString(pl.key().to_string());
 #endif
             double payload_value =  std::strtod(boost::json::value_to<std::string>(pl.value()).c_str(), nullptr);

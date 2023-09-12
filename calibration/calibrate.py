@@ -745,6 +745,7 @@ class Calibrator(object):
             else:
                 cmd = [config["simulator"], str(config_path)]
 
+            print(cmd)
             simulation = run(cmd, capture_output=True, text=True, timeout=int(config["timeout"]))
 
             if simulation.stderr != '' or simulation.stdout == '':
