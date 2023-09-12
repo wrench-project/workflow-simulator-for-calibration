@@ -109,7 +109,8 @@ Once the path in your config file `config.json` are correct, you can run `./run-
 
 ## Creating calibration and simulation experiment scripts
 
-`calibration/experiment_utils.py` and `calibration/workflow_queries.py` can be used to easily create custom calibration and simulation experiment scripts. 
+
+`calibration/experiment_utils.py` (which calls `calibrate.py`) and `calibration/workflow_queries.py` can be used to easily create custom calibration and simulation experiment scripts.  
 Experiment scripts should follow the below structure (typically steps 3, 4, and possibly 5 are written in a loop that iterates through the workflows in some manner):
  1. (Optional) Use the `parse_arguments(args)` function in `calibration/experiment_utils.py` to get user arguments (e.g., the directory containing workflows). The arguments are parsed via `ArgumentParser` from `argparse`.
  2. Use the `init_experiment(dir_wf, config_json, outfile, num_iter, timeout)` function defined in `calibration/experiment_utils.py` to intialize the run directory (where `best_bo.json` and `best_rs.json` files will be written to for each simulation) and dictionary structure for storing both calibration and simulation results.
