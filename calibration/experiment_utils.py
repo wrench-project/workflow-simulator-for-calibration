@@ -34,6 +34,7 @@ def generate_random_string(length=32):
 def init_experiment(dir_wf, config_json, outfile, num_iter, timeout):
     my_dict = {}
     if os.path.exists(outfile):
+        sys.stderr.write("Result file " + outfile + " already exists..")
         with open(outfile, "r") as fp:
             my_dict = json.load(fp)
 
@@ -243,6 +244,9 @@ def parse_arguments(args):
                        action='extend',
                        help="<# of tasks in workflow> (zero or more)")
 
+    parser.add_argument('-d', '--use-docker', action='store_true',
+                        help="Use Docker to run the simulator")
+
     parsed_args = parser.parse_args(args[1:])
     config = {}
 
@@ -276,6 +280,7 @@ def parse_arguments(args):
     config["num_iter"] = parsed_args.iter
     config["timeout"] = parsed_args.timeout
     config["keep_exp_dir"] = parsed_args.keep_exp_directory 
+    config["use_docker"] = parsed_args.use_docker
 
     # Calibration arguments
     # Architecture 
@@ -373,6 +378,7 @@ def parse_calibrate_args(config, debug=False):
         if debug == True:
             print(f"calibrate_num_tasks = {config['calibrate_num_tasks']}")
         calibrate_list = wfq.filter_tasks(calibrate_list, config['calibrate_num_tasks'])
+
     
     calibrate_list.sort()
     if debug == True:
@@ -432,7 +438,7 @@ def parse_simulate_args(config, debug=False):
     # max_attempts  = if until_sucess if false, the maximum number of attempts to calibrate
     # keep          = if true, does not delete the `exp-*` directory for the calibration
     # debug         = if true, prints debug statements
-def calibrate(wf_list, dir_wf, config_json, num_iter, timeout, until_success=True, max_attempts=20, keep=False, debug=True):
+def calibrate(wf_list, dir_wf, config_json, num_iter, timeout, use_docker=True, until_success=True, max_attempts=20, keep=False, debug=True):
     cali_dict              = {}
     cali_dict["workflows"] = wf_list
 
@@ -444,6 +450,8 @@ def calibrate(wf_list, dir_wf, config_json, num_iter, timeout, until_success=Tru
 
     # Command string
     cmd_string = str(os.path.abspath(calibrate_py)) + ' --config ' + str(os.path.abspath(config_json)) + ' --iter ' + str(num_iter) + ' --deephyper-timeout ' + str(timeout) + ' --all --workflows ' + wf_string
+    if use_docker:
+        cmd_string += " --docker "
 
     # Attempt to calibrate on workflows, until success or max_attempts
     full_timeout = 2*timeout + 20      # total time to consider a process as 'failed' (allow an overhead of 20s)
@@ -594,11 +602,12 @@ def simulate(wf_list, dir_wf, exp_dict, my_dir):
     # config_json   = config JSON file
     # num_iter      = maximum number of iterations
     # timeout       = maximum number of seconds per calibration (i.e., with --all, we expect roughly 2*timeout total seconds)
+    # use_docker    = if true, use Docker
     # until_success = if true, will attempt to calibrate until success
     # max_attempts  = if until_sucess if false, the maximum number of attempts to calibrate
     # keep          = if true, does not delete the `exp-*` directory for the calibration
     # debug         = if true, prints debug statements
-def calibrate_and_simulate(my_dict, my_dir, cali_list, sim_list, dir_wf, config_json, num_iter, timeout, until_success=True, max_attempts=20, keep=False, debug=True):
+def calibrate_and_simulate(my_dict, my_dir, cali_list, sim_list, dir_wf, config_json, num_iter, timeout, use_docker=True, until_success=True, max_attempts=20, keep=False, debug=True):
     # Calibrate
     exp_index = find_exp_subset(my_dict["experiments"], cali_list)
     if exp_index != -1:
@@ -613,7 +622,7 @@ def calibrate_and_simulate(my_dict, my_dir, cali_list, sim_list, dir_wf, config_
         exp_dict = {}
 
         print(f"\nCalibrating on = {cali_list}")
-        exp_dict["calibrate"] = calibrate(cali_list, dir_wf, config_json, num_iter, timeout, until_success=until_success, max_attempts=max_attempts, keep=keep, debug=debug)
+        exp_dict["calibrate"] = calibrate(cali_list, dir_wf, config_json, num_iter, timeout, use_docker=use_docker, until_success=until_success, max_attempts=max_attempts, keep=keep, debug=debug)
     else:
         # Calibration already exists
         print(f"\nSkipping calibration on = {cali_list}")

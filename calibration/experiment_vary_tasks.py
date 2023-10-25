@@ -21,7 +21,7 @@ import experiment_utils as exp_util
     # timeout        = maximum number of seconds used in calibrate.py (--deephyper-timeout)
     # keep           = if true, does not delete exp-* directories
     # debug          = if true, prints debug statements
-def vary_tasks(calibrate_list, simulate_list, dir_wf, config_json, outfile, num_iter=500, timeout=60, keep=False, debug=False):
+def vary_tasks(calibrate_list, simulate_list, dir_wf, config_json, outfile, num_iter=500, timeout=60, keep=False, debug=False, use_docker=True):
     my_dict, my_dir = exp_util.init_experiment(dir_wf, config_json, outfile, num_iter, timeout)
 
     wf_arch = wfq.get_arch(calibrate_list)
@@ -89,7 +89,7 @@ def vary_tasks(calibrate_list, simulate_list, dir_wf, config_json, outfile, num_
                                                 wfq.filter_arch(simulate_list, arch), name), cpu_work), cpu_frac), data_footprint), node)
                                 sim_list.sort()
 
-                                exp_util.calibrate_and_simulate(my_dict, my_dir, task_list, sim_list, dir_wf, config_json, num_iter, timeout, keep=keep)
+                                exp_util.calibrate_and_simulate(my_dict, my_dir, task_list, sim_list, dir_wf, config_json, num_iter, timeout, keep=keep, use_docker=use_docker)
 
                                 # Write for backup (just in case)
                                 with open(outfile, "w") as fp:
@@ -109,8 +109,12 @@ def main():
     calibrate_list = exp_util.parse_calibrate_args(config, debug=False)
     simulate_list  = exp_util.parse_simulate_args(config, debug=False)
 
+    print("CALIBRATE LIST: " + str(calibrate_list))
+    print("SIMULATE LIST: " + str(simulate_list))
+
     # Run vary_tasks experiment
-    vary_tasks(calibrate_list, simulate_list, config['input_dir'], config['config_json'], config["output_file"], config['num_iter'], config['timeout'], config['keep_exp_dir'])
+    vary_tasks(calibrate_list, simulate_list, config['input_dir'], config['config_json'], config["output_file"],
+               config['num_iter'], config['timeout'], config['keep_exp_dir'], use_docker=config["use_docker"])
 
 if __name__ == "__main__":
     main()
