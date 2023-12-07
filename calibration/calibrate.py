@@ -771,7 +771,6 @@ class Calibrator(object):
     def launch(self) -> pd.DataFrame:
         """Launch the search."""
         self.df = self.search.search(max_evals=self.max_evals, timeout=self.deephyper_timeout)
-        print(self.df)
 
         # Clean the dataframe and re-ordering the columns
         # self.df["workflow"] = self.df.apply(lambda row: Path(
@@ -838,7 +837,7 @@ class Calibrator(object):
     # def plot(self, show: bool=False):
     #     """Produce a figure of the error in function of the iteration."""
     #     plt.plot(
-    #         self.df.objective.cummax(),
+    #         self.df.objective.cummin(),
     #         label='Objective',
     #         marker='o',
     #         color="blue",
@@ -853,12 +852,15 @@ class Calibrator(object):
     #     if show:
     #         plt.show()
 
-def plot(df: pd.DataFrame, output: str, plot_rs: bool=True, show: bool=False):
+def plot(df_bo: pd.DataFrame, df_rs: pd.DataFrame, output: str, plot_rs: bool=True, show: bool=False):
     """
     Produce a figure of the error in function of the iterations for different methods.
     """
+    df_bo["objective"] = 100*(df_bo["objective"].abs()**0.5)
+    df_rs["objective"] = 100*(df_rs["objective"].abs()**0.5)
+
     plt.plot(
-        df.err_bo.cummin(),
+        df_bo.objective.cummin(),
         label='Bayesian Optimization',
         marker='o',
         color="blue",
@@ -867,7 +869,7 @@ def plot(df: pd.DataFrame, output: str, plot_rs: bool=True, show: bool=False):
 
     if plot_rs:
         plt.plot(
-            df.err_rs.cummin(),
+            df_rs.objective.cummin(),
             label='Random Search',
             marker='x',
             color="red",
@@ -1071,7 +1073,7 @@ if __name__ == "__main__":
 
     if not (np.isinf(df['err_bo']).any() and is_inf):
         # Plot
-        plot(df*100, output=f"{exp_id}/results.pdf",
+        plot(df_bayesian, df_baseline, output=f"{exp_id}/results.pdf",
              plot_rs=args.all, show=False)
         # Save data
         df.to_csv(f"{exp_id}/global-results.csv", index=False)
