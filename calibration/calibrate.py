@@ -14,7 +14,7 @@ from os import mkdir, remove, environ, getcwd
 
 if sys.version_info[0] != 3 or sys.version_info[1] >= 10:
     print(
-        f"ERROR: This script requires Python <3.10, >=3.7. \
+        f"ERROR: This script requires Python >=3.7 <3.10. \
         You are using Python {sys.version_info[0]}.{sys.version_info[1]}")
     sys.exit(-1)
 
@@ -745,7 +745,7 @@ class Calibrator(object):
             else:
                 cmd = [config["simulator"], str(config_path)]
 
-            print(cmd)
+            # print(cmd)
             simulation = run(cmd, capture_output=True, text=True, timeout=int(config["timeout"]))
 
             if simulation.stderr != '' or simulation.stdout == '':
@@ -771,6 +771,7 @@ class Calibrator(object):
     def launch(self) -> pd.DataFrame:
         """Launch the search."""
         self.df = self.search.search(max_evals=self.max_evals, timeout=self.deephyper_timeout)
+        print(self.df)
 
         # Clean the dataframe and re-ordering the columns
         # self.df["workflow"] = self.df.apply(lambda row: Path(
@@ -834,30 +835,30 @@ class Calibrator(object):
         else:
             self.df.to_csv(self.output_dir+'/bo.csv', index=False)
 
-    def plot(self, show: bool=False):
-        """Produce a figure of the error in function of the iteration."""
-        plt.plot(
-            self.df.objective,
-            label='Objective',
-            marker='o',
-            color="blue",
-            lw=2
-        )
+    # def plot(self, show: bool=False):
+    #     """Produce a figure of the error in function of the iteration."""
+    #     plt.plot(
+    #         self.df.objective.cummax(),
+    #         label='Objective',
+    #         marker='o',
+    #         color="blue",
+    #         lw=2
+    #     )
 
-        plt.grid(True)
-        plt.xlabel("Iterations")
-        plt.ylabel("Error")
-        filename = "results.pdf"
-        plt.savefig(f"{self.output_dir}/{filename}")
-        if show:
-            plt.show()
+    #     plt.grid(True)
+    #     plt.xlabel("Iterations")
+    #     plt.ylabel("Error")
+    #     filename = "results.pdf"
+    #     plt.savefig(f"{self.output_dir}/{filename}")
+    #     if show:
+    #         plt.show()
 
 def plot(df: pd.DataFrame, output: str, plot_rs: bool=True, show: bool=False):
     """
     Produce a figure of the error in function of the iterations for different methods.
     """
     plt.plot(
-        df.err_bo,
+        df.err_bo.cummin(),
         label='Bayesian Optimization',
         marker='o',
         color="blue",
@@ -866,7 +867,7 @@ def plot(df: pd.DataFrame, output: str, plot_rs: bool=True, show: bool=False):
 
     if plot_rs:
         plt.plot(
-            df.err_rs,
+            df.err_rs.cummin(),
             label='Random Search',
             marker='x',
             color="red",
