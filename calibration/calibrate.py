@@ -892,7 +892,7 @@ def plot(df_bo: pd.DataFrame, df_rs: pd.DataFrame, output: str, plot_rs: bool=Tr
     if show:
         plt.show()
 
-def run_simulation(config_file: str, best_config: dict, workflow_path: str, use_docker: bool = False) -> float:
+def run_simulation(config_file: str, best_config: dict, workflow_path: str, use_docker: bool = False, timeout: int= 300) -> float:
     with open(config_file, 'r') as stream:
         config = json.load(stream)
 
@@ -909,7 +909,7 @@ def run_simulation(config_file: str, best_config: dict, workflow_path: str, use_
         else:
             cmd = [config["simulator"], str(temp_config)]
 
-        simulation = run(cmd, capture_output=True, text=True, timeout=int(config["timeout"]))
+        simulation = run(cmd, capture_output=True, text=True, timeout=timeout)
 
         if simulation.stderr != '' or simulation.stdout == '':
             raise CalledProcessError(simulation.returncode, simulation.args)
@@ -1112,8 +1112,8 @@ if __name__ == "__main__":
 
     print(f"Workflow => err_bo err_rs")
     for wf in args.workflows:
-        err_bo = run_simulation(args.conf, best_config_bo, wf)
+        err_bo = run_simulation(args.conf, best_config_bo, wf, timeout=args.wrench_timeout)
         if args.all:
-            err_rs = run_simulation(args.conf, best_config_rs, wf)
+            err_rs = run_simulation(args.conf, best_config_rs, wf, timeout=args.wrench_timeout)
         print(f"{wf} => {err_bo} {err_rs}")
 
