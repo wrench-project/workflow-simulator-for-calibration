@@ -431,7 +431,7 @@ class Calibrator(object):
                 random_state=self.seed,
                 n_jobs=self.n_jobs,
                 surrogate_model="DUMMY",
-                log_dir=self.output_dir,
+                log_dir=self.output_dir+"/rs/"
             )
         else:
             self.search = CBO(
@@ -440,7 +440,7 @@ class Calibrator(object):
                 random_state=self.seed,
                 n_jobs=self.n_jobs,
                 surrogate_model="RF",
-                log_dir=self.output_dir
+                log_dir=self.output_dir+"/bo/"
             )
 
     def get_sampling_method(self, config: JSON) -> str:
@@ -1017,14 +1017,9 @@ if __name__ == "__main__":
     best_config = bayesian.get_best_config_json()
     bayesian.write_json(best_config, f"{exp_id}/best-bo.json")
 
-    df = pd.DataFrame(
-        {
-            'exp_id': exp_id,
-            'job_id': df_bayesian['job_id'],
-            'worklow': df_bayesian['workflow'][0],
-            'err_bo': df_bayesian["objective"].abs()**0.5
-        }
-    )
+    df = df_bayesian.drop(df_bayesian.columns.difference(["objective"]), axis=1)
+    df.rename(columns={"objective": "err_bo"}, inplace=True)
+    df["err_bo"] = df["err_bo"].abs()**0.5
 
     is_inf = False
     if args.all:
@@ -1051,15 +1046,11 @@ if __name__ == "__main__":
         best_config = baseline.get_best_config_json()
         baseline.write_json(best_config, f"{exp_id}/best-rs.json")
 
-        df = pd.DataFrame(
-            {
-                'exp_id': exp_id,
-                'job_id': df_bayesian["job_id"],
-                'worklow': df_bayesian['workflow'][0],
-                'err_bo': df_bayesian["objective"].abs()**0.5,
-                'err_rs': df_baseline["objective"].abs()**0.5,
-            }
-        )
+        df_rs = df_baseline.drop(df_baseline.columns.difference(["objective"]), axis=1)
+        df_rs.rename(columns={"objective": "err_rs"}, inplace=True) 
+        df_rs["err_rs"] = df_rs["err_rs"].abs()**0.5
+        df = df.join(df_rs)
+
         is_inf = np.isinf(df['err_rs']).any()
 
     if not np.isinf(df['err_bo']).any():
@@ -1076,4 +1067,4 @@ if __name__ == "__main__":
         plot(df_bayesian, df_baseline, output=f"{exp_id}/results.pdf",
              plot_rs=args.all, show=False)
         # Save data
-        df.to_csv(f"{exp_id}/global-results.csv", index=False)
+        df.to_csv(f"{exp_id}/global-results.csv", index=True)
