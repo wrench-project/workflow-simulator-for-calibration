@@ -892,6 +892,46 @@ def plot(df_bo: pd.DataFrame, df_rs: pd.DataFrame, output: str, plot_rs: bool=Tr
     if show:
         plt.show()
 
+def run_simulation(best_config_json: str, workflow_path: str, use_docker: bool = False) -> float:
+
+    with open(best_config_json, 'r') as f:
+        data = json.load(f)
+
+    data["workflow"]["file"] = workflow_path
+
+    temp_config = f"tmp_{best_config_json}"
+    with open(temp_config, 'w') as f:
+        json.dump(data, f, indent=4)
+        f.write('\n')
+
+    try:
+        if use_docker:
+            cmd = ["docker", "exec", docker_container_id, config["simulator"], str(temp_config)]
+        else:
+            cmd = [config["simulator"], str(temp_config)]
+
+        simulation = run(cmd, capture_output=True, text=True, timeout=int(config["timeout"]))
+
+        if simulation.stderr != '' or simulation.stdout == '':
+            raise CalledProcessError(simulation.returncode, simulation.args)
+        simulation.check_returncode()
+
+        err = float(simulation.stdout.strip().split(':')[2])
+    except (CalledProcessError, FileNotFoundError) as e:
+        error = simulation.stderr.strip()
+        logging.error(f"\"{error}\" => To reproduce that error you can run: {' '.join(cmd)}")
+        return str('-inf')
+    except TimeoutExpired:
+        logging.error(f"Timeout of the sub-process, process got killed {temp_config}")
+        return str('-inf')
+    else:
+        try:
+            remove(temp_config)
+        except OSError as e:
+            raise e
+
+    return -(err**2)
+
 if __name__ == "__main__":
 
     plt.rcParams.update({
@@ -1067,4 +1107,5 @@ if __name__ == "__main__":
         plot(df_bayesian, df_baseline, output=f"{exp_id}/results.pdf",
              plot_rs=args.all, show=False)
         # Save data
+        df.rename_axis('iter', inplace=True)
         df.to_csv(f"{exp_id}/global-results.csv", index=True)
