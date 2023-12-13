@@ -892,16 +892,13 @@ def plot(df_bo: pd.DataFrame, df_rs: pd.DataFrame, output: str, plot_rs: bool=Tr
     if show:
         plt.show()
 
-def run_simulation(best_config_json: str, workflow_path: str, use_docker: bool = False) -> float:
+def run_simulation(config :dict, best_config: dict, workflow_path: str, use_docker: bool = False) -> float:
 
-    with open(best_config_json, 'r') as f:
-        data = json.load(f)
+    best_config["workflow"]["file"] = str(workflow_path)
 
-    data["workflow"]["file"] = workflow_path
-
-    temp_config = f"tmp_{best_config_json}"
+    temp_config = f"tmp-workflow-best-run.json"
     with open(temp_config, 'w') as f:
-        json.dump(data, f, indent=4)
+        json.dump(best_config, f, indent=4)
         f.write('\n')
 
     try:
@@ -1054,7 +1051,7 @@ if __name__ == "__main__":
 
     bayesian.launch()
     df_bayesian = bayesian.get_dataframe()
-    best_config = bayesian.get_best_config_json()
+    best_config_bo = bayesian.get_best_config_json()
     bayesian.write_json(best_config, f"{exp_id}/best-bo.json")
 
     df = df_bayesian.drop(df_bayesian.columns.difference(["objective"]), axis=1)
@@ -1083,8 +1080,8 @@ if __name__ == "__main__":
 
         baseline.launch()
         df_baseline = baseline.get_dataframe()
-        best_config = baseline.get_best_config_json()
-        baseline.write_json(best_config, f"{exp_id}/best-rs.json")
+        best_config_rs = baseline.get_best_config_json()
+        baseline.write_json(best_config_rs, f"{exp_id}/best-rs.json")
 
         df_rs = df_baseline.drop(df_baseline.columns.difference(["objective"]), axis=1)
         df_rs.rename(columns={"objective": "err_rs"}, inplace=True) 
@@ -1109,3 +1106,12 @@ if __name__ == "__main__":
         # Save data
         df.rename_axis('iter', inplace=True)
         df.to_csv(f"{exp_id}/global-results.csv", index=True)
+
+
+    print(f"Workflow => err_bo err_rs")
+    for wf in args.workflows:
+        err_bo = run_simulation(args.config, best_config_bo, wf)
+        if args.all:
+            err_rs = run_simulation(args.config, best_config_rs, wf)
+        print(f"{wf} => {err_bo} {err_rs}")
+
