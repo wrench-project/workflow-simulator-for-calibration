@@ -892,7 +892,9 @@ def plot(df_bo: pd.DataFrame, df_rs: pd.DataFrame, output: str, plot_rs: bool=Tr
     if show:
         plt.show()
 
-def run_simulation(config :dict, best_config: dict, workflow_path: str, use_docker: bool = False) -> float:
+def run_simulation(config_file: str, best_config: dict, workflow_path: str, use_docker: bool = False) -> float:
+    with open(config_file, 'r') as stream:
+        config = json.load(stream)
 
     best_config["workflow"]["file"] = str(workflow_path)
 
@@ -1052,7 +1054,7 @@ if __name__ == "__main__":
     bayesian.launch()
     df_bayesian = bayesian.get_dataframe()
     best_config_bo = bayesian.get_best_config_json()
-    bayesian.write_json(best_config, f"{exp_id}/best-bo.json")
+    bayesian.write_json(best_config_bo, f"{exp_id}/best-bo.json")
 
     df = df_bayesian.drop(df_bayesian.columns.difference(["objective"]), axis=1)
     df.rename(columns={"objective": "err_bo"}, inplace=True)
@@ -1110,8 +1112,8 @@ if __name__ == "__main__":
 
     print(f"Workflow => err_bo err_rs")
     for wf in args.workflows:
-        err_bo = run_simulation(args.config, best_config_bo, wf)
+        err_bo = run_simulation(args.conf, best_config_bo, wf)
         if args.all:
-            err_rs = run_simulation(args.config, best_config_rs, wf)
+            err_rs = run_simulation(args.conf, best_config_rs, wf)
         print(f"{wf} => {err_bo} {err_rs}")
 
