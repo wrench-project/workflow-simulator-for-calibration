@@ -21,7 +21,7 @@ import experiment_utils as exp_util
     # timeout        = maximum number of seconds used in calibrate.py (--deephyper-timeout)
     # keep           = if true, does not delete exp-* directories
     # debug          = if true, prints debug statements
-def vary_tasks(calibrate_list, simulate_list, dir_wf, config_json, outfile, num_iter=500, timeout=60, keep=False, debug=False, use_docker=True):
+def vary_tasks(calibrate_list, simulate_list, dir_wf, config_json, outfile, num_iter=500, timeout=60, keep=False, debug=True, use_docker=True):
     my_dict, my_dir = exp_util.init_experiment(dir_wf, config_json, outfile, num_iter, timeout)
 
     wf_arch = wfq.get_arch(calibrate_list)
@@ -64,37 +64,32 @@ def vary_tasks(calibrate_list, simulate_list, dir_wf, config_json, outfile, num_
                         wf_nodes            = wfq.get_nodes(data_footprint_list)
                         wf_nodes.sort()
 
-                        for node in wf_nodes:  #for each node
+                        for node in wf_nodes:  #for each node value
                             if debug == True:
                                 print(f"          nodes = {node}")
                             node_list = wfq.filter_node(data_footprint_list, node)
                             wf_tasks  = wfq.get_tasks(node_list)
                             wf_tasks.sort()
 
-                            for task in wf_tasks:  #for each task
-                                if debug == True:
-                                    print(f"            task = {task}")
+                            if debug == True:
+                                print(f"          tasks = {wf_tasks}")
 
-                                # Calibrate on task_list
-                                task_list = wfq.filter_tasks_eq(node_list, task)
-                                task_list.sort()
+                            # Simulate on everything fixed, except tasks and trials
+                            temp_sim_exp = list()
+                            sim_list = wfq.filter_nodes(
+                                        wfq.filter_data_footprint(
+                                         wfq.filter_cpu_frac(
+                                          wfq.filter_cpu_work(
+                                           wfq.filter_name(
+                                            wfq.filter_arch(simulate_list, arch), name), cpu_work), cpu_frac), data_footprint), node)
+                            sim_list.sort()
 
-                                # Simulate on everything fixed, except tasks and trials
-                                temp_sim_exp = list()
-                                sim_list = wfq.filter_nodes(
-                                            wfq.filter_data_footprint( 
-                                             wfq.filter_cpu_frac(
-                                              wfq.filter_cpu_work(
-                                               wfq.filter_name(
-                                                wfq.filter_arch(simulate_list, arch), name), cpu_work), cpu_frac), data_footprint), node)
-                                sim_list.sort()
+                            exp_util.calibrate_and_simulate(my_dict, my_dir, node_list, sim_list, dir_wf, config_json, num_iter, timeout, keep=keep, use_docker=use_docker)
 
-                                exp_util.calibrate_and_simulate(my_dict, my_dir, task_list, sim_list, dir_wf, config_json, num_iter, timeout, keep=keep, use_docker=use_docker)
+                            # Write for backup (just in case)
+                            with open(outfile, "w") as fp:
+                                fp.write(json.dumps(my_dict, indent=4))
 
-                                # Write for backup (just in case)
-                                with open(outfile, "w") as fp:
-                                    fp.write(json.dumps(my_dict, indent=4))
-                                    
     # Write finished my_dict
     with open(outfile, "w") as fp:
         fp.write(json.dumps(my_dict, indent=4))
