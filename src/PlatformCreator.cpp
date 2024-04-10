@@ -174,11 +174,7 @@ void PlatformCreator::create_platform() {
         sg4::LinkInRoute network_link_in_route{network_link};
 
         for (auto const &h : compute_hosts) {
-            zone->add_route(submit_host->get_netpoint(),
-                            h->get_netpoint(),
-                            nullptr,
-                            nullptr,
-                            {network_link_in_route}, true);
+            zone->add_route(submit_host, h, {network_link_in_route}, true);
         }
 
     } else if (topology_scheme == "one_and_then_many_links") {
@@ -232,10 +228,8 @@ void PlatformCreator::create_platform() {
 
         for (int i=0; i < compute_hosts.size(); i++) {
             sg4::LinkInRoute network_link_in_route_2{network_links_to_compute_hosts.at(i)};
-            zone->add_route(submit_host->get_netpoint(),
-                            compute_hosts.at(i)->get_netpoint(),
-                            nullptr,
-                            nullptr,
+            zone->add_route(submit_host,
+                            compute_hosts.at(i),
                             {network_link_in_route_1, network_link_in_route_2});
         }
 
@@ -270,10 +264,8 @@ void PlatformCreator::create_platform() {
         // Create all routes
         for (int i=0; i < compute_hosts.size(); i++) {
             sg4::LinkInRoute network_link_in_route_1{network_links_to_compute_hosts.at(i)};
-            zone->add_route(submit_host->get_netpoint(),
-                            compute_hosts.at(i)->get_netpoint(),
-                            nullptr,
-                            nullptr,
+            zone->add_route(submit_host,
+                            compute_hosts.at(i),
                             {network_link_in_route_1});
         }
 

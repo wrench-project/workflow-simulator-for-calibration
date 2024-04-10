@@ -9,6 +9,8 @@
 #include "UnitParser.h"
 #include "Controller.h"
 #include <boost/json.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 #include <PlatformCreator.h>
 
 #define NETWORK_TIMEOUT 100000000.0
@@ -28,32 +30,25 @@ std::set<std::string> implemented_network_topology_schemes = {"one_link","one_an
  * @return a boost::json::object object
  */
 boost::json::object readJSONFromFile(const std::string& filepath) {
-    FILE *file = fopen(filepath.c_str(), "r");
-    if (not file) {
-        throw std::invalid_argument("Cannot read JSON file " + filepath);
+
+    // Open the file using ifstream
+    ifstream file(filepath);
+
+    // Check if the file was opened successfully
+    if (!file.is_open()) {
+        C << "Failed to open file: " << filepath << endl;
+        exit(1);
     }
 
-    boost::json::stream_parser p;
-    boost::json::error_code ec;
-    p.reset();
-    while (true) {
-        try {
-            char buf[1024];
-            auto nread = fread(buf, sizeof(char), 1024, file);
-            if (nread == 0) {
-                break;
-            }
-            p.write(buf, nread, ec);
-        } catch (std::exception &e) {
-            throw std::invalid_argument("Error while reading JSON file " + filepath + ": " + std::string(e.what()));
-        }
-    }
+    // Read the whole file into a string
+    std::string json_string((istreambuf_iterator<char>(file)),
+                       istreambuf_iterator<char>());
+    file.close();
 
-    p.finish(ec);
-    if (ec) {
-        throw std::invalid_argument("Error while reading JSON file " + filepath + ": " + ec.message());
-    }
-    return p.release().as_object();
+    // Parse string into an object
+
+    auto json_object = boost::json::parse(json_string).as_object();
+    return json_object;
 }
 
 void display_help(char *executable_name) {
@@ -121,8 +116,9 @@ std::shared_ptr<wrench::Workflow> create_workflow(boost::json::object &json_inpu
     boost::json::object json_workflow;
     try {
         json_workflow = readJSONFromFile(workflow_file);
-        *observed_real_makespan = boost::json::value_to<double>(json_workflow["workflow"].as_object()["makespanInSeconds"]);
-        *num_compute_hosts = json_workflow["workflow"].as_object()["machines"].as_array().size();
+        *observed_real_makespan = boost::json::value_to<double>(
+                json_workflow["workflow"].as_object()["execution"].as_object()["makespanInSeconds"]);
+        *num_compute_hosts = json_workflow["workflow"].as_object()["execution"].as_object()["machines"].as_array().size();
     } catch (std::exception &e) {
         throw;
     }
@@ -238,6 +234,7 @@ int main(int argc, char **argv) {
     std::string submit_host_name;
     std::vector<std::string> compute_host_names;
     unsigned long num_compute_hosts;
+
     try {
         // Read JSON input
         json_input = readJSONFromFile(argv[1]);

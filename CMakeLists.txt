@@ -17,6 +17,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMakeModules/")
 # Find WRENCH, SimGrid, and Boost
 find_package(WRENCH REQUIRED)
 find_package(SimGrid REQUIRED)
+
 find_package(Boost REQUIRED)
 find_package(Boost COMPONENTS json REQUIRED)
 
