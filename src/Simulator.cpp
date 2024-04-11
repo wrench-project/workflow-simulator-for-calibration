@@ -36,7 +36,7 @@ boost::json::object readJSONFromFile(const std::string& filepath) {
 
     // Check if the file was opened successfully
     if (!file.is_open()) {
-        C << "Failed to open file: " << filepath << endl;
+	std::cerr << "Failed to open file: " << filepath << endl;
         exit(1);
     }
 
