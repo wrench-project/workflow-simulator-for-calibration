@@ -14,7 +14,7 @@ from os import mkdir, remove, environ, getcwd
 
 if sys.version_info[0] != 3 or sys.version_info[1] >= 10:
     print(
-        f"ERROR: This script requires Python <3.10, >=3.7. \
+        f"ERROR: This script requires Python >=3.7 <3.10. \
         You are using Python {sys.version_info[0]}.{sys.version_info[1]}")
     sys.exit(-1)
 
@@ -431,7 +431,7 @@ class Calibrator(object):
                 random_state=self.seed,
                 n_jobs=self.n_jobs,
                 surrogate_model="DUMMY",
-                log_dir=self.output_dir,
+                log_dir=self.output_dir+"/rs/"
             )
         else:
             self.search = CBO(
@@ -440,7 +440,7 @@ class Calibrator(object):
                 random_state=self.seed,
                 n_jobs=self.n_jobs,
                 surrogate_model="RF",
-                log_dir=self.output_dir
+                log_dir=self.output_dir+"/bo/"
             )
 
     def get_sampling_method(self, config: JSON) -> str:
@@ -745,7 +745,7 @@ class Calibrator(object):
             else:
                 cmd = [config["simulator"], str(config_path)]
 
-            print(cmd)
+            # print(cmd)
             simulation = run(cmd, capture_output=True, text=True, timeout=int(config["timeout"]))
 
             if simulation.stderr != '' or simulation.stdout == '':
@@ -834,30 +834,33 @@ class Calibrator(object):
         else:
             self.df.to_csv(self.output_dir+'/bo.csv', index=False)
 
-    def plot(self, show: bool=False):
-        """Produce a figure of the error in function of the iteration."""
-        plt.plot(
-            self.df.objective,
-            label='Objective',
-            marker='o',
-            color="blue",
-            lw=2
-        )
+    # def plot(self, show: bool=False):
+    #     """Produce a figure of the error in function of the iteration."""
+    #     plt.plot(
+    #         self.df.objective.cummin(),
+    #         label='Objective',
+    #         marker='o',
+    #         color="blue",
+    #         lw=2
+    #     )
 
-        plt.grid(True)
-        plt.xlabel("Iterations")
-        plt.ylabel("Error")
-        filename = "results.pdf"
-        plt.savefig(f"{self.output_dir}/{filename}")
-        if show:
-            plt.show()
+    #     plt.grid(True)
+    #     plt.xlabel("Iterations")
+    #     plt.ylabel("Error")
+    #     filename = "results.pdf"
+    #     plt.savefig(f"{self.output_dir}/{filename}")
+    #     if show:
+    #         plt.show()
 
-def plot(df: pd.DataFrame, output: str, plot_rs: bool=True, show: bool=False):
+def plot(df_bo: pd.DataFrame, df_rs: pd.DataFrame, output: str, plot_rs: bool=True, show: bool=False):
     """
     Produce a figure of the error in function of the iterations for different methods.
     """
+    df_bo["objective"] = 100*(df_bo["objective"].abs()**0.5)
+    df_rs["objective"] = 100*(df_rs["objective"].abs()**0.5)
+
     plt.plot(
-        df.err_bo,
+        df_bo.objective.cummin(),
         label='Bayesian Optimization',
         marker='o',
         color="blue",
@@ -866,7 +869,7 @@ def plot(df: pd.DataFrame, output: str, plot_rs: bool=True, show: bool=False):
 
     if plot_rs:
         plt.plot(
-            df.err_rs,
+            df_rs.objective.cummin(),
             label='Random Search',
             marker='x',
             color="red",
@@ -888,6 +891,45 @@ def plot(df: pd.DataFrame, output: str, plot_rs: bool=True, show: bool=False):
     plt.savefig(path)
     if show:
         plt.show()
+
+def run_simulation(config_file: str, best_config: dict, workflow_path: str, use_docker: bool = False, timeout: int= 300) -> float:
+    with open(config_file, 'r') as stream:
+        config = json.load(stream)
+
+    best_config["workflow"]["file"] = str(workflow_path)
+
+    temp_config = f"tmp-workflow-best-run.json"
+    with open(temp_config, 'w') as f:
+        json.dump(best_config, f, indent=4)
+        f.write('\n')
+
+    try:
+        if use_docker:
+            cmd = ["docker", "exec", docker_container_id, config["simulator"], str(temp_config)]
+        else:
+            cmd = [config["simulator"], str(temp_config)]
+
+        simulation = run(cmd, capture_output=True, text=True, timeout=timeout)
+
+        if simulation.stderr != '' or simulation.stdout == '':
+            raise CalledProcessError(simulation.returncode, simulation.args)
+        simulation.check_returncode()
+
+        err = float(simulation.stdout.strip().split(':')[2])
+    except (CalledProcessError, FileNotFoundError) as e:
+        error = simulation.stderr.strip()
+        logging.error(f"\"{error}\" => To reproduce that error you can run: {' '.join(cmd)}")
+        return str('-inf')
+    except TimeoutExpired:
+        logging.error(f"Timeout of the sub-process, process got killed {temp_config}")
+        return str('-inf')
+    else:
+        try:
+            remove(temp_config)
+        except OSError as e:
+            raise e
+
+    return -(err**2)
 
 if __name__ == "__main__":
 
@@ -1011,17 +1053,12 @@ if __name__ == "__main__":
 
     bayesian.launch()
     df_bayesian = bayesian.get_dataframe()
-    best_config = bayesian.get_best_config_json()
-    bayesian.write_json(best_config, f"{exp_id}/best-bo.json")
+    best_config_bo = bayesian.get_best_config_json()
+    bayesian.write_json(best_config_bo, f"{exp_id}/best-bo.json")
 
-    df = pd.DataFrame(
-        {
-            'exp_id': exp_id,
-            'job_id': df_bayesian['job_id'],
-            'worklow': df_bayesian['workflow'][0],
-            'err_bo': df_bayesian["objective"].abs()**0.5
-        }
-    )
+    df = df_bayesian.drop(df_bayesian.columns.difference(["objective"]), axis=1)
+    df.rename(columns={"objective": "err_bo"}, inplace=True)
+    df["err_bo"] = df["err_bo"].abs()**0.5
 
     is_inf = False
     if args.all:
@@ -1045,18 +1082,14 @@ if __name__ == "__main__":
 
         baseline.launch()
         df_baseline = baseline.get_dataframe()
-        best_config = baseline.get_best_config_json()
-        baseline.write_json(best_config, f"{exp_id}/best-rs.json")
+        best_config_rs = baseline.get_best_config_json()
+        baseline.write_json(best_config_rs, f"{exp_id}/best-rs.json")
 
-        df = pd.DataFrame(
-            {
-                'exp_id': exp_id,
-                'job_id': df_bayesian["job_id"],
-                'worklow': df_bayesian['workflow'][0],
-                'err_bo': df_bayesian["objective"].abs()**0.5,
-                'err_rs': df_baseline["objective"].abs()**0.5,
-            }
-        )
+        df_rs = df_baseline.drop(df_baseline.columns.difference(["objective"]), axis=1)
+        df_rs.rename(columns={"objective": "err_rs"}, inplace=True) 
+        df_rs["err_rs"] = df_rs["err_rs"].abs()**0.5
+        df = df.join(df_rs)
+
         is_inf = np.isinf(df['err_rs']).any()
 
     if not np.isinf(df['err_bo']).any():
@@ -1070,7 +1103,17 @@ if __name__ == "__main__":
 
     if not (np.isinf(df['err_bo']).any() and is_inf):
         # Plot
-        plot(df*100, output=f"{exp_id}/results.pdf",
+        plot(df_bayesian, df_baseline, output=f"{exp_id}/results.pdf",
              plot_rs=args.all, show=False)
         # Save data
-        df.to_csv(f"{exp_id}/global-results.csv", index=False)
+        df.rename_axis('iter', inplace=True)
+        df.to_csv(f"{exp_id}/global-results.csv", index=True)
+
+
+    print(f"Workflow => err_bo err_rs")
+    for wf in args.workflows:
+        err_bo = run_simulation(args.conf, best_config_bo, wf, timeout=args.wrench_timeout)
+        if args.all:
+            err_rs = run_simulation(args.conf, best_config_rs, wf, timeout=args.wrench_timeout)
+        print(f"{wf} => {err_bo} {err_rs}")
+
