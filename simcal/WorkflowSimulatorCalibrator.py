@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import json
 import os
 from sklearn.metrics import mean_squared_error as sklearn_mean_squared_error
