@@ -111,7 +111,6 @@ std::shared_ptr<wrench::Workflow> create_workflow(boost::json::object &json_inpu
         throw std::invalid_argument("Invalid or missing workflow file or reference_flops specification in JSON input (" +
                                     std::string(e.what()) + ")");
     }
-
     // Parse the workflow's JSON file to find the real observed makespan
     boost::json::object json_workflow;
     try {

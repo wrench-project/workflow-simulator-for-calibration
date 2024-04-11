@@ -9,18 +9,17 @@ import Simulator
 
 
 class CalibrationLossEvaluator:
-    def __init__(self, simulator: Simulator, ground_truth: List[str], loss: Callable, sc_calibrator: sc.calibrator.Base):
+    def __init__(self, simulator: Simulator, ground_truth: List[str], loss: Callable):
         self.simulator = simulator
         self.ground_truth = ground_truth
         self.loss_function = loss
-        self.sc_calibrator = sc_calibrator
 
     def __call__(self, calibration: Any):
         res = []
         print(calibration)
         # Run simulator for all known ground truth points
         for workflow in self.ground_truth:
-            res.append(self.simulator((workflow, calibration, self.sc_calibrator)))
+            res.append(self.simulator((workflow, calibration)))
         return self.loss_function([x[0] for x in res], [x[1] for x in res])
 
 
@@ -43,7 +42,7 @@ class WorkflowSimulatorCalibrator:
         calibrator = sc.calibrators.Grid()
 
         if self.compute_service_scheme == "all_bare_metal":
-            calibrator.add_param("compute_service_scheme_parameters", sc.parameters.Exponential(10, 40).
+            calibrator.add_param("compute_hosts_speed", sc.parameters.Exponential(10, 40).
                                  format("%lff").set_metadata(["compute_service_scheme_parameters",
                                                           "all_bare_metal",
                                                           "compute_hosts",
@@ -58,11 +57,11 @@ class WorkflowSimulatorCalibrator:
             raise Exception(f"Compute service scheme '{self.compute_service_scheme}' not implemented yet")
 
         if self.storage_service_scheme == "submit_only":
-            calibrator.add_param("disk_read_bandwidth", sc.parameters.Exponential(10, 40).
+            calibrator.add_param("disk_read_bw", sc.parameters.Exponential(10, 40).
                                  format("%lfbps").set_metadata(["storage_service_scheme_parameters",
                                                             "submit_only",
                                                             "bandwidth_submit_disk_read"]))
-            calibrator.add_param("disk_write_bandwidth", sc.parameters.Exponential(10, 40).
+            calibrator.add_param("disk_write_bw", sc.parameters.Exponential(10, 40).
                                  format("%lfbps").set_metadata(["storage_service_scheme_parameters",
                                                             "submit_only",
                                                             "bandwidth_submit_disk_write"]))
@@ -70,11 +69,11 @@ class WorkflowSimulatorCalibrator:
             raise Exception(f"Storage service scheme '{self.storage_service_scheme}' not implemented yet")
 
         if self.network_topology_scheme == "one_link":
-            calibrator.add_param("link_bandwidth", sc.parameters.Exponential(10, 40).
+            calibrator.add_param("link_bw", sc.parameters.Exponential(10, 40).
                                  format("%lfbps").set_metadata(["network_topology_scheme_parameters",
                                                             "one_link",
                                                             "bandwidth"]))
-            calibrator.add_param("link_latency", sc.parameters.Linear(0, 0.01).
+            calibrator.add_param("link_lat", sc.parameters.Linear(0, 0.01).
                                  format("%lfs").set_metadata(["network_topology_scheme_parameters",
                                                           "one_link",
                                                           "latency"]))
@@ -83,7 +82,8 @@ class WorkflowSimulatorCalibrator:
 
         coordinator = sc.coordinators.ThreadPool(pool_size=1)
 
-        evaluator = CalibrationLossEvaluator(self.simulator, self.workflows, self.loss, calibrator)
+        evaluator = CalibrationLossEvaluator(self.simulator, self.workflows, self.loss)
 
-        calibration, loss = calibrator.calibrate(evaluator, timelimit=600, coordinator=coordinator)
+        calibration, loss = calibrator.calibrate(evaluator, timelimit=60, coordinator=coordinator)
+
         return calibration, loss

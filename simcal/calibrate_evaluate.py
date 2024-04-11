@@ -100,7 +100,9 @@ def main():
         with open(args["input_calibration"]) as json_file:
             calibration = json.loads(json_file.read())
             json_file.close()
+
     else:
+        args["train"] = [os.path.abspath(x) for x in args["train"]]
         calibrator = WorkflowSimulatorCalibrator(args["train"],
                                                  simulator,
                                                  args["compute_service_scheme"],
@@ -109,6 +111,7 @@ def main():
                                                  sklearn_mean_squared_error)
         calibration, loss = calibrator.compute_calibration()
         calibration["loss"] = loss
+        print(calibration)
 
     # Save the calibration if need be
     # TODO

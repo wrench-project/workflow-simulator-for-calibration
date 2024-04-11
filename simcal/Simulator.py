@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 """
+import sys
 from typing import Any
 
 import simcal as sc
@@ -8,7 +9,7 @@ import json
 
 template_json_input = {
     "workflow": {
-        "file": None,
+        "file": "some file",
         "reference_flops": "100Mf"
     },
     "error_computation_scheme": "makespan",
@@ -223,41 +224,36 @@ class Simulator(sc.Simulator):
     def __init__(self):
         super().__init__()
 
-    def run(self, env: sc.Environment, args) -> Any:
-        (workflow, calibration, sc_calibrator) = args
-        print(f"CALIBRATION = {calibration}")
-        print(calibration['compute_host_speed'])
-
+    def run(self, env: sc.Environment, args: tuple[str, dict[str, sc.parameters.value]]) -> Any:
+        (workflow, calibration) = args
         # Create the input json
         json_input = template_json_input.copy()
         # override the workflow
         json_input["workflow"]["file"] = workflow
         # override all parameter values
         for parameter in calibration:
-            metadata = sc_calibrator.get_param(parameter).get_metadata()
+            metadata = calibration[parameter].get_parameter().get_metadata()
             tmp_object = json_input
             for item in metadata[0:-1]:
                 tmp_object = tmp_object[item]
             tmp_object[metadata[-1]] = calibration[parameter]
 
         # Save the input json as a file
-        env.tmp_dir(directory=".", keep=True)
-        json_file = env.tmp_file(directory=env.get_cwd(), encoding='utf8', keep=True)
+        env.tmp_dir(directory=".", keep=False)
+        json_file = env.tmp_file(directory=env.get_cwd(), encoding='utf8', keep=False)
         json.dump(json_input, json_file, default=lambda o: str(o))
         json_file.flush()
 
         # Run the simulator
         cmdargs = [json_file.name]
-        print("CALLING THE SIMULATOR!")
-        print(" ".join(["workflow-simulator-for-calibration"] + cmdargs))
+        # print(" ".join(["workflow-simulator-for-calibration"] + cmdargs))
         std_out, std_err, exit_code = env.bash("workflow-simulator-for-calibration", cmdargs)
         if exit_code:
-            print("Simulator has failed")
+            sys.stderr.write(f"Simulator has failed with exit code {exit_code}!\n\n{std_err}\n")
             exit(1)
-        if std_err:
-            print(std_out, std_err, exit_code)
-            exit(1)
-        print("HERE ABORTING FOR NOW")
+        # if std_err:
+        #     print(std_out, std_err, exit_code)
+        #     exit(1)
 
         [simulated_makespan, real_makespan, error] = std_out.split(":")
         return float(simulated_makespan), float(real_makespan)
