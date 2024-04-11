@@ -15,12 +15,13 @@ class CalibrationLossEvaluator:
         self.loss_function = loss
 
     def __call__(self, calibration: Any):
-        res = []
-        print(calibration)
+        results = []
         # Run simulator for all known ground truth points
         for workflow in self.ground_truth:
-            res.append(self.simulator((workflow, calibration)))
-        return self.loss_function([x[0] for x in res], [x[1] for x in res])
+            results.append(self.simulator((workflow, calibration)))
+
+        simulated_makespans, real_makespans = zip(*results)
+        return self.loss_function(simulated_makespans, real_makespans)
 
 
 class WorkflowSimulatorCalibrator:
@@ -37,53 +38,53 @@ class WorkflowSimulatorCalibrator:
         self.network_topology_scheme = network_topology_scheme
         self.loss = loss
 
-    def compute_calibration(self):
+    def compute_calibration(self, time_limit: float, num_threads: int):
 
-        calibrator = sc.calibrators.Grid()
+        calibrator = sc.calibrators.Random()
 
         if self.compute_service_scheme == "all_bare_metal":
             calibrator.add_param("compute_hosts_speed", sc.parameters.Exponential(10, 40).
-                                 format("%lff").set_metadata(["compute_service_scheme_parameters",
-                                                          "all_bare_metal",
-                                                          "compute_hosts",
-                                                          "speed"]))
+                                 format("%lff").set_custom_data(["compute_service_scheme_parameters",
+                                                                 "all_bare_metal",
+                                                                 "compute_hosts",
+                                                                 "speed"]))
 
             calibrator.add_param("thread_startup_overhead", sc.parameters.Linear(0, 10).
-                                 format("%lfs").set_metadata(["compute_service_scheme_parameters",
-                                                          "all_bare_metal",
-                                                          "properties",
-                                                          "BareMetalComputeServiceProperty::THREAD_STARTUP_OVERHEAD"]))
+                                 format("%lfs").set_custom_data(["compute_service_scheme_parameters",
+                                                                 "all_bare_metal",
+                                                                 "properties",
+                                                                 "BareMetalComputeServiceProperty::THREAD_STARTUP_OVERHEAD"]))
         else:
             raise Exception(f"Compute service scheme '{self.compute_service_scheme}' not implemented yet")
 
         if self.storage_service_scheme == "submit_only":
             calibrator.add_param("disk_read_bw", sc.parameters.Exponential(10, 40).
-                                 format("%lfbps").set_metadata(["storage_service_scheme_parameters",
-                                                            "submit_only",
-                                                            "bandwidth_submit_disk_read"]))
+                                 format("%lfbps").set_custom_data(["storage_service_scheme_parameters",
+                                                                   "submit_only",
+                                                                   "bandwidth_submit_disk_read"]))
             calibrator.add_param("disk_write_bw", sc.parameters.Exponential(10, 40).
-                                 format("%lfbps").set_metadata(["storage_service_scheme_parameters",
-                                                            "submit_only",
-                                                            "bandwidth_submit_disk_write"]))
+                                 format("%lfbps").set_custom_data(["storage_service_scheme_parameters",
+                                                                   "submit_only",
+                                                                   "bandwidth_submit_disk_write"]))
         else:
             raise Exception(f"Storage service scheme '{self.storage_service_scheme}' not implemented yet")
 
         if self.network_topology_scheme == "one_link":
             calibrator.add_param("link_bw", sc.parameters.Exponential(10, 40).
-                                 format("%lfbps").set_metadata(["network_topology_scheme_parameters",
-                                                            "one_link",
-                                                            "bandwidth"]))
+                                 format("%lfbps").set_custom_data(["network_topology_scheme_parameters",
+                                                                   "one_link",
+                                                                   "bandwidth"]))
             calibrator.add_param("link_lat", sc.parameters.Linear(0, 0.01).
-                                 format("%lfs").set_metadata(["network_topology_scheme_parameters",
-                                                          "one_link",
-                                                          "latency"]))
+                                 format("%lfs").set_custom_data(["network_topology_scheme_parameters",
+                                                                 "one_link",
+                                                                 "latency"]))
         else:
             raise Exception(f"Network topology scheme '{self.network_topology_scheme}' not implemented yet")
 
-        coordinator = sc.coordinators.ThreadPool(pool_size=1)
+        coordinator = sc.coordinators.ThreadPool(pool_size=num_threads)
 
         evaluator = CalibrationLossEvaluator(self.simulator, self.workflows, self.loss)
 
-        calibration, loss = calibrator.calibrate(evaluator, timelimit=60, coordinator=coordinator)
+        calibration, loss = calibrator.calibrate(evaluator, timelimit=time_limit, coordinator=coordinator)
 
         return calibration, loss

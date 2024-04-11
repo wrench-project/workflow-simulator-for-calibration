@@ -232,7 +232,7 @@ class Simulator(sc.Simulator):
         json_input["workflow"]["file"] = workflow
         # override all parameter values
         for parameter in calibration:
-            metadata = calibration[parameter].get_parameter().get_metadata()
+            metadata = calibration[parameter].get_parameter().get_custom_data()
             tmp_object = json_input
             for item in metadata[0:-1]:
                 tmp_object = tmp_object[item]
