@@ -21,6 +21,10 @@ python3 {program_name} --train workflow-*-*-10*.json  other_workflow.json
 
     parser.add_argument('-t', '--train', type=str, metavar="<space-separated list of files>", nargs='*',
                         help='WfInstances to train on')
+    parser.add_argument('-a', '--algorithm', type=str,
+                        metavar="[grid|random|gradient]",
+                        choices=['grid', 'random', 'gradient'], required=True,
+                        help='The calibration algorithm')
     parser.add_argument('-e', '--eval', type=str, metavar="<space-separated list of files>", nargs='*',
                         help='WfInstances to evaluate on')
     parser.add_argument('-ic', '--input_calibration', type=str, metavar="<path to file>", nargs='?', default=None,
@@ -89,6 +93,7 @@ def main():
     else:
         sys.stderr.write(f"Computing calibration using {len(args['train'])} workflows...\n")
         calibration, loss = compute_calibration(args["train"],
+                                                args["algorithm"],
                                                 simulator,
                                                 args["compute_service_scheme"],
                                                 args["storage_service_scheme"],

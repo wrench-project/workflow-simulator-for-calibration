@@ -9,10 +9,16 @@ from Simulator import Simulator
 from WorkflowSimulatorCalibrator import WorkflowSimulatorCalibrator
 
 
+def relative_average_error(x: List[float], y: List[float]):
+    return sum([abs(a - b) / a for (a, b) in list(zip(x, y))]) / len(x)
+
+
 def _get_loss_function(loss_spec: str) -> Callable:
     if loss_spec == "mean_square_error":
         from sklearn.metrics import mean_squared_error as sklearn_mean_squared_error
         return sklearn_mean_squared_error
+    elif loss_spec == "relative_average_error":
+        return relative_average_error
     else:
         raise Exception(f"Unknown loss function name '{loss_spec}'")
 
@@ -59,6 +65,7 @@ def save_pickled_calibration(filepath: str,
 
 
 def compute_calibration(workflows: List[str],
+                        algorithm: str,
                         simulator: Simulator,
                         compute_service_scheme: str,
                         storage_service_scheme: str,
@@ -67,6 +74,7 @@ def compute_calibration(workflows: List[str],
                         time_limit: float, num_threads: int):
 
     calibrator = WorkflowSimulatorCalibrator(workflows,
+                                             algorithm,
                                              simulator,
                                              compute_service_scheme,
                                              storage_service_scheme,

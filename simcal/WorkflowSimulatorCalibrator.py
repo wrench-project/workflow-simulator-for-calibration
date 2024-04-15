@@ -25,12 +25,14 @@ class CalibrationLossEvaluator:
 
 class WorkflowSimulatorCalibrator:
     def __init__(self, workflows: List[str],
+                 algorithm: str,
                  simulator: Simulator,
                  compute_service_scheme,
                  storage_service_scheme,
                  network_topology_scheme,
                  loss: Callable):
         self.workflows = workflows
+        self.algorithm = algorithm
         self.simulator = simulator
         self.compute_service_scheme = compute_service_scheme
         self.storage_service_scheme = storage_service_scheme
@@ -39,7 +41,14 @@ class WorkflowSimulatorCalibrator:
 
     def compute_calibration(self, time_limit: float, num_threads: int):
 
-        calibrator = sc.calibrators.Random()
+        if self.algorithm == "grid":
+            calibrator = sc.calibrators.Grid()
+        elif self.algorithm == "random":
+            calibrator = sc.calibrators.Random()
+        elif self.algorithm == "gradient":
+            calibrator = sc.calibrators.GradientDescent(0.001, 0.00001)
+        else:
+            raise Exception(f"Unknown calibration algorithm {self.algorithm}")
 
         if self.compute_service_scheme == "all_bare_metal":
             calibrator.add_param("compute_hosts_speed", sc.parameters.Exponential(10, 40).
