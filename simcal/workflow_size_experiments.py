@@ -49,6 +49,9 @@ python3 {program_name} --workflow_dir ../JSONS/ --workflow_name seismology --arc
                         choices=['mean_square_error','relative_average_error'], nargs='?', default="mean_square_error",
                         help='The loss function to evaluate a calibration')
 
+    parser.add_argument('-co', '--control_only', action="store_true",
+                        help='Whether to only calibrate on individual task numbers')
+
     args = vars(parser.parse_args())
     return args
 
@@ -90,12 +93,21 @@ def main():
         workflow_dict[num_tasks].append(workflow)
 
     keys = sorted(list(workflow_dict.keys()))
-    print(keys)
-    for i in range(1, len(workflow_dict)):
+    experiments_to_run = []
+    if args["control_only"]:
+        for key in keys:
+            experiments_to_run.append(([key], None))
+    else:
+        for i in range(1, len(workflow_dict)):
+            experiments_to_run.append((keys[0:i], keys[i]))
+            if keys[i] != keys[-1]:
+                experiments_to_run.append((keys[0:i], keys[-1]))
+
+    for (training_keys, evaluation_key) in experiments_to_run:
         training_workflows = []
-        for key in keys[0:i]:
+        for key in training_keys:
             training_workflows += workflow_dict[key]
-        sys.stderr.write(f"Training on {len(training_workflows)} workflows with #tasks: {keys[0:i]} ...\n")
+        sys.stderr.write(f"Training on {len(training_workflows)} workflows with #tasks: {training_keys} ...\n")
 
         calibration, loss = compute_calibration(training_workflows,
                                                 args["algorithm"],
@@ -108,12 +120,13 @@ def main():
                                                 int(args["num_threads"]))
         sys.stderr.write(f"  calibration loss: {loss}\n")
 
-        sys.stderr.write(f"Evaluating calibration on {len(workflow_dict[keys[-1]])} workflows with {keys[-1]} tasks...\n")
-        evaluation_loss = evaluate_calibration(workflow_dict[keys[-1]],
-                                               simulator,
-                                               calibration,
-                                               "mean_square_error")
-        sys.stderr.write(f"  evaluation loss: {evaluation_loss}\n")
+        if evaluation_key:
+            sys.stderr.write(f"  evaluating calibration on {len(workflow_dict[keys[-1]])} workflows with {keys[-1]} tasks...\n")
+            evaluation_loss = evaluate_calibration(workflow_dict[evaluation_key],
+                                                   simulator,
+                                                   calibration,
+                                                   "mean_square_error")
+            sys.stderr.write(f"    evaluation loss: {evaluation_loss}\n")
 
 
 if __name__ == "__main__":
