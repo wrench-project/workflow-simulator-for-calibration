@@ -97,7 +97,7 @@ def main():
         for i in range(1, len(workflow_dict)):
             experiments_to_run.append((keys[0:i], keys[i]))
             if keys[i] != keys[-1]:
-                experiments_to_run.append((keys[0:i], keys[-1]))
+                experiments_to_run.append((keys[0:i], keys[i]))
 
     for (training_keys, evaluation_key) in experiments_to_run:
         training_workflows = []
