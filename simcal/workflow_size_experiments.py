@@ -6,10 +6,6 @@ import argparse
 from Util import *
 
 
-def relative_average_error(x: List[float], y: List[float]):
-    return sum([abs(a - b) / a for (a, b) in list(zip(x, y))]) / len(x)
-
-
 def parse_command_line_arguments(program_name: str):
     epilog_string = f"""Example:
 python3 {program_name} --workflow_dir ../JSONS/ --workflow_name seismology --architecture cascadelake  
@@ -46,7 +42,7 @@ python3 {program_name} --workflow_dir ../JSONS/ --workflow_name seismology --arc
                         default=1, help='A number of threads to use for training')
     parser.add_argument('-lf', '--loss_function', type=str,
                         metavar="[mean_square_error]",
-                        choices=['mean_square_error','relative_average_error'], nargs='?', default="mean_square_error",
+                        choices=['mean_square_error', 'relative_average_error'], nargs='?', default="mean_square_error",
                         help='The loss function to evaluate a calibration')
 
     parser.add_argument('-co', '--control_only', action="store_true",
@@ -115,7 +111,7 @@ def main():
                                                 "all_bare_metal",
                                                 "submit_only",
                                                 "one_link",
-                                                "mean_square_error",
+                                                args["loss_function"],
                                                 float(args["time_limit"]),
                                                 int(args["num_threads"]))
         sys.stderr.write(f"  calibration loss: {loss}\n")
@@ -125,7 +121,7 @@ def main():
             evaluation_loss = evaluate_calibration(workflow_dict[evaluation_key],
                                                    simulator,
                                                    calibration,
-                                                   "mean_square_error")
+                                                   args["loss_function"])
             sys.stderr.write(f"    evaluation loss: {evaluation_loss}\n")
 
 
