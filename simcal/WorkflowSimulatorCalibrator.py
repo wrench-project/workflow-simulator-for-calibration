@@ -13,7 +13,7 @@ class CalibrationLossEvaluator:
         self.ground_truth = ground_truth
         self.loss_function = loss
 
-    def __call__(self, calibration: Any):
+    def __call__(self, calibration: Any, stop_time):
         results = []
         # Run simulator for all known ground truth points
         for workflow in self.ground_truth:

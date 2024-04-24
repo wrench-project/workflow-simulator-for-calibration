@@ -19,8 +19,8 @@ python3 {program_name} --workflow_dir ../JSONS/ --workflow_name seismology --arc
     parser.add_argument('-wd', '--workflow_dir', type=str, metavar="<workflow dir>", required=True,
                         help='Directory that contains all workflow instances')
 
-    parser.add_argument('-wn', '--workflow_name', type=str, metavar="<workflow name>", required=True,
-                        help='Workflow name')
+    parser.add_argument('-wn', '--workflow_names', type=str, metavar="<space-separated list of workflow names>", nargs='*',
+                        help='Names of workflows to run the calibration/validation on')
     parser.add_argument('-df', '--data_footprint', type=str, nargs="?", default="*",
                         help='The workflow data footprint')
     parser.add_argument('-cw', '--cpu_work', type=str, nargs="?", default="*",
@@ -60,69 +60,72 @@ def main():
     args["cpu_fraction"] = "0.6"
     args["num_tasks"] = "*"
 
-    # Instantiate a simulator object
-    simulator = Simulator()
+    for workflow_name in args["workflow_names"]:
+        sys.stdout.write(f"Running experiments for workflow {workflow_name}\n")
 
-    # Build list of workflows
-    search_string = f"{args['workflow_dir']}/" \
-                    f"{args['workflow_name']}-" \
-                    f"{args['num_tasks']}-" \
-                    f"{args['cpu_work']}-" \
-                    f"{args['cpu_fraction']}-" \
-                    f"{args['data_footprint']}-" \
-                    f"{args['architecture']}-" \
-                    f"{args['num_compute_nodes']}-*.json"
+        # Instantiate a simulator object
+        simulator = Simulator()
 
-    workflows = glob.glob(search_string)
-    if len(workflows) == 0:
-        sys.stderr.write(f"No workflow found ({search_string})\n")
-        sys.exit(1)
+        # Build list of workflows
+        search_string = f"{args['workflow_dir']}/" \
+                        f"{workflow_name}-" \
+                        f"{args['num_tasks']}-" \
+                        f"{args['cpu_work']}-" \
+                        f"{args['cpu_fraction']}-" \
+                        f"{args['data_footprint']}-" \
+                        f"{args['architecture']}-" \
+                        f"{args['num_compute_nodes']}-*.json"
 
-    workflows = [os.path.abspath(x) for x in workflows]
+        workflows = glob.glob(search_string)
+        if len(workflows) == 0:
+            sys.stdout.write(f"No workflow found ({search_string})\n")
+            sys.exit(1)
 
-    # Build dictionary based on number of tasks
-    workflow_dict = {}
-    for workflow in workflows:
-        num_tasks = int(workflow.split("-")[1])
-        if num_tasks not in workflow_dict:
-            workflow_dict[num_tasks] = []
-        workflow_dict[num_tasks].append(workflow)
+        workflows = [os.path.abspath(x) for x in workflows]
 
-    keys = sorted(list(workflow_dict.keys()))
-    experiments_to_run = []
-    if args["control_only"]:
-        for key in keys:
-            experiments_to_run.append(([key], None))
-    else:
-        for i in range(1, len(workflow_dict)):
-            experiments_to_run.append((keys[0:i], keys[i]))
-            if keys[i] != keys[-1]:
+        # Build dictionary based on number of tasks
+        workflow_dict = {}
+        for workflow in workflows:
+            num_tasks = int(workflow.split("-")[1])
+            if num_tasks not in workflow_dict:
+                workflow_dict[num_tasks] = []
+            workflow_dict[num_tasks].append(workflow)
+
+        keys = sorted(list(workflow_dict.keys()))
+        experiments_to_run = []
+        if args["control_only"]:
+            for key in keys:
+                experiments_to_run.append(([key], None))
+        else:
+            for i in range(1, len(workflow_dict)):
                 experiments_to_run.append((keys[0:i], keys[i]))
+                if keys[i] != keys[-1]:
+                    experiments_to_run.append((keys[0:i], keys[i]))
 
-    for (training_keys, evaluation_key) in experiments_to_run:
-        training_workflows = []
-        for key in training_keys:
-            training_workflows += workflow_dict[key]
-        sys.stderr.write(f"Training on {len(training_workflows)} workflows with #tasks: {training_keys} ...\n")
+        for (training_keys, evaluation_key) in experiments_to_run:
+            training_workflows = []
+            for key in training_keys:
+                training_workflows += workflow_dict[key]
+            sys.stdout.write(f"  Training on {len(training_workflows)} {workflow_name} workflows with #tasks: {training_keys} ...\n")
 
-        calibration, loss = compute_calibration(training_workflows,
-                                                args["algorithm"],
-                                                simulator,
-                                                "all_bare_metal",
-                                                "submit_only",
-                                                "one_link",
-                                                args["loss_function"],
-                                                float(args["time_limit"]),
-                                                int(args["num_threads"]))
-        sys.stderr.write(f"  calibration loss: {loss}\n")
+            calibration, loss = compute_calibration(training_workflows,
+                                                    args["algorithm"],
+                                                    simulator,
+                                                    "all_bare_metal",
+                                                    "submit_only",
+                                                    "one_link",
+                                                    args["loss_function"],
+                                                    float(args["time_limit"]),
+                                                    int(args["num_threads"]))
+            sys.stdout.write(f"    calibration loss: {loss}\n")
 
-        if evaluation_key:
-            sys.stderr.write(f"  evaluating calibration on {len(workflow_dict[keys[-1]])} workflows with {keys[-1]} tasks...\n")
-            evaluation_loss = evaluate_calibration(workflow_dict[evaluation_key],
-                                                   simulator,
-                                                   calibration,
-                                                   args["loss_function"])
-            sys.stderr.write(f"    evaluation loss: {evaluation_loss}\n")
+            if evaluation_key:
+                sys.stdout.write(f"    evaluating calibration on {len(workflow_dict[keys[-1]])} workflows with {keys[-1]} tasks...\n")
+                evaluation_loss = evaluate_calibration(workflow_dict[evaluation_key],
+                                                       simulator,
+                                                       calibration,
+                                                       args["loss_function"])
+                sys.stdout.write(f"      evaluation loss: {evaluation_loss}\n")
 
 
 if __name__ == "__main__":

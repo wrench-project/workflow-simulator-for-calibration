@@ -1,6 +1,7 @@
 """
 """
 import sys
+import time
 from typing import Any
 
 import simcal as sc
@@ -246,7 +247,7 @@ class Simulator(sc.Simulator):
         # Run the simulator
         cmdargs = [json_file.name]
         # print(" ".join(["workflow-simulator-for-calibration"] + cmdargs))
-        std_out, std_err, exit_code = env.bash("workflow-simulator-for-calibration", cmdargs)
+        std_out, std_err, exit_code = env.bash("workflow-simulator-for-calibration", cmdargs, std_in=None)
         if exit_code:
             sys.stderr.write(f"Simulator has failed with exit code {exit_code}!\n\n{std_err}\n")
             exit(1)
