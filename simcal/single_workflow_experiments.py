@@ -18,18 +18,28 @@ class WorkflowSetSpec:
         self.cpu_values = cpu_values
         self.num_nodes_values = num_nodes_values
 
-        self.workflows = glob.glob(f"{self.workflow_dir}/{self.workflow_name}-" +
-                                   f"{self.workflow_name}-" +
-                                   "{" + ",".join([str(x) for x in self.num_task_values]) + "}-" +
-                                   "{" + ",".join([str(x) for x in self.cpu_values]) + "}-" +
-                                   "{" + ",".join([str(x) for x in self.data_values]) + "}-" +
-                                   f"{self.architecture}-" +
-                                   "{" + ",".join([str(x) for x in self.num_nodes_values]) + "}-" +
-                                   "*.json")
+        self.workflows = []
+        for num_task_value in num_task_values:
+            for data_value in data_values:
+                for cpu_value in cpu_values:
+                    for num_nodes_value in num_nodes_values:
+                        search_string = f"{self.workflow_dir}/{self.workflow_name}-"
+                        search_string += str(num_task_value) + "-"
+                        search_string += str(cpu_value) + "-"
+                        search_string += "*-"
+                        search_string += str(data_value) + "-"
+                        search_string += f"{self.architecture}-"
+                        search_string += str(num_nodes_value) + "-"
+                        search_string += "*.json"
+                        self.workflows += glob.glob(search_string)
+
         self.workflows = [os.path.abspath(x) for x in self.workflows]
 
     def get_workflow_set(self):
         return self.workflows
+
+    def is_empty(self):
+        return len(self.workflows) == 0
 
     def __repr__(self):
         return f"#tasks: {self.num_task_values}, #nodes: {self.num_nodes_values}, " \
@@ -95,6 +105,17 @@ class ExperimentSet:
         self.network_topology_scheme = network_topology_scheme
 
     def add_experiment(self, training_set_spec: WorkflowSetSpec, evaluation_set_specs: List[WorkflowSetSpec]):
+        if training_set_spec.is_empty():
+            # Perhaps print a message?
+            return
+        non_empty_evaluation_set_specs = []
+        for evaluation_set_spec in evaluation_set_specs:
+            if not evaluation_set_spec.is_empty():
+                non_empty_evaluation_set_specs.append(evaluation_set_spec)
+        if len(non_empty_evaluation_set_specs) == 0:
+            # Perhaps print a message?
+            return
+
         xp = Experiment(training_set_spec, evaluation_set_specs)
         if xp not in self.experiments:
             self.experiments.append(xp)
@@ -106,9 +127,14 @@ class ExperimentSet:
         for xp in self.experiments:
             if xp.training_set_spec not in training_set_specs:
                 training_set_specs.append(xp.training_set_spec)
+
         # For each unique training_set_spec: compute the calibration and store it in the experiments
+        count = 1
         for training_set_spec in training_set_specs:
-            sys.stderr.write(f"Computing a calibration...\n")
+            sys.stderr.write(f"  Computing calibration #{count}/{len(training_set_specs)}  "
+                             f" ({self.algorithm}, {self.time_limit} sec, {self.num_threads} threads)...\n")
+
+            count += 1
             calibration, calibration_loss = compute_calibration(
                 training_set_spec.get_workflow_set(),
                 self.algorithm,
@@ -127,8 +153,11 @@ class ExperimentSet:
 
     def compute_all_evaluations(self):
         # Here we're ok doing possible redundant work since evaluation is cheap
+        count = 1
         for xp in self.experiments:
-            sys.stderr.write(f"Evaluating a calibration...\n")
+            sys.stderr.write(f"Performing evaluation #{count} / {len(self.experiments)}...\n")
+            count += 1
+            sys.stderr.write(f"  Evaluating a calibration...\n")
             for evaluation_set_spec in xp.evaluation_set_specs:
                 xp.evaluation_loss = evaluate_calibration(
                     evaluation_set_spec.get_workflow_set(),
@@ -155,9 +184,7 @@ class ExperimentSet:
 
 
 def parse_command_line_arguments(program_name: str):
-    epilog_string = f"""Example:
-python3 {program_name} --workflow_dir ../JSONS/ --workflow_name seismology --architecture cascadelake  
-"""
+    epilog_string = ""
 
     parser = argparse.ArgumentParser(
         prog=program_name,
@@ -262,6 +289,7 @@ def main():
                                         args["storage_service_scheme"],
                                         args["network_topology_scheme"])
 
+    sys.stderr.write("Creating experiments (glob.glob() takes a while)...\n")
     # Num task variation experiments
     for i in range(1, len(num_tasks_values)):
         for num_nodes in num_nodes_values:

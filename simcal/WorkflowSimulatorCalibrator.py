@@ -1,5 +1,8 @@
 import json
 import os
+import sys
+from time import time
+
 from sklearn.metrics import mean_squared_error as sklearn_mean_squared_error
 from pathlib import Path
 from typing import List, Callable, Any
@@ -93,6 +96,8 @@ class WorkflowSimulatorCalibrator:
 
         evaluator = CalibrationLossEvaluator(self.simulator, self.workflows, self.loss)
 
+        print(f"Calling calibrate with timelimit = {time_limit}")
         calibration, loss = calibrator.calibrate(evaluator, timelimit=time_limit, coordinator=coordinator)
+        print("Called calibrate...")
 
         return calibration, loss
