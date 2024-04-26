@@ -171,11 +171,11 @@ python3 {program_name} --workflow_dir ../JSONS/ --workflow_name seismology --arc
 
         parser.add_argument('-wn', '--workflow_name', type=str, metavar="<workflow names>", required=True,
                             help='Name of the workflow to run the calibration/validation on')
-        parser.add_argument('-ns', '--architecture', type=str,
+        parser.add_argument('-ar', '--architecture', type=str,
                             metavar="[haswell|skylake|cascadelake]",
                             choices=['haswell', 'skylake', 'cascadelake'], required=True,
                             help='The computer architecture')
-        parser.add_argument('-a', '--algorithm', type=str,
+        parser.add_argument('-al', '--algorithm', type=str,
                             metavar="[grid|random|gradient]",
                             choices=['grid', 'random', 'gradient'], required=True,
                             help='The calibration algorithm')
