@@ -396,7 +396,7 @@ def main():
         sys.exit(1)
 
     # Pickle results
-    pickle_file_name = f"pickled-one-workflow-experiments-" \
+    pickle_file_name = f"pickled-one_workflow_experiments-" \
                        f"{args['workflow_name']}-" \
                        f"{args['architecture']}-" \
                        f"{args['compute_service_scheme']}-" \
