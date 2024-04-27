@@ -75,7 +75,7 @@ class Experiment:
 
         self.calibration: dict[str, sc.parameters.Value] | None = None
         self.calibration_loss: float | None = None
-        self.evaluation_loss: float | None = None
+        self.evaluation_losses: List[float] | None = None
 
     def __eq__(self, other: object):
         if not isinstance(other, Experiment):
@@ -118,7 +118,7 @@ class ExperimentSet:
             # Perhaps print a message?
             return
 
-        xp = Experiment(training_set_spec, evaluation_set_specs)
+        xp = Experiment(training_set_spec, non_empty_evaluation_set_specs)
         if xp not in self.experiments:
             self.experiments.append(xp)
 
@@ -147,6 +147,9 @@ class ExperimentSet:
                 self.loss_function,
                 self.time_limit,
                 self.num_threads)
+
+            if calibration is None:
+                raise Exception("Calibration computed is None: try a higher time limit!")
             # update all relevant experiments (inefficient, but shouldn't be too many xps)
             for xp in self.experiments:
                 if xp.training_set_spec == training_set_spec:
@@ -157,15 +160,15 @@ class ExperimentSet:
         # Here we're ok doing possible redundant work since evaluation is cheap
         count = 1
         for xp in self.experiments:
-            sys.stderr.write(f"Performing evaluation #{count} / {len(self.experiments)}...\n")
+            sys.stderr.write(f"  Performing evaluation #{count} / {len(self.experiments)}...\n")
             count += 1
-            sys.stderr.write(f"  Evaluating a calibration...\n")
+            xp.evaluation_losses = []
             for evaluation_set_spec in xp.evaluation_set_specs:
-                xp.evaluation_loss = evaluate_calibration(
+                xp.evaluation_losses.append(evaluate_calibration(
                     evaluation_set_spec.get_workflow_set(),
                     self.simulator,
                     xp.calibration,
-                    self.loss_function)
+                    self.loss_function))
 
     def run(self):
         # Computing all needed calibrations (which can be redundant across experiments, so let's not be stupid)
@@ -291,7 +294,7 @@ def main():
                                         args["storage_service_scheme"],
                                         args["network_topology_scheme"])
 
-    sys.stderr.write("Creating experiments (glob.glob() takes a while)...\n")
+    sys.stderr.write("Creating experiments...\n")
     # Num task variation experiments
     for i in range(1, len(num_tasks_values)):
         for num_nodes in num_nodes_values:
@@ -359,14 +362,17 @@ def main():
                                     [num_tasks], data_values[-1:], cpu_values[-1:], num_nodes_values[-1:])
                 ])
 
+    sys.stderr.write(f"Created {len(experiments_to_runs)} experiments...\n")
 
-    # print(experiments_to_runs)
-    sys.stderr.write(f"Running {len(experiments_to_runs)} experiments...\n")
-
-    # Run experiments (which fills in all losses and calibrations)
-    experiments_to_runs.run()
+    sys.stderr.write(f"Running experiments...\n")
+    try:
+        experiments_to_runs.run()
+    except Exception as error:
+        sys.stderr.write(f"Error while running experiments: {error}\n")
+        sys.exit(1)
 
     # Pickle results
+    sys.stderr.write("SHOULD PICKLE\n")
 
 
 if __name__ == "__main__":
