@@ -212,7 +212,7 @@ template_json_input = {
             "bandwidth_to_compute_hosts": "4MBps",
             "latency_to_compute_hosts": "10us"
         },
-        "many_linksmany_links": {
+        "many_links": {
             "bandwidth_submit_to_compute_host": "4000MBps",
             "latency_submit_to_compute_host": "10us"
         }
@@ -232,7 +232,6 @@ class Simulator(sc.Simulator):
         # override the workflow
         json_input["workflow"]["file"] = workflow
 
-        print("Running simulator")
         # override all parameter values
         for parameter in calibration:
             metadata = calibration[parameter].get_parameter().get_custom_data()
@@ -241,24 +240,16 @@ class Simulator(sc.Simulator):
                 tmp_object = tmp_object[item]
             tmp_object[metadata[-1]] = calibration[parameter]
 
-        print("Running simulator 2")
         # Save the input json as a file
-        print("Getting a temp directory\n")
-        print(os.path.curdir)
         env.tmp_dir(directory=".", keep=False)
-        print("Got a temp directory")
-        print("Getting a temp file")
         json_file = env.tmp_file(directory=env.get_cwd(), encoding='utf8', keep=False)
-        print("Got a temp file")
-        print(json_input)
         json.dump(json_input, json_file, default=lambda o: str(o))
         json_file.flush()
 
-        print("Running simulator 3")
         # Run the simulator
         cmdargs = [json_file.name]
         # print(" ".join(["workflow-simulator-for-calibration"] + cmdargs))
-        print("workflow-simulator-for-calibration", cmdargs)
+        # print("workflow-simulator-for-calibration", cmdargs)
         std_out, std_err, exit_code = env.bash("workflow-simulator-for-calibration", cmdargs, std_in=None)
         if exit_code:
             sys.stderr.write(f"Simulator has failed with exit code {exit_code}!\n\n{std_err}\n")
@@ -266,8 +257,6 @@ class Simulator(sc.Simulator):
         # if std_err:
         #     print(std_out, std_err, exit_code)
         #     exit(1)
-        print("Ran simulator")
-
 
         [simulated_makespan, real_makespan, error] = std_out.split(":")
         return float(simulated_makespan), float(real_makespan)

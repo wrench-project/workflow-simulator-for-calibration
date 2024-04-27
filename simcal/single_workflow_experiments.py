@@ -3,6 +3,8 @@ import os
 import glob
 import argparse
 
+import simcal
+
 from Util import *
 
 
@@ -357,11 +359,14 @@ def main():
                                     [num_tasks], data_values[-1:], cpu_values[-1:], num_nodes_values[-1:])
                 ])
 
+
     # print(experiments_to_runs)
     sys.stderr.write(f"Running {len(experiments_to_runs)} experiments...\n")
 
-    # Run experiments
+    # Run experiments (which fills in all losses and calibrations)
     experiments_to_runs.run()
+
+    # Pickle results
 
 
 if __name__ == "__main__":

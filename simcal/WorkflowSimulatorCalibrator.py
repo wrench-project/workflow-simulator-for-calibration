@@ -3,6 +3,7 @@ import os
 import sys
 from time import time
 
+import simcal
 from sklearn.metrics import mean_squared_error as sklearn_mean_squared_error
 from pathlib import Path
 from typing import List, Callable, Any
@@ -16,7 +17,7 @@ class CalibrationLossEvaluator:
         self.ground_truth = ground_truth
         self.loss_function = loss
 
-    def __call__(self, calibration: Any, stop_time):
+    def __call__(self, calibration: Any, stop_time: float, env: simcal.Environment | None):
         results = []
         # Run simulator for all known ground truth points
         for workflow in self.ground_truth:
@@ -96,8 +97,6 @@ class WorkflowSimulatorCalibrator:
 
         evaluator = CalibrationLossEvaluator(self.simulator, self.workflows, self.loss)
 
-        print(f"Calling calibrate with timelimit = {time_limit}")
         calibration, loss = calibrator.calibrate(evaluator, timelimit=time_limit, coordinator=coordinator)
-        print("Called calibrate...")
 
         return calibration, loss
