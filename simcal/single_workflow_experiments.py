@@ -2,8 +2,7 @@
 import os
 import glob
 import argparse
-
-import simcal
+from datetime import timedelta
 
 from Util import *
 
@@ -36,6 +35,8 @@ class WorkflowSetSpec:
                         self.workflows += glob.glob(search_string)
 
         self.workflows = [os.path.abspath(x) for x in self.workflows]
+        sys.stderr.write(".")
+        sys.stderr.flush()
 
     def get_workflow_set(self):
         return self.workflows
@@ -160,7 +161,7 @@ class ExperimentSet:
         # Here we're ok doing possible redundant work since evaluation is cheap
         count = 1
         for xp in self.experiments:
-            sys.stderr.write(f"  Performing evaluation #{count} / {len(self.experiments)}...\n")
+            sys.stderr.write(f"  Performing evaluation #{count}/{len(self.experiments)}...\n")
             count += 1
             xp.evaluation_losses = []
             for evaluation_set_spec in xp.evaluation_set_specs:
@@ -169,6 +170,19 @@ class ExperimentSet:
                     self.simulator,
                     xp.calibration,
                     self.loss_function))
+
+    def estimate_run_time(self):
+        training_set_specs = []
+        for xp in self.experiments:
+            if xp.training_set_spec not in training_set_specs:
+                training_set_specs.append(xp.training_set_spec)
+        num_calibrations = len(training_set_specs)
+        num_evals = sum([len(x.evaluation_set_specs) for x in self.experiments])
+
+        eval_time = 2  # Guess
+        fudge = 1.3    # LOL
+
+        return fudge * (num_calibrations * self.time_limit + num_evals * eval_time)
 
     def run(self):
         # Computing all needed calibrations (which can be redundant across experiments, so let's not be stupid)
@@ -200,7 +214,8 @@ def parse_command_line_arguments(program_name: str):
 
         parser.add_argument('-wd', '--workflow_dir', type=str, metavar="<workflow dir>", required=True,
                             help='Directory that contains all workflow instances')
-
+        parser.add_argument('-cn', '--computer_name', type=str, metavar="<computer name>", required=True,
+                            help='Name of this computer to add to the pickled file name')
         parser.add_argument('-wn', '--workflow_name', type=str, metavar="<workflow names>", required=True,
                             help='Name of the workflow to run the calibration/validation on')
         parser.add_argument('-ar', '--architecture', type=str,
@@ -215,6 +230,8 @@ def parse_command_line_arguments(program_name: str):
                             help='A training time limit, in seconds')
         parser.add_argument('-th', '--num_threads', type=int, metavar="<number of threads (default=1)>", nargs='?',
                             default=1, help='A number of threads to use for training')
+        parser.add_argument('-n', '--estimate_run_time_only', action="store_true",
+                            help='A number of threads to use for training')
         parser.add_argument('-lf', '--loss_function', type=str,
                             metavar="[mean_square_error, relative_average_error]",
                             choices=['mean_square_error', 'relative_average_error'], nargs='?',
@@ -240,10 +257,11 @@ def parse_command_line_arguments(program_name: str):
 
 
 def main():
+
     # Parse command-line arguments
     args, parser, error = parse_command_line_arguments(sys.argv[0])
     if not args:
-        sys.stderr.write(f"ERROR: {error}\n")
+        sys.stderr.write(f"Error: {error}\n")
         parser.print_usage()
         sys.exit(1)
 
@@ -294,7 +312,7 @@ def main():
                                         args["storage_service_scheme"],
                                         args["network_topology_scheme"])
 
-    sys.stderr.write("Creating experiments...\n")
+    sys.stderr.write("Creating experiments")
     # Num task variation experiments
     for i in range(1, len(num_tasks_values)):
         for num_nodes in num_nodes_values:
@@ -362,9 +380,15 @@ def main():
                                     [num_tasks], data_values[-1:], cpu_values[-1:], num_nodes_values[-1:])
                 ])
 
-    sys.stderr.write(f"Created {len(experiments_to_runs)} experiments...\n")
+    sys.stderr.write(f"\nCreated {len(experiments_to_runs)} experiments...\n")
 
-    sys.stderr.write(f"Running experiments...\n")
+    time_estimate_str = timedelta(seconds=experiments_to_runs.estimate_run_time())
+
+    if args['estimate_run_time_only']:
+        sys.stderr.write(f"Experiments should take about {time_estimate_str}\n")
+        sys.exit(0)
+
+    sys.stderr.write(f"Running experiments (should take about {time_estimate_str})\n")
     try:
         experiments_to_runs.run()
     except Exception as error:
@@ -372,7 +396,33 @@ def main():
         sys.exit(1)
 
     # Pickle results
-    sys.stderr.write("SHOULD PICKLE\n")
+    pickle_file_name = f"pickled-one-workflow-experiments-" \
+                       f"{args['workflow_name']}-" \
+                       f"{args['architecture']}-" \
+                       f"{args['compute_service_scheme']}-" \
+                       f"{args['storage_service_scheme']}-" \
+                       f"{args['network_topology_scheme']}-" \
+                       f"{args['algorithm']}-" \
+                       f"{args['time_limit']}-" \
+                       f"{args['num_threads']}-" \
+                       f"{args['computer_name']}.pickled"
+
+    to_pickle = {"workflow_name": args['workflow_name'],
+                 "architecture": args['architecture'],
+                 "compute_service_scheme": args['compute_service_scheme'],
+                 "storage_service_scheme": args['storage_service_scheme'],
+                 "network_topology_scheme": args['network_topology_scheme'],
+                 "algorithm": args['algorithm'],
+                 "time_limit": args['time_limit'],
+                 "num_threads": args['num_threads'],
+                 "computer_name": args['computer_name'],
+                 "results": experiments_to_runs
+                 }
+
+    # Save it
+    with open(pickle_file_name, 'wb') as f:
+        pickle.dump(to_pickle, f)
+    sys.stderr.write(f"Pickled to ./{pickle_file_name}\n")
 
 
 if __name__ == "__main__":
