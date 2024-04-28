@@ -105,7 +105,7 @@ def main():
     sys.stderr.write(f"  data footprint: {data_values}\n")
     sys.stderr.write(f"  #compute nodes: {num_nodes_values}\n\n")
 
-    experiments_to_runs = ExperimentSet(Simulator(),
+    experiment_set = ExperimentSet(Simulator(),
                                         args["algorithm"],
                                         args["loss_function"],
                                         args["time_limit"],
@@ -118,7 +118,7 @@ def main():
     # Num task variation experiments
     for i in range(1, len(num_tasks_values)):
         for num_nodes in num_nodes_values:
-            experiments_to_runs.add_experiment(
+            experiment_set.add_experiment(
                 WorkflowSetSpec(args["workflow_dir"],
                                 args["workflow_name"],
                                 args["architecture"],
@@ -133,11 +133,23 @@ def main():
                                     args["architecture"],
                                     [num_tasks_values[-1]], data_values, cpu_values, [num_nodes]),
                 ])
+        # Overfitting "control" experiment
+        experiment_set.add_experiment(
+            WorkflowSetSpec(args["workflow_dir"],
+                            args["workflow_name"],
+                            args["architecture"],
+                            [num_tasks_values[i]], data_values, cpu_values, num_nodes_values),
+            [
+                WorkflowSetSpec(args["workflow_dir"],
+                                args["workflow_name"],
+                                args["architecture"],
+                                [num_tasks_values[i]], data_values, cpu_values, num_nodes_values),
+            ])
 
     # Num nodes variation experiments
     for i in range(1, len(num_nodes_values)):
         for num_tasks in num_tasks_values:
-            experiments_to_runs.add_experiment(
+            experiment_set.add_experiment(
                 WorkflowSetSpec(args["workflow_dir"],
                                 args["workflow_name"],
                                 args["architecture"],
@@ -152,39 +164,65 @@ def main():
                                     args["architecture"],
                                     [num_tasks], data_values, cpu_values, [num_nodes_values[-1]]),
                 ])
+        # Overfitting "control" experiment
+        experiment_set.add_experiment(
+            WorkflowSetSpec(args["workflow_dir"],
+                            args["workflow_name"],
+                            args["architecture"],
+                            num_tasks_values, data_values, cpu_values, [num_nodes_values[i]]),
+            [
+                WorkflowSetSpec(args["workflow_dir"],
+                                args["workflow_name"],
+                                args["architecture"],
+                                num_tasks_values, data_values, cpu_values, [num_nodes_values[i]]),
+            ])
 
     # "Bogus" Experiments to show that data and CPU should be diverse
     for i in range(1, len(num_tasks_values)):
         for num_nodes in [num_nodes_values[-1]]:
-            experiments_to_runs.add_experiment(
-                WorkflowSetSpec(args["workflow_dir"],
-                                args["workflow_name"],
-                                args["architecture"],
-                                num_tasks_values[0:i], data_values[-1:], cpu_values[-1:], [num_nodes]),
-                [
-                    WorkflowSetSpec(args["workflow_dir"],
-                                    args["workflow_name"],
-                                    args["architecture"],
-                                    num_tasks_values[-1:], data_values[-1:], cpu_values[-1:], [num_nodes])
-                ])
+            added = False
+            for data_value in data_values:
+                for cpu_value in cpu_values:
+                    added = experiment_set.add_experiment(
+                        WorkflowSetSpec(args["workflow_dir"],
+                                        args["workflow_name"],
+                                        args["architecture"],
+                                        num_tasks_values[0:i], [data_value], [cpu_value], [num_nodes]),
+                        [
+                            WorkflowSetSpec(args["workflow_dir"],
+                                            args["workflow_name"],
+                                            args["architecture"],
+                                            num_tasks_values[-1:], data_values, cpu_values, [num_nodes])
+                        ])
+                    if added:
+                        break
+                if added:
+                    break
 
     for i in range(1, len(num_nodes_values)):
         for num_tasks in [num_tasks_values[-1]]:
-            experiments_to_runs.add_experiment(
-                WorkflowSetSpec(args["workflow_dir"],
-                                args["workflow_name"],
-                                args["architecture"],
-                                [num_tasks], data_values[-1:], cpu_values[-1:], num_nodes_values[0:i]),
-                [
-                    WorkflowSetSpec(args["workflow_dir"],
-                                    args["workflow_name"],
-                                    args["architecture"],
-                                    [num_tasks], data_values[-1:], cpu_values[-1:], num_nodes_values[-1:])
-                ])
+            added = False
+            for data_value in data_values:
+                for cpu_value in cpu_values:
+                    added = experiment_set.add_experiment(
+                        WorkflowSetSpec(args["workflow_dir"],
+                                        args["workflow_name"],
+                                        args["architecture"],
+                                        [num_tasks], [data_value], [cpu_value], num_nodes_values[0:i]),
+                        [
+                            WorkflowSetSpec(args["workflow_dir"],
+                                            args["workflow_name"],
+                                            args["architecture"],
+                                            [num_tasks], data_values, cpu_values, num_nodes_values[-1:])
+                        ])
+                    if added:
+                        break
+                if added:
+                    break
 
-    sys.stderr.write(f"\nCreated {len(experiments_to_runs)} experiments...\n")
+    sys.stderr.write(f"\nCreated {len(experiment_set)} experiments...\n")
 
-    time_estimate_str = timedelta(seconds=experiments_to_runs.estimate_run_time())
+    time_estimate_str = timedelta(seconds=experiment_set.estimate_run_time())
 
     if args['estimate_run_time_only']:
         sys.stderr.write(f"Experiments should take about {time_estimate_str}\n")
@@ -192,7 +230,7 @@ def main():
 
     sys.stderr.write(f"Running experiments (should take about {time_estimate_str})\n")
     try:
-        experiments_to_runs.run()
+        experiment_set.run()
     except Exception as error:
         sys.stderr.write(f"Error while running experiments: {error}\n")
         sys.exit(1)
@@ -209,21 +247,9 @@ def main():
                        f"{args['num_threads']}-" \
                        f"{args['computer_name']}.pickled"
 
-    to_pickle = {"workflow_name": args['workflow_name'],
-                 "architecture": args['architecture'],
-                 "compute_service_scheme": args['compute_service_scheme'],
-                 "storage_service_scheme": args['storage_service_scheme'],
-                 "network_topology_scheme": args['network_topology_scheme'],
-                 "algorithm": args['algorithm'],
-                 "time_limit": args['time_limit'],
-                 "num_threads": args['num_threads'],
-                 "computer_name": args['computer_name'],
-                 "results": experiments_to_runs
-                 }
-
     # Pickle it
     with open(pickle_file_name, 'wb') as f:
-        pickle.dump(to_pickle, f)
+        pickle.dump(experiment_set, f)
     sys.stderr.write(f"Pickled to ./{pickle_file_name}\n")
 
 

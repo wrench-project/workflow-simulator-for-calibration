@@ -100,7 +100,6 @@ def evaluate_calibration(workflows: List[str],
     return _get_loss_function(loss_spec)(simulated_makespans, real_makespans)
 
 
-
 class WorkflowSetSpec:
     def __init__(self, workflow_dir: str, workflow_name: str, architecture: str,
                  num_task_values: List[int], data_values: List[int], cpu_values: List[int],
@@ -180,9 +179,10 @@ class Experiment:
 
     def __repr__(self):
         eval_str = ""
-        for eval_set in self.evaluation_set_specs:
-            eval_str += f"  Evaluation: {eval_set}\n"
-        return f"Training: {self.training_set_spec}\n{eval_str}"
+        for i in range(0, len(self.evaluation_set_specs)):
+            eval_str += f"  Evaluation: {self.evaluation_set_specs[i]}\n"
+            eval_str += f"    loss={self.evaluation_losses[i]}\n"
+        return f"Training: {self.training_set_spec}\n  loss={self.calibration_loss}\n{eval_str}"
 
     def __str__(self):
         return self.__repr__()
@@ -204,19 +204,49 @@ class ExperimentSet:
     def add_experiment(self, training_set_spec: WorkflowSetSpec, evaluation_set_specs: List[WorkflowSetSpec]):
         if training_set_spec.is_empty():
             # Perhaps print a message?
-            return
+            return False
         non_empty_evaluation_set_specs = []
         for evaluation_set_spec in evaluation_set_specs:
             if not evaluation_set_spec.is_empty():
                 non_empty_evaluation_set_specs.append(evaluation_set_spec)
         if len(non_empty_evaluation_set_specs) == 0:
             # Perhaps print a message?
-            return
+            return False
 
         xp = Experiment(training_set_spec, non_empty_evaluation_set_specs)
         if xp not in self.experiments:
             self.experiments.append(xp)
 
+        return True
+    
+    def get_workflows(self):
+        workflows = set({})
+        for xp in self.experiments:
+            workflows.add(xp.training_set_spec.workflow_name)
+            for s in xp.evaluation_set_specs:
+                workflows.add(s.workflow_name)
+        return list(workflows)
+    
+    def get_workflow(self):
+        if len(self.get_workflows()) > 1:
+            raise Exception("Experiment set is for more than one workflow")
+        else:
+            return self.experiments[0].training_set_spec.workflow_name
+        
+    def get_architectures(self):
+        architectures = set({})
+        for xp in self.experiments:
+            architectures.add(xp.training_set_spec.architecture)
+            for s in xp.evaluation_set_specs:
+                architectures.add(s.architecture)
+        return list(architectures)
+    
+    def get_architecture(self):
+        if len(self.get_architectures()) > 1:
+            raise Exception("Experiment set is for more than one architecture")
+        else:
+            return self.experiments[0].training_set_spec.architecture
+            
     def compute_all_calibrations(self):
         # Make a set of unique training_set_specs
         training_set_specs = []
@@ -229,7 +259,10 @@ class ExperimentSet:
         count = 1
         for training_set_spec in training_set_specs:
             sys.stderr.write(f"  Computing calibration #{count}/{len(training_set_specs)}  "
-                             f" ({self.algorithm}, {self.time_limit} sec, {self.num_threads} threads)...\n")
+                             f"({len(training_set_spec.get_workflow_set())} "
+                             f"workflows, {self.algorithm}, "
+                             f"{self.time_limit} sec, "
+                             f"{self.num_threads} threads)...\n")
 
             count += 1
             calibration, calibration_loss = compute_calibration(
