@@ -3,6 +3,8 @@
 WORKFLOWS="chain cycles epigenomics forkjoin genome montage seismology soykb"
 ARCHITECTURES="haswell skylake cascadelake"
 
+export DYLD_LIBRARY_PATH=/usr/local/lib
+
 TIMELIMIT=600
 
 for workflow in $WORKFLOWS; do

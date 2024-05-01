@@ -265,7 +265,6 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    std::cerr << "FOO\n";
 
     // Create relevant storage services
 
@@ -283,13 +282,11 @@ int main(int argc, char **argv) {
                                  storage_service_scheme,
                                  "submit_payloads")));
     submit_node_storage_service->setNetworkTimeoutValue(NETWORK_TIMEOUT);
-    std::cerr << "FOO1\n";
 
     // Create relevant compute services
     std::set<std::shared_ptr<wrench::ComputeService>> compute_services;
 
     if (compute_service_scheme == "all_bare_metal") {
-        std::cerr << "IN ALL BARE METAL\n";
         std::string scratch_mount_point;
         if (storage_service_scheme == "submit_and_compute_hosts") {
             scratch_mount_point = "/scratch";
@@ -297,11 +294,9 @@ int main(int argc, char **argv) {
             scratch_mount_point = "";
         }
 
-        std::cerr << "CREATING BARE METAL CS\n";
 
         // Create one bare-metal service on all compute nodes
         for (auto const &host : compute_host_names) {
-            std::cerr << "ON " << host << "\n";
             auto cs = simulation->add(
                     new wrench::BareMetalComputeService(
                             host,
@@ -365,7 +360,6 @@ int main(int argc, char **argv) {
 
     }
 
-    std::cerr << "FAA\n";
 
     // Instantiate a Controller on the submit_host
     double scheduling_overhead;

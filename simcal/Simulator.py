@@ -228,9 +228,9 @@ class Simulator(sc.Simulator):
         if exit_code:
             sys.stderr.write(f"Simulator has failed with exit code {exit_code}!\n\n{std_err}\n")
             exit(1)
-        # if std_err:
-        #     print(std_out, std_err, exit_code)
-        #     exit(1)
+        if std_err:
+            print(std_out, std_err, exit_code)
+            exit(1)
 
         [simulated_makespan, real_makespan, error] = std_out.split(":")
         return float(simulated_makespan), float(real_makespan)

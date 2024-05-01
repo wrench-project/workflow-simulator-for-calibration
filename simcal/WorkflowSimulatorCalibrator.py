@@ -21,7 +21,9 @@ class CalibrationLossEvaluator:
         results = []
         # Run simulator for all known ground truth points
         for workflow in self.ground_truth:
+            print("INVOKING SIMULATOR!")
             results.append(self.simulator((workflow, calibration), stoptime=stop_time))
+            print("INVOKED SIMULATOR!")
         simulated_makespans, real_makespans = zip(*results)
         return self.loss_function(simulated_makespans, real_makespans)
 
