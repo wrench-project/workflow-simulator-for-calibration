@@ -215,8 +215,8 @@ class Simulator(sc.Simulator):
             tmp_object[metadata[-1]] = str(calibration[parameter])
 
         # Save the input json as a file
-        env.tmp_dir(directory=".", keep=True)
-        json_file = env.tmp_file(directory=env.get_cwd(), encoding='utf8', keep=True)
+        env.tmp_dir(directory=".", keep=False)
+        json_file = env.tmp_file(directory=env.get_cwd(), encoding='utf8', keep=False)
         json.dump(json_input, json_file, default=lambda o: str(o))
         json_file.flush()
 
