@@ -70,18 +70,12 @@ def save_pickled_calibration(filepath: str,
 def compute_calibration(workflows: List[str],
                         algorithm: str,
                         simulator: Simulator,
-                        compute_service_scheme: str,
-                        storage_service_scheme: str,
-                        network_topology_scheme: str,
                         loss_spec: str,
                         time_limit: float, num_threads: int):
 
     calibrator = WorkflowSimulatorCalibrator(workflows,
                                              algorithm,
                                              simulator,
-                                             compute_service_scheme,
-                                             storage_service_scheme,
-                                             network_topology_scheme,
                                              _get_loss_function(loss_spec))
 
     calibration, loss = calibrator.compute_calibration(time_limit, num_threads)
@@ -189,17 +183,13 @@ class Experiment:
 
 
 class ExperimentSet:
-    def __init__(self, simulator: Simulator, algorithm: str, loss_function: str, time_limit: float, num_threads: int,
-                 compute_service_scheme: str, storage_service_scheme: str, network_topology_scheme: str):
+    def __init__(self, simulator: Simulator, algorithm: str, loss_function: str, time_limit: float, num_threads: int):
         self.simulator = simulator
         self.algorithm = algorithm
         self.loss_function = loss_function
         self.time_limit = time_limit
         self.num_threads = num_threads
         self.experiments: List[Experiment] = []
-        self.compute_service_scheme = compute_service_scheme
-        self.storage_service_scheme = storage_service_scheme
-        self.network_topology_scheme = network_topology_scheme
 
     def add_experiment(self, training_set_spec: WorkflowSetSpec, evaluation_set_specs: List[WorkflowSetSpec]):
         if training_set_spec.is_empty():
@@ -269,9 +259,6 @@ class ExperimentSet:
                 training_set_spec.get_workflow_set(),
                 self.algorithm,
                 self.simulator,
-                self.compute_service_scheme,
-                self.storage_service_scheme,
-                self.network_topology_scheme,
                 self.loss_function,
                 self.time_limit,
                 self.num_threads)

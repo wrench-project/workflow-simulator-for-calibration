@@ -206,15 +206,15 @@ template_json_input = {
             "bandwidth": "4MBps",
             "latency": "10us"
         },
+        "many_links": {
+            "bandwidth_submit_to_compute_host": "4000MBps",
+            "latency_submit_to_compute_host": "10us"
+        },
         "one_and_then_many_links": {
             "bandwidth_out_of_submit": "4MBps",
             "latency_out_of_submit": "10us",
             "bandwidth_to_compute_hosts": "4MBps",
             "latency_to_compute_hosts": "10us"
-        },
-        "many_links": {
-            "bandwidth_submit_to_compute_host": "4000MBps",
-            "latency_submit_to_compute_host": "10us"
         }
     }
 }
@@ -222,23 +222,37 @@ template_json_input = {
 
 class Simulator(sc.Simulator):
 
-    def __init__(self):
+    def __init__(self,
+                 compute_service_scheme: str,
+                 storage_service_scheme: str,
+                 network_topology_scheme: str):
         super().__init__()
+        self.compute_service_scheme = compute_service_scheme
+        self.storage_service_scheme = storage_service_scheme
+        self.network_topology_scheme = network_topology_scheme
 
-    def run(self, env: sc.Environment, args: tuple[str, dict[str, sc.parameters.value]]) -> Any:
+    def run(self, env: sc.Environment, args: tuple[str, dict[str, sc.parameters.Value]]) -> Any:
         (workflow, calibration) = args
         # Create the input json
         json_input = template_json_input.copy()
         # override the workflow
         json_input["workflow"]["file"] = workflow
 
+        # override the schemes
+        json_input["compute_service_scheme"] = self.compute_service_scheme
+        json_input["storage_service_scheme"] = self.storage_service_scheme
+        json_input["network_topology_scheme"] = self.network_topology_scheme
+
         # override all parameter values
         for parameter in calibration:
             metadata = calibration[parameter].get_parameter().get_custom_data()
             tmp_object = json_input
             for item in metadata[0:-1]:
+                if item not in tmp_object.keys():
+                    sys.stderr.write(f"Raising an exception for 'cannot set parameter values for {metadata}' but that won't be propagated for now")
+                    raise Exception(f"Internal error: cannot set parameter values for {metadata}")
                 tmp_object = tmp_object[item]
-            tmp_object[metadata[-1]] = calibration[parameter]
+            tmp_object[metadata[-1]] = str(calibration[parameter])
 
         # Save the input json as a file
         env.tmp_dir(directory=".", keep=False)

@@ -105,14 +105,15 @@ def main():
     sys.stderr.write(f"  data footprint: {data_values}\n")
     sys.stderr.write(f"  #compute nodes: {num_nodes_values}\n\n")
 
-    experiment_set = ExperimentSet(Simulator(),
-                                        args["algorithm"],
-                                        args["loss_function"],
-                                        args["time_limit"],
-                                        args["num_threads"],
-                                        args["compute_service_scheme"],
-                                        args["storage_service_scheme"],
-                                        args["network_topology_scheme"])
+    simulator = Simulator(args["compute_service_scheme"],
+                          args["storage_service_scheme"],
+                          args["network_topology_scheme"])
+
+    experiment_set = ExperimentSet(simulator,
+                                   args["algorithm"],
+                                   args["loss_function"],
+                                   args["time_limit"],
+                                   args["num_threads"])
 
     sys.stderr.write("Creating experiments")
     # Num task variation experiments
