@@ -74,26 +74,6 @@ template_json_input = {
             },
             "bare_metal_payloads": {
                 "ServiceMessagePayload::DAEMON_STOPPED_MESSAGE_PAYLOAD": "0",
-                "BareMetalComputeServiceMessagePayload::IS_THERE_AT_LEAST_ONE_HOST_WITH_AVAILABLE_RESOURCES_ANSWER_MESSAGE_PAYLOAD": "0",
-                "BareMetalComputeServiceMessagePayload::IS_THERE_AT_LEAST_ONE_HOST_WITH_AVAILABLE_RESOURCES_REQUEST_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::PILOT_JOB_EXPIRED_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::PILOT_JOB_STARTED_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::RESOURCE_DESCRIPTION_ANSWER_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::RESOURCE_DESCRIPTION_REQUEST_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::STANDARD_JOB_DONE_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::STANDARD_JOB_FAILED_MESSAGE_PAYLOAD": "0",
-                "ServiceMessagePayload::STOP_DAEMON_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::SUBMIT_PILOT_JOB_ANSWER_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::SUBMIT_PILOT_JOB_REQUEST_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::SUBMIT_STANDARD_JOB_ANSWER_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::SUBMIT_STANDARD_JOB_REQUEST_MESSAGE_PAYLOAD": "0",
-                "BareMetalComputeServiceMessagePayload::TERMINATE_PILOT_JOB_ANSWER_MESSAGE_PAYLOAD": "0",
-                "BareMetalComputeServiceMessagePayload::TERMINATE_PILOT_JOB_REQUEST_MESSAGE_PAYLOAD": "0",
-                "BareMetalComputeServiceMessagePayload::TERMINATE_STANDARD_JOB_ANSWER_MESSAGE_PAYLOAD": "0",
-                "BareMetalComputeServiceMessagePayload::TERMINATE_STANDARD_JOB_REQUEST_MESSAGE_PAYLOAD": "0",
-                "BareMetalComputeServiceMessagePayload::FLOP_RATE_ANSWER_MESSAGE_PAYLOAD": "0",
-                "BareMetalComputeServiceMessagePayload::FLOP_RATE_REQUEST_MESSAGE_PAYLOAD": "0",
-                "BareMetalComputeServiceMessagePayload::NOT_ENOUGH_CORES_MESSAGE_PAYLOAD": "0"
             },
             "htcondor_properties": {
                 "HTCondorComputeServiceProperty::NEGOTIATOR_OVERHEAD": "1.0ms",
@@ -102,26 +82,6 @@ template_json_input = {
             },
             "htcondor_payloads": {
                 "ServiceMessagePayload::DAEMON_STOPPED_MESSAGE_PAYLOAD": "0",
-                "HTCondorComputeServiceMessagePayload::IS_THERE_AT_LEAST_ONE_HOST_WITH_AVAILABLE_RESOURCES_ANSWER_MESSAGE_PAYLOAD": "0",
-                "HTCondorComputeServiceMessagePayload::IS_THERE_AT_LEAST_ONE_HOST_WITH_AVAILABLE_RESOURCES_REQUEST_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::PILOT_JOB_EXPIRED_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::PILOT_JOB_STARTED_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::RESOURCE_DESCRIPTION_ANSWER_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::RESOURCE_DESCRIPTION_REQUEST_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::STANDARD_JOB_DONE_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::STANDARD_JOB_FAILED_MESSAGE_PAYLOAD": "0",
-                "ServiceMessagePayload::STOP_DAEMON_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::SUBMIT_PILOT_JOB_ANSWER_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::SUBMIT_PILOT_JOB_REQUEST_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::SUBMIT_STANDARD_JOB_ANSWER_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::SUBMIT_STANDARD_JOB_REQUEST_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::TERMINATE_PILOT_JOB_ANSWER_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::TERMINATE_PILOT_JOB_REQUEST_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::TERMINATE_STANDARD_JOB_ANSWER_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::TERMINATE_STANDARD_JOB_REQUEST_MESSAGE_PAYLOAD": "0",
-                "HTCondorComputeServiceMessagePayload::FLOP_RATE_ANSWER_MESSAGE_PAYLOAD": "0",
-                "HTCondorComputeServiceMessagePayload::FLOP_RATE_REQUEST_MESSAGE_PAYLOAD": "0",
-                "HTCondorComputeServiceMessagePayload::NOT_ENOUGH_CORES_MESSAGE_PAYLOAD": "0"
              }
         }
     },
@@ -255,8 +215,8 @@ class Simulator(sc.Simulator):
             tmp_object[metadata[-1]] = str(calibration[parameter])
 
         # Save the input json as a file
-        env.tmp_dir(directory=".", keep=False)
-        json_file = env.tmp_file(directory=env.get_cwd(), encoding='utf8', keep=False)
+        env.tmp_dir(directory=".", keep=True)
+        json_file = env.tmp_file(directory=env.get_cwd(), encoding='utf8', keep=True)
         json.dump(json_input, json_file, default=lambda o: str(o))
         json_file.flush()
 

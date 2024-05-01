@@ -265,6 +265,8 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
+    std::cerr << "FOO\n";
+
     // Create relevant storage services
 
     // There is always a storage service on the submit_node
@@ -281,12 +283,13 @@ int main(int argc, char **argv) {
                                  storage_service_scheme,
                                  "submit_payloads")));
     submit_node_storage_service->setNetworkTimeoutValue(NETWORK_TIMEOUT);
+    std::cerr << "FOO1\n";
 
     // Create relevant compute services
     std::set<std::shared_ptr<wrench::ComputeService>> compute_services;
 
     if (compute_service_scheme == "all_bare_metal") {
-
+        std::cerr << "IN ALL BARE METAL\n";
         std::string scratch_mount_point;
         if (storage_service_scheme == "submit_and_compute_hosts") {
             scratch_mount_point = "/scratch";
@@ -294,8 +297,11 @@ int main(int argc, char **argv) {
             scratch_mount_point = "";
         }
 
+        std::cerr << "CREATING BARE METAL CS\n";
+
         // Create one bare-metal service on all compute nodes
         for (auto const &host : compute_host_names) {
+            std::cerr << "ON " << host << "\n";
             auto cs = simulation->add(
                     new wrench::BareMetalComputeService(
                             host,
@@ -310,9 +316,6 @@ int main(int argc, char **argv) {
                                          compute_service_scheme,
                                          "payloads")));
             cs->setNetworkTimeoutValue(NETWORK_TIMEOUT);
-            if (not scratch_mount_point.empty()) {
-                cs->getScratch()->setNetworkTimeoutValue(NETWORK_TIMEOUT);
-            }
             compute_services.insert(cs);
         }
 
@@ -361,6 +364,8 @@ int main(int argc, char **argv) {
         compute_services.insert(htcondor_cs);
 
     }
+
+    std::cerr << "FAA\n";
 
     // Instantiate a Controller on the submit_host
     double scheduling_overhead;

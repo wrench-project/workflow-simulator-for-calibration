@@ -166,19 +166,19 @@ class WorkflowSimulatorCalibrator:
                                                                  "latency_submit_to_compute_host"]))
 
         elif self.simulator.network_topology_scheme == "one_and_then_many_links":
-            calibrator.add_param("link_bw", sc.parameters.Exponential(10, 40).
+            calibrator.add_param("first_link_bw", sc.parameters.Exponential(10, 40).
                                  format("%lfbps").set_custom_data(["network_topology_scheme_parameters",
                                                                    "one_and_then_many_links",
                                                                    "bandwidth_out_of_submit"]))
-            calibrator.add_param("link_lat", sc.parameters.Linear(0, 0.01).
+            calibrator.add_param("first_link_lat", sc.parameters.Linear(0, 0.01).
                                  format("%lfs").set_custom_data(["network_topology_scheme_parameters",
                                                                  "one_and_then_many_links",
                                                                  "latency_out_of_submit"]))
-            calibrator.add_param("link_bw", sc.parameters.Exponential(10, 40).
+            calibrator.add_param("second_link_bw", sc.parameters.Exponential(10, 40).
                                  format("%lfbps").set_custom_data(["network_topology_scheme_parameters",
                                                                    "one_and_then_many_links",
                                                                    "bandwidth_to_compute_hosts"]))
-            calibrator.add_param("link_lat", sc.parameters.Linear(0, 0.01).
+            calibrator.add_param("second_link_lat", sc.parameters.Linear(0, 0.01).
                                  format("%lfs").set_custom_data(["network_topology_scheme_parameters",
                                                                  "one_and_then_many_links",
                                                                  "latency_submit_to_compute_host"]))
