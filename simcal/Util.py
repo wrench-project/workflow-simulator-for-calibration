@@ -221,6 +221,7 @@ class ExperimentSet:
         if len(self.get_workflows()) > 1:
             raise Exception("Experiment set is for more than one workflow")
         else:
+            print(self.experiments)
             return self.experiments[0].training_set_spec.workflow_name
         
     def get_architectures(self):
@@ -236,7 +237,7 @@ class ExperimentSet:
             raise Exception("Experiment set is for more than one architecture")
         else:
             return self.experiments[0].training_set_spec.architecture
-            
+
     def compute_all_calibrations(self):
         # Make a set of unique training_set_specs
         training_set_specs = []
@@ -264,7 +265,7 @@ class ExperimentSet:
                 self.num_threads)
 
             if calibration is None:
-                raise Exception("Calibration computed is None: try a higher time limit!")
+                raise Exception("Calibration computed is None: perhaps a higher time limit?")
             # update all relevant experiments (inefficient, but shouldn't be too many xps)
             for xp in self.experiments:
                 if xp.training_set_spec == training_set_spec:
@@ -293,8 +294,8 @@ class ExperimentSet:
         num_calibrations = len(training_set_specs)
         num_evals = sum([len(x.evaluation_set_specs) for x in self.experiments])
 
-        eval_time = 2  # Guess
-        fudge = 1.3    # LOL
+        eval_time = 3  # Guess
+        fudge = 1.0    # LOL
 
         return fudge * (num_calibrations * self.time_limit + num_evals * eval_time)
 

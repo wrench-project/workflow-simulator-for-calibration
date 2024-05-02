@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 from datetime import timedelta
+import time
 from Util import *
 
 
@@ -231,7 +232,10 @@ def main():
 
     sys.stderr.write(f"Running experiments (should take about {time_estimate_str})\n")
     try:
+        start = time.perf_counter()
         experiment_set.run()
+        elapsed = int(time.perf_counter() - start)
+        sys.stderr.write(f"Actually ran in {timedelta(seconds=elapsed)}\n")
     except Exception as error:
         sys.stderr.write(f"Error while running experiments: {error}\n")
         sys.exit(1)

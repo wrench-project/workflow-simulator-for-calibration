@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import sys
 
 from Util import *
 import matplotlib.pyplot as plt
@@ -69,12 +70,13 @@ def build_label(workflow_sec_spec: WorkflowSetSpec):
 
 
 def process_experiment_set(experiment_set: ExperimentSet):
+    sys.stderr.write("Processing ")
     figure_name = f"figure-" \
                   f"{experiment_set.get_workflow()}-" \
                   f"{experiment_set.get_architecture()}-" \
-                  f"{experiment_set.compute_service_scheme}-" \
-                  f"{experiment_set.storage_service_scheme}-" \
-                  f"{experiment_set.network_topology_scheme}-" \
+                  f"{experiment_set.simulator.compute_service_scheme}-" \
+                  f"{experiment_set.simulator.storage_service_scheme}-" \
+                  f"{experiment_set.simulator.network_topology_scheme}-" \
                   f"{experiment_set.algorithm}-" \
                   f"{experiment_set.loss_function}-" \
                   f"{experiment_set.time_limit}-" \
@@ -127,8 +129,10 @@ def main():
     #     sys.exit(1)
 
     pickle_files = glob.glob("./pickled-*")
+    sys.stderr.write(f"Found {len(pickle_files)} pickled files to process...\n")
     for pickle_file in pickle_files:
         with open(pickle_file, 'rb') as file:
+            sys.stderr.write(pickle_file + "\n")
             process_experiment_set(pickle.load(file))
 
 
