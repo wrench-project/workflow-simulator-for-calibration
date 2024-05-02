@@ -230,6 +230,7 @@ class Simulator(sc.Simulator):
             exit(1)
         if std_err:
             print(std_out, std_err, exit_code)
+            print(cmdargs)
             exit(1)
 
         [simulated_makespan, real_makespan, error] = std_out.split(":")

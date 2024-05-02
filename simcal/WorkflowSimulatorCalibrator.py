@@ -21,9 +21,7 @@ class CalibrationLossEvaluator:
         results = []
         # Run simulator for all known ground truth points
         for workflow in self.ground_truth:
-            print("INVOKING SIMULATOR!")
             results.append(self.simulator((workflow, calibration), stoptime=stop_time))
-            print("INVOKED SIMULATOR!")
         simulated_makespans, real_makespans = zip(*results)
         return self.loss_function(simulated_makespans, real_makespans)
 
@@ -116,11 +114,11 @@ class WorkflowSimulatorCalibrator:
                                                                "SimpleStorageServiceProperty::MAX_NUM_CONCURRENT_DATA_CONNECTIONS"]))
 
         elif self.simulator.storage_service_scheme == "submit_and_compute_hosts":
-            calibrator.add_param("submit_disk_read_bw", sc.parameters.Exponential(10, 40).
+            calibrator.add_param("submit_disk_read_bw", sc.parameters.Exponential(20, 40).
                                  format("%lfbps").set_custom_data(["storage_service_scheme_parameters",
                                                                    "submit_and_compute_hosts",
                                                                    "bandwidth_submit_disk_read"]))
-            calibrator.add_param("submit_disk_write_bw", sc.parameters.Exponential(10, 40).
+            calibrator.add_param("submit_disk_write_bw", sc.parameters.Exponential(20, 40).
                                  format("%lfbps").set_custom_data(["storage_service_scheme_parameters",
                                                                    "submit_and_compute_hosts",
                                                                    "bandwidth_submit_disk_write"]))
@@ -130,11 +128,11 @@ class WorkflowSimulatorCalibrator:
                                                                "submit_properties",
                                                                "SimpleStorageServiceProperty::MAX_NUM_CONCURRENT_DATA_CONNECTIONS"]))
 
-            calibrator.add_param("compute_host_disk_read_bw", sc.parameters.Exponential(10, 40).
+            calibrator.add_param("compute_host_disk_read_bw", sc.parameters.Exponential(20, 40).
                                  format("%lfbps").set_custom_data(["storage_service_scheme_parameters",
                                                                    "submit_and_compute_hosts",
                                                                    "bandwidth_compute_host_disk_read"]))
-            calibrator.add_param("compute_host_disk_write_bw", sc.parameters.Exponential(10, 40).
+            calibrator.add_param("compute_host_disk_write_bw", sc.parameters.Exponential(20, 40).
                                  format("%lfbps").set_custom_data(["storage_service_scheme_parameters",
                                                                    "submit_and_compute_hosts",
                                                                    "bandwidth_compute_host_write"]))
