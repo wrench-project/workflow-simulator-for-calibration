@@ -1,7 +1,7 @@
 """
 """
-import os.path
 import sys
+import os
 import time
 from typing import Any
 
@@ -230,7 +230,9 @@ class Simulator(sc.Simulator):
             exit(1)
         if std_err:
             print(std_out, std_err, exit_code)
-            print(cmdargs)
+            debug_file_path = "/tmp/simulator_debug_" + str(time.perf_counter()) + ".json"
+            os.system(f"cp {json_file.name} {debug_file_path}")
+            print(f"The input file was {json_file.name} and was copied to f{debug_file_path}")
             exit(1)
 
         [simulated_makespan, real_makespan, error] = std_out.split(":")

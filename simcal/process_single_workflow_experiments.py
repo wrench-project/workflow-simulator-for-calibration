@@ -82,7 +82,16 @@ def process_experiment_set(experiment_set: ExperimentSet):
                   f"{experiment_set.time_limit}-" \
                   f"{experiment_set.num_threads}.pdf"
 
-    plt.figure()
+    plt.figure().set_figwidth(20)
+    plt.title(f"{experiment_set.get_workflow()} " \
+              f"{experiment_set.get_architecture()} " \
+              f"{experiment_set.simulator.compute_service_scheme} " \
+              f"{experiment_set.simulator.storage_service_scheme} " \
+              f"{experiment_set.simulator.network_topology_scheme} " \
+              f"{experiment_set.algorithm} " \
+              f"{experiment_set.loss_function} " \
+              f"{experiment_set.time_limit} " \
+              f"{experiment_set.num_threads}")
     to_plot = []
 
     for result in experiment_set.experiments:
@@ -93,7 +102,7 @@ def process_experiment_set(experiment_set: ExperimentSet):
             evaluation_spec = result.evaluation_set_specs[i]
             to_plot.append((training_loss, evaluation_loss,
                             "T-"+build_label(training_spec)+"\nE-" + build_label(evaluation_spec)))
-    print(to_plot)
+    # print(to_plot)
     # plt.bar([z for (x, y, z) in to_plot], [x for (x, y, z) in to_plot])
     bar_width = 0.25
     multiplier = 0
@@ -104,20 +113,20 @@ def process_experiment_set(experiment_set: ExperimentSet):
                     [x for (x, y, z) in to_plot],
                     bar_width,
                     label="calibration loss")
-    plt.bar_label(rects, padding=3)
+    # plt.bar_label(rects, padding=3)
     multiplier += 1
     offset = bar_width * multiplier
     rects = plt.bar([x + offset for x in x_values],
                     [y for (x, y, z) in to_plot],
                     bar_width,
                     label="evaluation loss")
-    plt.bar_label(rects, padding=3)
+    # plt.bar_label(rects, padding=3)
     plt.xticks(x_values, rotation=90, labels=[z for (x, y, z) in to_plot])
     plt.legend()
     sys.stderr.write(f"Saving {figure_name}...\n")
+    plt.tight_layout()
+
     plt.savefig(figure_name)
-
-
 
 
 def main():
