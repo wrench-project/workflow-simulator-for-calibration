@@ -191,6 +191,8 @@ class ExperimentSet:
         self.num_threads = num_threads
         self.experiments: List[Experiment] = []
 
+        print("EXOPERIMENT SET: ", self.num_threads)
+
     def add_experiment(self, training_set_spec: WorkflowSetSpec, evaluation_set_specs: List[WorkflowSetSpec]):
         if training_set_spec.is_empty():
             # Perhaps print a message?

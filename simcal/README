@@ -1,0 +1,63 @@
+lossfunction:
+
+timelimit = 1-hour
+
+4 calibration algorithms: GRADIENT DESCENT
+
+For 3 architectures: PICK ONE ARCHITURE
+                - CASCADELAKE
+
+For 1 version of the simulator: super-duper one with more parameters:
+
+        * 1st question: Only have data for one workflow, what do we need to train
+
+        DICTIONARY STRUCTURE:
+                - ARCHITECTURE:
+                - WORKFLOW:
+                - ALGORITHM:
+                - TIMELIMIT
+                - Training:
+                        - # training workflows
+                        - tasks list
+                        - nodes list
+                        - data list
+                        - cpu list
+                        - loss:
+                - Evaluationset:
+                        - # evaluation workflows
+                        - tasks list
+                        - nodes list
+                        - data list
+                        - cpu list
+                        - loss:
+
+        For each workflow [chain, forkjoin, soykb, genome, montage, seismology]:
+                - TRAIN ON SUBSETS DEFINED IN SOME FASHION:
+                        - #task = {10, 50, 104 , 203} --> simulate larger workflows (fixing #nodes=4)
+                                 train on 10             evaluate on 50, 104, 203 (care only about all testing)
+                                 train on 10,50          evaluate on 104, 203
+                                 train on 10,50,104      evaluate on 203
+                                        OR
+                                 train on 10             evaluate on 203  (don't care about some testing data, e.g. 50)
+                                 train on 10,50          evaluate on 203
+                                 train on 10,50,104      evaluate on 203
+                                        OR
+                                 train on 10             evaluate on ALL  (testing includes training)  NOT DOING IT FOR NOW
+                                 train on 10,50          evaluate on ALL
+                                 train on 10,50,104      evaluate on ALL
+
+                        - #nodes = {1, 2, 4, 8}       --> simulate larger platforms (fixing #task=50)
+                                same as tasks above
+
+                        - #data = {1MB, 10MB, 100MB}  --> always use all, but show that we do need diversity
+                        - #cpu =  {5, 50, 500}        --> always use all, but show that we do need diversity
+
+        * 2nd question: Generalization to other workflows?
+                Train on chain -> evaluate on all real-world
+                Train on forkjoin -> evaluate on all real-world
+                Train on chain+forkjoin -> evaluate on all real-world
+                Train on Montage -> Epigenommics???
+
+	* 3rd question: What about simplifying the simulator?
+        	- For some selected problem/workflow
+

@@ -109,6 +109,7 @@ def main():
                           args["storage_service_scheme"],
                           args["network_topology_scheme"])
 
+    print(args)
     experiment_set = ExperimentSet(simulator,
                                    args["algorithm"],
                                    args["loss_function"],
