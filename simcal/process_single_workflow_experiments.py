@@ -123,6 +123,9 @@ def process_experiment_set(experiment_set: ExperimentSet):
                              width_ratios=width_ratios, wspace=0.2,
                              hspace=0.1, height_ratios=[1])
 
+    temp = max([len(x) for x in to_plot.values()])
+    biggest_kind = [key for key in to_plot if len(to_plot[key]) == temp][0]
+
     fig = plt.figure()
     fig.set_figheight(3)
     fig.set_figwidth(12)
@@ -153,7 +156,7 @@ def process_experiment_set(experiment_set: ExperimentSet):
         for label in (ax.get_xticklabels() + ax.get_yticklabels()):
             label.set_fontsize(fontsize)
         ax.set_title(kind, fontsize=fontsize)
-        if i == 0:
+        if kind == biggest_kind:
             ax.legend(fontsize=fontsize)
 
 
