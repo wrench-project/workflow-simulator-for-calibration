@@ -83,7 +83,6 @@ def process_experiment_set(experiment_set: ExperimentSet):
                   f"{experiment_set.time_limit}-" \
                   f"{experiment_set.num_threads}.pdf"
 
-    plt.figure().set_figwidth(20)
     plt.title(f"{experiment_set.get_workflow()} " \
               f"{experiment_set.get_architecture()} " \
               f"{experiment_set.simulator.compute_service_scheme} " \
@@ -120,8 +119,9 @@ def process_experiment_set(experiment_set: ExperimentSet):
                             "T-"+build_label(training_spec)+"\nE-" + build_label(evaluation_spec)))
 
     to_plot = dict(sorted(to_plot.items()))
+    total_num_results = sum([len(to_plot[x]) for x in to_plot])
 
-    width_ratios = [len(to_plot[kind]) / sum([len(to_plot[x]) for x in to_plot]) for kind in to_plot]
+    width_ratios = [len(to_plot[kind]) / total_num_results for kind in to_plot]
     spec = gridspec.GridSpec(ncols=len(width_ratios), nrows=1,
                              width_ratios=width_ratios, wspace=0.2,
                              hspace=0.1, height_ratios=[1])
@@ -131,7 +131,7 @@ def process_experiment_set(experiment_set: ExperimentSet):
 
     fig = plt.figure()
     fig.set_figheight(3)
-    fig.set_figwidth(12)
+    fig.set_figwidth(total_num_results)
     fontsize=7
 
     for i in range(0, len(to_plot)):
