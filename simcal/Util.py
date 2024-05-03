@@ -221,7 +221,6 @@ class ExperimentSet:
         if len(self.get_workflows()) > 1:
             raise Exception("Experiment set is for more than one workflow")
         else:
-            print(self.experiments)
             return self.experiments[0].training_set_spec.workflow_name
         
     def get_architectures(self):

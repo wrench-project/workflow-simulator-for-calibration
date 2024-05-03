@@ -4,6 +4,7 @@ import sys
 
 from Util import *
 import matplotlib.pyplot as plt
+from matplotlib import gridspec
 
 def parse_command_line_arguments(program_name: str):
     epilog_string = ""
@@ -70,7 +71,7 @@ def build_label(workflow_sec_spec: WorkflowSetSpec):
 
 
 def process_experiment_set(experiment_set: ExperimentSet):
-    sys.stderr.write("Processing ")
+    # sys.stderr.write("Processing ")
     figure_name = f"figure-" \
                   f"{experiment_set.get_workflow()}-" \
                   f"{experiment_set.get_architecture()}-" \
@@ -94,19 +95,19 @@ def process_experiment_set(experiment_set: ExperimentSet):
               f"{experiment_set.num_threads}")
 
     to_plot = {}
-    to_plot["num_tasks_generalization"] = []
-    to_plot["num_nodes_generalization"] = []
-    to_plot["one_cpu_one_data"] = []
 
     for result in experiment_set.experiments:
         if len(result.training_set_spec.cpu_values) == 1:
             kind = "one_cpu_one_data"
-        elif len(result.training_set_spec.num_tasks_values) < len(result.training_set_spec.num_tasks_values):
+        elif len(result.training_set_spec.num_tasks_values) < max([len(x.num_tasks_values) for x in result.evaluation_set_specs]):
             kind = "num_tasks_generalization"
-        elif len(result.training_set_spec.num_nodes_values) < len(result.training_set_spec.num_nodes_values):
+        elif len(result.training_set_spec.num_nodes_values) < max([len(x.num_nodes_values) for x in result.evaluation_set_specs]):
             kind = "num_nodes_generalization"
         else:
-            raise Exception("Don't know how to categorize results")
+            kind = "training=eval"
+        if kind not in to_plot:
+            to_plot[kind] = []
+
         training_loss = result.calibration_loss
         training_spec = result.training_set_spec
         for i in range(0, len(result.evaluation_losses)):
@@ -114,31 +115,50 @@ def process_experiment_set(experiment_set: ExperimentSet):
             evaluation_spec = result.evaluation_set_specs[i]
             to_plot[kind].append((training_loss, evaluation_loss,
                             "T-"+build_label(training_spec)+"\nE-" + build_label(evaluation_spec)))
-    # print(to_plot)
-    # plt.bar([z for (x, y, z) in to_plot], [x for (x, y, z) in to_plot])
-    bar_width = 0.25
-    multiplier = 0
-    x_values = list(range(0, len(to_plot)))
 
-    offset = bar_width * multiplier
-    rects = plt.bar([x + offset for x in x_values],
-                    [x for (x, y, z) in to_plot],
-                    bar_width,
-                    label="calibration loss")
-    # plt.bar_label(rects, padding=3)
-    multiplier += 1
-    offset = bar_width * multiplier
-    rects = plt.bar([x + offset for x in x_values],
-                    [y for (x, y, z) in to_plot],
-                    bar_width,
-                    label="evaluation loss")
-    # plt.bar_label(rects, padding=3)
-    plt.xticks(x_values, rotation=90, labels=[z for (x, y, z) in to_plot])
-    plt.legend()
+    to_plot = dict(sorted(to_plot.items()))
+
+    width_ratios = [len(to_plot[kind]) / sum([len(to_plot[x]) for x in to_plot]) for kind in to_plot]
+    spec = gridspec.GridSpec(ncols=len(width_ratios), nrows=1,
+                             width_ratios=width_ratios, wspace=0.2,
+                             hspace=0.1, height_ratios=[1])
+
+    fig = plt.figure()
+    fig.set_figheight(3)
+    fig.set_figwidth(12)
+    fontsize=7
+
+    for i in range(0, len(to_plot)):
+        ax = fig.add_subplot(spec[i])
+        kind = list(to_plot.keys())[i]
+        data = to_plot[kind]
+        bar_width = 0.25
+        multiplier = 0
+
+        x_values = list(range(0, len(data)))
+        offset = bar_width * multiplier
+        ax.bar([x + offset for x in x_values],
+                        [x for (x, y, z) in data],
+                        bar_width,
+                        label="calibration loss")
+        # plt.bar_label(rects, padding=3)
+        multiplier += 1
+        offset = bar_width * multiplier
+        ax.bar([x + offset for x in x_values],
+                        [y for (x, y, z) in data],
+                        bar_width,
+                        label="evaluation loss")
+        # plt.bar_label(rects, padding=3)
+        ax.set_xticks(x_values, rotation=90, labels=[z for (x, y, z) in data])
+        for label in (ax.get_xticklabels() + ax.get_yticklabels()):
+            label.set_fontsize(fontsize)
+        ax.set_title(kind, fontsize=fontsize)
+        if i == 0:
+            ax.legend(fontsize=fontsize)
+
+
     sys.stderr.write(f"Saving {figure_name}...\n")
-    plt.tight_layout()
-
-    plt.savefig(figure_name)
+    plt.savefig(figure_name, bbox_inches='tight')
 
 
 def main():
@@ -153,7 +173,7 @@ def main():
     sys.stderr.write(f"Found {len(pickle_files)} pickled files to process...\n")
     for pickle_file in pickle_files:
         with open(pickle_file, 'rb') as file:
-            sys.stderr.write(pickle_file + "\n")
+            # sys.stderr.write(pickle_file + "\n")
             process_experiment_set(pickle.load(file))
 
 
