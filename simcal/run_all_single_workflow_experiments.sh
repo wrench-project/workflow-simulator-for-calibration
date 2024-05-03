@@ -1,15 +1,16 @@
 #!/bin/bash
 
-if [ "$#" -ne 2 ]; then
-    echo "Usage: $0 <time limit in seconds> <number of threads to use>"
+if [ "$#" -ne 3 ]; then
+    echo "Usage: $0 <grid | random | gradient> <time limit in seconds> <number of threads to use>"
     exit 1
 fi
 
-TIME_LIMIT="$1"
-NUM_THREADS="$2"
+ALGORITHM="$1"
+TIME_LIMIT="$2"
+NUM_THREADS="$3"
+
 WORKFLOWS="chain cycles epigenomics forkjoin genome montage seismology soykb"
 ARCHITECTURES="haswell skylake cascadelake"
-ALGORITHM=gradient
 
 export DYLD_LIBRARY_PATH=/usr/local/lib
 
