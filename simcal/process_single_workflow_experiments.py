@@ -97,22 +97,22 @@ def process_experiment_set(experiment_set: ExperimentSet):
     to_plot = {}
 
     for result in experiment_set.experiments:
-        if len(result.training_set_spec.cpu_values) == 1:
-            kind = "one_cpu_one_data"
-        elif len(result.training_set_spec.num_tasks_values) < max([len(x.num_tasks_values) for x in result.evaluation_set_specs]):
-            kind = "num_tasks_generalization"
-        elif len(result.training_set_spec.num_nodes_values) < max([len(x.num_nodes_values) for x in result.evaluation_set_specs]):
-            kind = "num_nodes_generalization"
-        else:
-            kind = "training=eval"
-        if kind not in to_plot:
-            to_plot[kind] = []
-
         training_loss = result.calibration_loss
         training_spec = result.training_set_spec
         for i in range(0, len(result.evaluation_losses)):
             evaluation_loss = result.evaluation_losses[i]
             evaluation_spec = result.evaluation_set_specs[i]
+            if len(training_spec.cpu_values) == 1:
+                kind = "one_cpu_one_data"
+            elif training_spec.num_tasks_values != evaluation_spec.num_tasks_values:
+                kind = "num_tasks_generalization"
+            elif training_spec.num_nodes_values != evaluation_spec.num_nodes_values:
+                kind = "num_nodes_generalization"
+            else:
+                kind = "training=eval"
+            if kind not in to_plot:
+                to_plot[kind] = []
+
             to_plot[kind].append((training_loss, evaluation_loss,
                             "T-"+build_label(training_spec)+"\nE-" + build_label(evaluation_spec)))
 
