@@ -50,7 +50,7 @@ class WorkflowSimulatorCalibrator:
 
         # COMPUTE SERVICE SCHEME
         if self.simulator.compute_service_scheme == "all_bare_metal":
-            calibrator.add_param("compute_hosts_speed", sc.parameters.Exponential(10, 40).
+            calibrator.add_param("compute_hosts_speed", sc.parameters.Exponential(20, 40).
                                  format("%lff").set_custom_data(["compute_service_scheme_parameters",
                                                                  "all_bare_metal",
                                                                  "compute_hosts",
@@ -63,7 +63,7 @@ class WorkflowSimulatorCalibrator:
                                                                  "BareMetalComputeServiceProperty::THREAD_STARTUP_OVERHEAD"]))
 
         elif self.simulator.compute_service_scheme == "htcondor_bare_metal":
-            calibrator.add_param("compute_hosts_speed", sc.parameters.Exponential(10, 40).
+            calibrator.add_param("compute_hosts_speed", sc.parameters.Exponential(20, 40).
                                  format("%lff").set_custom_data(["compute_service_scheme_parameters",
                                                                  "htcondor_bare_metal",
                                                                  "compute_hosts",

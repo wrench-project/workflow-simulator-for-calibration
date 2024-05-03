@@ -96,23 +96,23 @@ def evaluate_calibration(workflows: List[str],
 
 class WorkflowSetSpec:
     def __init__(self, workflow_dir: str, workflow_name: str, architecture: str,
-                 num_task_values: List[int], data_values: List[int], cpu_values: List[int],
+                 num_tasks_values: List[int], data_values: List[int], cpu_values: List[int],
                  num_nodes_values: List[int]):
         self.workflow_dir = workflow_dir
         self.workflow_name = workflow_name
         self.architecture = architecture
-        self.num_task_values = num_task_values
+        self.num_tasks_values = num_tasks_values
         self.data_values = data_values
         self.cpu_values = cpu_values
         self.num_nodes_values = num_nodes_values
 
         self.workflows = []
-        for num_task_value in num_task_values:
+        for num_tasks_value in num_tasks_values:
             for data_value in data_values:
                 for cpu_value in cpu_values:
                     for num_nodes_value in num_nodes_values:
                         search_string = f"{self.workflow_dir}/{self.workflow_name}-"
-                        search_string += str(num_task_value) + "-"
+                        search_string += str(num_tasks_value) + "-"
                         search_string += str(cpu_value) + "-"
                         search_string += "*-"
                         search_string += str(data_value) + "-"
@@ -132,7 +132,7 @@ class WorkflowSetSpec:
         return len(self.workflows) == 0
 
     def __repr__(self):
-        return f"#tasks: {self.num_task_values}, #nodes: {self.num_nodes_values}, " \
+        return f"#tasks: {self.num_tasks_values}, #nodes: {self.num_nodes_values}, " \
                f"data: {self.data_values}, cpu: {self.cpu_values}"
 
     def __eq__(self, other: object):
@@ -141,7 +141,7 @@ class WorkflowSetSpec:
         to_return = (self.workflow_dir == other.workflow_dir) and \
                     (self.workflow_name == other.workflow_name) and \
                     (self.architecture == other.architecture) and \
-                    (self.num_task_values == other.num_task_values) and \
+                    (self.num_tasks_values == other.num_tasks_values) and \
                     (self.data_values == self.data_values) and \
                     (self.cpu_values == self.cpu_values) and \
                     (self.num_nodes_values == other.num_nodes_values)

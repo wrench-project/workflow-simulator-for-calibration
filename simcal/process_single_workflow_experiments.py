@@ -56,7 +56,7 @@ def parse_command_line_arguments(program_name: str):
 
 def build_label(workflow_sec_spec: WorkflowSetSpec):
     label = ""
-    label += (",".join([str(x) for x in workflow_sec_spec.num_task_values])) + "-"
+    label += (",".join([str(x) for x in workflow_sec_spec.num_tasks_values])) + "-"
     label += (",".join([str(x) for x in workflow_sec_spec.num_nodes_values])) + "-"
     if len(workflow_sec_spec.cpu_values) > 1:
         label += "ALL-"
@@ -92,15 +92,27 @@ def process_experiment_set(experiment_set: ExperimentSet):
               f"{experiment_set.loss_function} " \
               f"{experiment_set.time_limit} " \
               f"{experiment_set.num_threads}")
-    to_plot = []
+
+    to_plot = {}
+    to_plot["num_tasks_generalization"] = []
+    to_plot["num_nodes_generalization"] = []
+    to_plot["one_cpu_one_data"] = []
 
     for result in experiment_set.experiments:
+        if len(result.training_set_spec.cpu_values) == 1:
+            kind = "one_cpu_one_data"
+        elif len(result.training_set_spec.num_tasks_values) < len(result.training_set_spec.num_tasks_values):
+            kind = "num_tasks_generalization"
+        elif len(result.training_set_spec.num_nodes_values) < len(result.training_set_spec.num_nodes_values):
+            kind = "num_nodes_generalization"
+        else:
+            raise Exception("Don't know how to categorize results")
         training_loss = result.calibration_loss
         training_spec = result.training_set_spec
         for i in range(0, len(result.evaluation_losses)):
             evaluation_loss = result.evaluation_losses[i]
             evaluation_spec = result.evaluation_set_specs[i]
-            to_plot.append((training_loss, evaluation_loss,
+            to_plot[kind].append((training_loss, evaluation_loss,
                             "T-"+build_label(training_spec)+"\nE-" + build_label(evaluation_spec)))
     # print(to_plot)
     # plt.bar([z for (x, y, z) in to_plot], [x for (x, y, z) in to_plot])
