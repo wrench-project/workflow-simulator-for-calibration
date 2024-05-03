@@ -140,14 +140,14 @@ def process_experiment_set(experiment_set: ExperimentSet):
 
         x_values = list(range(0, len(data)))
         offset = bar_width * multiplier
-        ax.bar([x + offset for x in x_values],
+        ax.bar([x + offset - bar_width/2 for x in x_values],
                         [x for (x, y, z) in data],
                         bar_width,
                         label="calibration loss")
         # plt.bar_label(rects, padding=3)
         multiplier += 1
         offset = bar_width * multiplier
-        ax.bar([x + offset for x in x_values],
+        ax.bar([x + offset - bar_width/2 for x in x_values],
                         [y for (x, y, z) in data],
                         bar_width,
                         label="evaluation loss")
