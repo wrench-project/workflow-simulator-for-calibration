@@ -95,6 +95,7 @@ def process_experiment_set(experiment_set: ExperimentSet):
               f"{experiment_set.num_threads}")
 
     to_plot = {}
+    largest_value = 0
 
     for result in experiment_set.experiments:
         training_loss = result.calibration_loss
@@ -112,6 +113,8 @@ def process_experiment_set(experiment_set: ExperimentSet):
                 kind = "training=eval"
             if kind not in to_plot:
                 to_plot[kind] = []
+
+            largest_value = max(largest_value, max(training_loss, evaluation_loss))
 
             to_plot[kind].append((training_loss, evaluation_loss,
                             "T-"+build_label(training_spec)+"\nE-" + build_label(evaluation_spec)))
@@ -137,6 +140,8 @@ def process_experiment_set(experiment_set: ExperimentSet):
         data = to_plot[kind]
         bar_width = 0.25
         multiplier = 0
+        ax.grid(axis='y')
+        ax.set_axisbelow(True)
 
         x_values = list(range(0, len(data)))
         offset = bar_width * multiplier
@@ -155,6 +160,8 @@ def process_experiment_set(experiment_set: ExperimentSet):
         ax.set_xticks(x_values, rotation=90, labels=[z for (x, y, z) in data])
         for label in (ax.get_xticklabels() + ax.get_yticklabels()):
             label.set_fontsize(fontsize)
+
+        ax.set_ylim([0, largest_value * 1.05])
         ax.set_title(kind, fontsize=fontsize)
         if kind == biggest_kind:
             ax.legend(fontsize=fontsize)
