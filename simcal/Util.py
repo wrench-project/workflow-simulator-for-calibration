@@ -142,8 +142,8 @@ class WorkflowSetSpec:
                     (self.workflow_name == other.workflow_name) and \
                     (self.architecture == other.architecture) and \
                     (self.num_tasks_values == other.num_tasks_values) and \
-                    (self.data_values == self.data_values) and \
-                    (self.cpu_values == self.cpu_values) and \
+                    (self.data_values == other.data_values) and \
+                    (self.cpu_values == other.cpu_values) and \
                     (self.num_nodes_values == other.num_nodes_values)
         return to_return
 
