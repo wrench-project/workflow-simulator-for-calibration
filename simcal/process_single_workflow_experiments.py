@@ -131,7 +131,7 @@ def process_experiment_set(experiment_set: ExperimentSet):
 
     fig = plt.figure()
     fig.set_figheight(3)
-    fig.set_figwidth(total_num_results)
+    fig.set_figwidth(max(10, total_num_results))
     fontsize=7
 
     for i in range(0, len(to_plot)):

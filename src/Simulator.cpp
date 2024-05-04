@@ -213,8 +213,8 @@ int main(int argc, char **argv) {
 
     // Check command-line arguments
     if (argc != 2 and argc != 3) {
-        std::cerr << "Usage: " << argv[0] << " <JSON input file> [JSON workflow file]" << std::endl;
-        std::cerr << "          (if JSON workflow file is provided, it overrides the workflow file specified in the JSON input file" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " <JSON input file OR string> [JSON workflow file]" << std::endl;
+        std::cerr << "          (if JSON workflow file is provided, it overrides the workflow file specified in the JSON input file / string" << std::endl;
         std::cerr << "       " << argv[0] << " --help     Displays usage" << std::endl;
         exit(1);
     }
@@ -236,7 +236,11 @@ int main(int argc, char **argv) {
 
     try {
         // Read JSON input
-        json_input = readJSONFromFile(argv[1]);
+        if (argv[1][0] == '{') {
+            json_input = boost::json::parse(argv[1]).as_object();
+        } else {
+            json_input = readJSONFromFile(argv[1]);
+        }
         // Override the workflow file spec if needed
         if (argc == 3) {
             json_input["workflow"].as_object()["file"] = std::string(argv[2]);

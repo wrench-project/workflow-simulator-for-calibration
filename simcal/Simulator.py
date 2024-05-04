@@ -214,25 +214,19 @@ class Simulator(sc.Simulator):
                 tmp_object = tmp_object[item]
             tmp_object[metadata[-1]] = str(calibration[parameter])
 
-        # Save the input json as a file
-        env.tmp_dir(directory=".", keep=False)
-        json_file = env.tmp_file(directory=env.get_cwd(), encoding='utf8', keep=False)
-        json.dump(json_input, json_file, default=lambda o: str(o))
-        json_file.flush()
+        # Create the JSON input string
+        json_string = json.dumps(json_input, separators=(',', ':'))
 
         # Run the simulator
-        cmdargs = [json_file.name]
-        # print(" ".join(["workflow-simulator-for-calibration"] + cmdargs))
-        # print("workflow-simulator-for-calibration", cmdargs)
+        cmdargs = [f"{json_string}"]
         std_out, std_err, exit_code = env.bash("workflow-simulator-for-calibration", cmdargs, std_in=None)
         if exit_code:
             sys.stderr.write(f"Simulator has failed with exit code {exit_code}!\n\n{std_err}\n")
             exit(1)
         if std_err:
-            print(std_out, std_err, exit_code)
-            debug_file_path = "/tmp/simulator_debug_" + str(time.perf_counter()) + ".json"
-            os.system(f"cp {json_file.name} {debug_file_path}")
-            print(f"The input file was {json_file.name} and was copied to f{debug_file_path}")
+            sys.stderr.write("The simulator produced something on stderr. ABORTING\n")
+            sys.stderr.write(std_err)
+            sys.stderr.write(cmdargs[0] + "\n")
             exit(1)
 
         [simulated_makespan, real_makespan, error] = std_out.split(":")

@@ -10,7 +10,9 @@ TIME_LIMIT="$2"
 NUM_THREADS="$3"
 
 WORKFLOWS="chain cycles epigenomics forkjoin genome montage seismology soykb"
+#WORKFLOWS="soykb"
 ARCHITECTURES="haswell skylake cascadelake"
+#ARCHITECTURES="haswell"
 
 export DYLD_LIBRARY_PATH=/usr/local/lib
 
