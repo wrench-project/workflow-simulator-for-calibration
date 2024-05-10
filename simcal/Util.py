@@ -112,12 +112,24 @@ class WorkflowSetSpec:
                 for cpu_value in cpu_values:
                     for num_nodes_value in num_nodes_values:
                         search_string = f"{self.workflow_dir}/{self.workflow_name}-"
-                        search_string += str(num_tasks_value) + "-"
-                        search_string += str(cpu_value) + "-"
+                        if num_tasks_value == -1:
+                            search_string += "*" + "-"
+                        else:
+                            search_string += str(num_tasks_value) + "-"
+                        if cpu_value == -1:
+                            search_string += "*" + "-"
+                        else:
+                            search_string += str(cpu_value) + "-"
                         search_string += "*-"
-                        search_string += str(data_value) + "-"
+                        if data_value == -1:
+                            search_string += "*" + "-"
+                        else:
+                            search_string += str(data_value) + "-"
                         search_string += f"{self.architecture}-"
-                        search_string += str(num_nodes_value) + "-"
+                        if num_nodes_value == -1:
+                            search_string += "*" + "-"
+                        else:
+                            search_string += str(num_nodes_value) + "-"
                         search_string += "*.json"
                         self.workflows += glob.glob(search_string)
 
@@ -208,7 +220,10 @@ class ExperimentSet:
             self.experiments.append(xp)
 
         return True
-    
+
+    def is_empty(self):
+        return len(self.experiments) == 0
+
     def get_workflows(self):
         workflows = set({})
         for xp in self.experiments:

@@ -19,7 +19,7 @@ def parse_command_line_arguments(program_name: str):
                             help='Directory that contains all workflow instances')
         parser.add_argument('-cn', '--computer_name', type=str, metavar="<computer name>", required=True,
                             help='Name of this computer to add to the pickled file name')
-        parser.add_argument('-wn', '--workflow_name', type=str, metavar="<workflow names>", required=True,
+        parser.add_argument('-wn', '--workflow_name', type=str, metavar="<workflow name>", required=True,
                             help='Name of the workflow to run the calibration/validation on')
         parser.add_argument('-ar', '--architecture', type=str,
                             metavar="[haswell|skylake|cascadelake]",
@@ -36,7 +36,7 @@ def parse_command_line_arguments(program_name: str):
         parser.add_argument('-n', '--estimate_run_time_only', action="store_true",
                             help='A number of threads to use for training')
         parser.add_argument('-lf', '--loss_function', type=str,
-                            metavar="[mean_square_error, relative_average_error]",
+                            metavar="mean_square_error, relative_average_error",
                             choices=['mean_square_error', 'relative_average_error'], nargs='?',
                             default="relative_average_error",
                             help='The loss function to evaluate a calibration')
@@ -84,7 +84,7 @@ def main():
         sys.stdout.write(f"No workflow found ({search_string})\n")
         sys.exit(1)
 
-    # Build lists of the characteristics for which we have data44
+    # Build lists of the characteristics for which we have data
     num_tasks_values = set({})
     cpu_values = set({})
     data_values = set({})

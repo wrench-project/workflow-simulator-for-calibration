@@ -4,6 +4,7 @@ import sys
 import os
 import time
 from typing import Any
+import copy
 
 import simcal as sc
 import json
@@ -36,27 +37,27 @@ template_json_input = {
                 "BareMetalComputeServiceProperty::THREAD_STARTUP_OVERHEAD": "42s"
             },
             "payloads": {
-                "ServiceMessagePayload::DAEMON_STOPPED_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::IS_THERE_AT_LEAST_ONE_HOST_WITH_AVAILABLE_RESOURCES_ANSWER_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::IS_THERE_AT_LEAST_ONE_HOST_WITH_AVAILABLE_RESOURCES_REQUEST_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::PILOT_JOB_EXPIRED_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::PILOT_JOB_STARTED_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::RESOURCE_DESCRIPTION_ANSWER_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::RESOURCE_DESCRIPTION_REQUEST_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::STANDARD_JOB_DONE_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::STANDARD_JOB_FAILED_MESSAGE_PAYLOAD": "0",
-                "ServiceMessagePayload::STOP_DAEMON_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::SUBMIT_PILOT_JOB_ANSWER_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::SUBMIT_PILOT_JOB_REQUEST_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::SUBMIT_STANDARD_JOB_ANSWER_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::SUBMIT_STANDARD_JOB_REQUEST_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::TERMINATE_PILOT_JOB_ANSWER_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::TERMINATE_PILOT_JOB_REQUEST_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::TERMINATE_STANDARD_JOB_ANSWER_MESSAGE_PAYLOAD": "0",
-                "ComputeServiceMessagePayload::TERMINATE_STANDARD_JOB_REQUEST_MESSAGE_PAYLOAD": "0",
-                "BareMetalComputeServiceMessagePayload::FLOP_RATE_ANSWER_MESSAGE_PAYLOAD": "0",
-                "BareMetalComputeServiceMessagePayload::FLOP_RATE_REQUEST_MESSAGE_PAYLOAD": "0",
-                "BareMetalComputeServiceMessagePayload::NOT_ENOUGH_CORES_MESSAGE_PAYLOAD": "0"
+                # "ServiceMessagePayload::DAEMON_STOPPED_MESSAGE_PAYLOAD": "0",
+                # "ComputeServiceMessagePayload::IS_THERE_AT_LEAST_ONE_HOST_WITH_AVAILABLE_RESOURCES_ANSWER_MESSAGE_PAYLOAD": "0",
+                # "ComputeServiceMessagePayload::IS_THERE_AT_LEAST_ONE_HOST_WITH_AVAILABLE_RESOURCES_REQUEST_MESSAGE_PAYLOAD": "0",
+                # "ComputeServiceMessagePayload::PILOT_JOB_EXPIRED_MESSAGE_PAYLOAD": "0",
+                # "ComputeServiceMessagePayload::PILOT_JOB_STARTED_MESSAGE_PAYLOAD": "0",
+                # "ComputeServiceMessagePayload::RESOURCE_DESCRIPTION_ANSWER_MESSAGE_PAYLOAD": "0",
+                # "ComputeServiceMessagePayload::RESOURCE_DESCRIPTION_REQUEST_MESSAGE_PAYLOAD": "0",
+                # "ComputeServiceMessagePayload::STANDARD_JOB_DONE_MESSAGE_PAYLOAD": "0",
+                # "ComputeServiceMessagePayload::STANDARD_JOB_FAILED_MESSAGE_PAYLOAD": "0",
+                # "ServiceMessagePayload::STOP_DAEMON_MESSAGE_PAYLOAD": "0",
+                # "ComputeServiceMessagePayload::SUBMIT_PILOT_JOB_ANSWER_MESSAGE_PAYLOAD": "0",
+                # "ComputeServiceMessagePayload::SUBMIT_PILOT_JOB_REQUEST_MESSAGE_PAYLOAD": "0",
+                # "ComputeServiceMessagePayload::SUBMIT_STANDARD_JOB_ANSWER_MESSAGE_PAYLOAD": "0",
+                # "ComputeServiceMessagePayload::SUBMIT_STANDARD_JOB_REQUEST_MESSAGE_PAYLOAD": "0",
+                # "ComputeServiceMessagePayload::TERMINATE_PILOT_JOB_ANSWER_MESSAGE_PAYLOAD": "0",
+                # "ComputeServiceMessagePayload::TERMINATE_PILOT_JOB_REQUEST_MESSAGE_PAYLOAD": "0",
+                # "ComputeServiceMessagePayload::TERMINATE_STANDARD_JOB_ANSWER_MESSAGE_PAYLOAD": "0",
+                # "ComputeServiceMessagePayload::TERMINATE_STANDARD_JOB_REQUEST_MESSAGE_PAYLOAD": "0",
+                # "BareMetalComputeServiceMessagePayload::FLOP_RATE_ANSWER_MESSAGE_PAYLOAD": "0",
+                # "BareMetalComputeServiceMessagePayload::FLOP_RATE_REQUEST_MESSAGE_PAYLOAD": "0",
+                # "BareMetalComputeServiceMessagePayload::NOT_ENOUGH_CORES_MESSAGE_PAYLOAD": "0"
             }
         },
         "htcondor_bare_metal": {
@@ -73,7 +74,7 @@ template_json_input = {
                 "BareMetalComputeServiceProperty::THREAD_STARTUP_OVERHEAD": "42s"
             },
             "bare_metal_payloads": {
-                "ServiceMessagePayload::DAEMON_STOPPED_MESSAGE_PAYLOAD": "0",
+                # "ServiceMessagePayload::DAEMON_STOPPED_MESSAGE_PAYLOAD": "0",
             },
             "htcondor_properties": {
                 "HTCondorComputeServiceProperty::NEGOTIATOR_OVERHEAD": "1.0ms",
@@ -81,7 +82,7 @@ template_json_input = {
                 "HTCondorComputeServiceProperty::GRID_POST_EXECUTION_DELAY": "10.0"
             },
             "htcondor_payloads": {
-                "ServiceMessagePayload::DAEMON_STOPPED_MESSAGE_PAYLOAD": "0",
+                # "ServiceMessagePayload::DAEMON_STOPPED_MESSAGE_PAYLOAD": "0",
              }
         }
     },
@@ -96,20 +97,20 @@ template_json_input = {
                 "SimpleStorageServiceProperty::MAX_NUM_CONCURRENT_DATA_CONNECTIONS": "8"
             },
             "submit_payloads": {
-                "ServiceMessagePayload::DAEMON_STOPPED_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FILE_COPY_ANSWER_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FILE_COPY_REQUEST_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FILE_DELETE_ANSWER_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FILE_DELETE_REQUEST_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FILE_LOOKUP_ANSWER_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FILE_LOOKUP_REQUEST_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FILE_READ_ANSWER_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FILE_READ_REQUEST_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FILE_WRITE_ANSWER_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FILE_WRITE_REQUEST_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FREE_SPACE_ANSWER_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FREE_SPACE_REQUEST_MESSAGE_PAYLOAD": "0",
-                "ServiceMessagePayload::STOP_DAEMON_MESSAGE_PAYLOAD": "0"
+                # "ServiceMessagePayload::DAEMON_STOPPED_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FILE_COPY_ANSWER_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FILE_COPY_REQUEST_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FILE_DELETE_ANSWER_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FILE_DELETE_REQUEST_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FILE_LOOKUP_ANSWER_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FILE_LOOKUP_REQUEST_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FILE_READ_ANSWER_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FILE_READ_REQUEST_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FILE_WRITE_ANSWER_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FILE_WRITE_REQUEST_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FREE_SPACE_ANSWER_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FREE_SPACE_REQUEST_MESSAGE_PAYLOAD": "0",
+                # "ServiceMessagePayload::STOP_DAEMON_MESSAGE_PAYLOAD": "0"
             }
         },
         "submit_and_compute_hosts": {
@@ -120,20 +121,20 @@ template_json_input = {
                 "SimpleStorageServiceProperty::MAX_NUM_CONCURRENT_DATA_CONNECTIONS": "8"
             },
             "submit_payloads": {
-                "ServiceMessagePayload::DAEMON_STOPPED_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FILE_COPY_ANSWER_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FILE_COPY_REQUEST_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FILE_DELETE_ANSWER_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FILE_DELETE_REQUEST_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FILE_LOOKUP_ANSWER_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FILE_LOOKUP_REQUEST_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FILE_READ_ANSWER_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FILE_READ_REQUEST_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FILE_WRITE_ANSWER_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FILE_WRITE_REQUEST_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FREE_SPACE_ANSWER_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FREE_SPACE_REQUEST_MESSAGE_PAYLOAD": "0",
-                "ServiceMessagePayload::STOP_DAEMON_MESSAGE_PAYLOAD": "0"
+                # "ServiceMessagePayload::DAEMON_STOPPED_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FILE_COPY_ANSWER_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FILE_COPY_REQUEST_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FILE_DELETE_ANSWER_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FILE_DELETE_REQUEST_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FILE_LOOKUP_ANSWER_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FILE_LOOKUP_REQUEST_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FILE_READ_ANSWER_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FILE_READ_REQUEST_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FILE_WRITE_ANSWER_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FILE_WRITE_REQUEST_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FREE_SPACE_ANSWER_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FREE_SPACE_REQUEST_MESSAGE_PAYLOAD": "0",
+                # "ServiceMessagePayload::STOP_DAEMON_MESSAGE_PAYLOAD": "0"
             },
             "bandwidth_compute_host_disk_read": "100MBps",
             "bandwidth_compute_host_write": "10MBps",
@@ -142,20 +143,20 @@ template_json_input = {
                 "SimpleStorageServiceProperty::MAX_NUM_CONCURRENT_DATA_CONNECTIONS": "8"
             },
             "compute_host_payloads": {
-                "ServiceMessagePayload::DAEMON_STOPPED_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FILE_COPY_ANSWER_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FILE_COPY_REQUEST_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FILE_DELETE_ANSWER_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FILE_DELETE_REQUEST_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FILE_LOOKUP_ANSWER_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FILE_LOOKUP_REQUEST_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FILE_READ_ANSWER_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FILE_READ_REQUEST_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FILE_WRITE_ANSWER_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FILE_WRITE_REQUEST_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FREE_SPACE_ANSWER_MESSAGE_PAYLOAD": "0",
-                "StorageServiceMessagePayload::FREE_SPACE_REQUEST_MESSAGE_PAYLOAD": "0",
-                "ServiceMessagePayload::STOP_DAEMON_MESSAGE_PAYLOAD": "0"
+                # "ServiceMessagePayload::DAEMON_STOPPED_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FILE_COPY_ANSWER_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FILE_COPY_REQUEST_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FILE_DELETE_ANSWER_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FILE_DELETE_REQUEST_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FILE_LOOKUP_ANSWER_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FILE_LOOKUP_REQUEST_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FILE_READ_ANSWER_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FILE_READ_REQUEST_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FILE_WRITE_ANSWER_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FILE_WRITE_REQUEST_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FREE_SPACE_ANSWER_MESSAGE_PAYLOAD": "0",
+                # "StorageServiceMessagePayload::FREE_SPACE_REQUEST_MESSAGE_PAYLOAD": "0",
+                # "ServiceMessagePayload::STOP_DAEMON_MESSAGE_PAYLOAD": "0"
             }
         }
     },
@@ -194,7 +195,7 @@ class Simulator(sc.Simulator):
     def run(self, env: sc.Environment, args: tuple[str, dict[str, sc.parameters.Value]]) -> Any:
         (workflow, calibration) = args
         # Create the input json
-        json_input = template_json_input.copy()
+        json_input = copy.deepcopy(template_json_input)
         # override the workflow
         json_input["workflow"]["file"] = workflow
 
