@@ -68,6 +68,23 @@ def main():
         parser.print_usage()
         sys.exit(1)
 
+    # Pickle results filename
+    pickle_file_name = f"pickled-one_workflow_experiments-" \
+                       f"{args['workflow_name']}-" \
+                       f"{args['architecture']}-" \
+                       f"{args['compute_service_scheme']}-" \
+                       f"{args['storage_service_scheme']}-" \
+                       f"{args['network_topology_scheme']}-" \
+                       f"{args['algorithm']}-" \
+                       f"{args['time_limit']}-" \
+                       f"{args['num_threads']}-" \
+                       f"{args['computer_name']}.pickled"
+
+    # If the pickled file already exists, then print a warning and move on
+    if os.path.isfile(pickle_file_name):
+        sys.stderr.write(f"There is already a pickled file '{pickle_file_name}'... Not doing anything!\n")
+        sys.exit(1)
+
     # Build list of workflows
     search_string = f"{args['workflow_dir']}/" \
                     f"{args['workflow_name']}-" \
@@ -240,17 +257,7 @@ def main():
         sys.stderr.write(f"Error while running experiments: {error}\n")
         sys.exit(1)
 
-    # Pickle results
-    pickle_file_name = f"pickled-one_workflow_experiments-" \
-                       f"{args['workflow_name']}-" \
-                       f"{args['architecture']}-" \
-                       f"{args['compute_service_scheme']}-" \
-                       f"{args['storage_service_scheme']}-" \
-                       f"{args['network_topology_scheme']}-" \
-                       f"{args['algorithm']}-" \
-                       f"{args['time_limit']}-" \
-                       f"{args['num_threads']}-" \
-                       f"{args['computer_name']}.pickled"
+
 
     # Pickle it
     with open(pickle_file_name, 'wb') as f:
