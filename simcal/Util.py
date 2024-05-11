@@ -11,7 +11,7 @@ import simcal as sc
 
 from Simulator import Simulator
 
-from WorkflowSimulatorCalibrator import WorkflowSimulatorCalibrator, CalibrationLossEvaluator
+from WorkflowSimulatorCalibrator import WorkflowSimulatorCalibrator, CalibrationLossEvaluator, get_makespan
 
 
 def relative_average_error(x: List[float], y: List[float]):
@@ -89,11 +89,25 @@ def evaluate_calibration(workflows: List[List[str]],
                          calibration: dict[str, sc.parameters.Value],
                          loss_spec: str) -> float:
 
-    evaluator = CalibrationLossEvaluator(simulator, workflows, _get_loss_function(loss_spec))
-    print(f"CALLING evaluator on {workflows}")
-    loss = evaluator(calibration, stop_time= time.perf_counter() + 10000000, log=True)
-    print(f"CALLED EVALUATOR")
-    return loss
+    # TODO: THIS CODE REUSE BEAUTY FAILS BECAUSE OF THE TIMEOUT (SEE COMMENT BELOW)
+    # evaluator = CalibrationLossEvaluator(simulator, workflows, _get_loss_function(loss_spec))
+    # print(f"CALLING evaluator on {workflows}")
+    # loss = evaluator(calibration, stop_time= time.perf_counter() + 10000000, log=True)
+    # print(f"CALLED EVALUATOR")
+    # return loss
+
+    results = []
+    for wfs in workflows:
+        # Get the ground-truth makespans
+        ground_truth_makespans = [get_makespan(wf) for wf in wfs]
+        # Compute the average
+        average_ground_truth_makespan = sum(ground_truth_makespans) / len(ground_truth_makespans)
+        # Run the simulation for the first workflow only, since they are all the same
+        simulated_makespan, whatever = simulator((wfs[0], calibration)) # TODO: IF I SPECIFY A STOP TIME, EVEN BIG, ALWAYS THROW!
+        results.append((simulated_makespan, average_ground_truth_makespan))
+
+    simulated_makespans, real_makespans = zip(*results)
+    return _get_loss_function(loss_spec)(simulated_makespans, real_makespans)
 
 
 class WorkflowSetSpec:
