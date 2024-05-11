@@ -221,10 +221,16 @@ class Simulator(sc.Simulator):
         # Run the simulator
         cmdargs = [f"{json_string}"]
         sys.stderr.write(".")
-        print(cmdargs)
+        # print(cmdargs)
         print("CALLING BASH")
-        std_out, std_err, exit_code = env.bash("workflow-simulator-for-calibration", cmdargs, std_in=None)
-        print("CALLED BASH")
+        try:
+            std_out, std_err, exit_code = env.bash("workflow-simulator-for-calibration", cmdargs, std_in=None)
+        except Exception as error:
+            # print("WTF: " , str(type(error)))
+            print("CALLED BASH - TIMEOUT EXCEPTION")
+            raise error
+            # exit(1)
+        print("CALLED BASH - OK")
         if exit_code:
             sys.stderr.write(f"Simulator has failed with exit code {exit_code}!\n\n{std_err}\n")
             exit(1)

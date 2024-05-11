@@ -39,7 +39,8 @@ class CalibrationLossEvaluator:
                 print("AVERAGE GTM: ", average_ground_truth_makespan)
             # Run the simulation for the first workflow only, since they are all the same
             if log:
-                print(f"Calling simulator on {workflows[0]} with stoptime")
+                import time
+                print(f"Calling simulator on {workflows[0]} with stop time...{stop_time} (now={time.perf_counter()})")
             simulated_makespan, whatever = self.simulator((workflows[0], calibration), stoptime=stop_time)
             if log:
                 print(ground_truth_makespans, average_ground_truth_makespan, simulated_makespan)

@@ -91,7 +91,8 @@ def evaluate_calibration(workflows: List[List[str]],
 
     evaluator = CalibrationLossEvaluator(simulator, workflows, _get_loss_function(loss_spec))
     print(f"CALLING evaluator on {workflows}")
-    loss = evaluator(calibration, stop_time= time.perf_counter() + 10000, log=True)
+    loss = evaluator(calibration, stop_time= time.perf_counter() + 10000000, log=True)
+    print(f"CALLED EVALUATOR")
     return loss
 
 

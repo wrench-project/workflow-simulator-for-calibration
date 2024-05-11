@@ -254,6 +254,7 @@ def main():
         elapsed = int(time.perf_counter() - start)
         sys.stderr.write(f"Actually ran in {timedelta(seconds=elapsed)}\n")
     except Exception as error:
+        sys.stderr.write(str(type(error)))
         sys.stderr.write(f"Error while running experiments: {error}\n")
         sys.exit(1)
 
