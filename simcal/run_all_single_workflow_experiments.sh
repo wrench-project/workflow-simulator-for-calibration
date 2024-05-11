@@ -9,10 +9,10 @@ ALGORITHM="$1"
 TIME_LIMIT="$2"
 NUM_THREADS="$3"
 
-#WORKFLOWS="chain cycles epigenomics forkjoin genome montage seismology soykb"
-WORKFLOWS="bwa"
-#ARCHITECTURES="haswell skylake cascadelake"
-ARCHITECTURES="cascadelake"
+WORKFLOWS="chain cycles epigenomics forkjoin genome montage seismology soykb"
+#WORKFLOWS="bwa"
+ARCHITECTURES="haswell skylake cascadelake"
+#ARCHITECTURES="cascadelake"
 
 export DYLD_LIBRARY_PATH=/usr/local/lib
 
