@@ -8,38 +8,56 @@ from sklearn.metrics import mean_squared_error as sklearn_mean_squared_error
 from pathlib import Path
 from typing import List, Callable, Any
 import simcal as sc
+
 import Simulator
 
+def get_makespan(workflow_file: str)-> float:
+    with open(workflow_file, "r") as f:
+        json_object = json.load(f)
+        return float(json_object["workflow"]["execution"]["makespanInSeconds"])
 
 class CalibrationLossEvaluator:
-    def __init__(self, simulator: Simulator, ground_truth: List[str], loss: Callable):
-        self.simulator = simulator
-        self.ground_truth = ground_truth
-        self.loss_function = loss
+    def __init__(self, simulator: Simulator, ground_truth: List[List[str]], loss: Callable):
+        self.simulator : Simulator = simulator
+        self.ground_truth : List[List[str]] = ground_truth
+        # print("IN CONS:", ground_truth)
+        self.loss_function : Callable = loss
 
-    def __call__(self, calibration: dict[str, sc.parameters.Value], stop_time: float):
+    def __call__(self, calibration: dict[str, sc.parameters.Value], stop_time: float, log: bool = False):
         results = []
-        if calibration["thread_startup_overhead"] < 0:
-            print(calibration)
-            sys.exit(1)
 
+        # print("IN CalibrationLossEvaluator()")
         # Run simulator for all known ground truth points
-        for workflow in self.ground_truth:
-            results.append(self.simulator((workflow, calibration), stoptime=stop_time))
+        for workflows in self.ground_truth:
+            # Get the ground-truth makespans
+            if log:
+                print(f"workflows = {workflows}")
+            ground_truth_makespans = [get_makespan(workflow) for workflow in workflows]
+            # Compute the average
+            average_ground_truth_makespan = sum(ground_truth_makespans) / len(ground_truth_makespans)
+            if log:
+                print("AVERAGE GTM: ", average_ground_truth_makespan)
+            # Run the simulation for the first workflow only, since they are all the same
+            if log:
+                print(f"Calling simulator on {workflows[0]} with stoptime")
+            simulated_makespan, whatever = self.simulator((workflows[0], calibration), stoptime=stop_time)
+            if log:
+                print(ground_truth_makespans, average_ground_truth_makespan, simulated_makespan)
+            results.append((simulated_makespan, average_ground_truth_makespan))
+
         simulated_makespans, real_makespans = zip(*results)
         return self.loss_function(simulated_makespans, real_makespans)
 
 
 class WorkflowSimulatorCalibrator:
-    def __init__(self, workflows: List[str],
+    def __init__(self, workflows: List[List[str]],
                  algorithm: str,
                  simulator: Simulator,
-
                  loss: Callable):
-        self.workflows = workflows
-        self.algorithm = algorithm
-        self.simulator = simulator
-        self.loss = loss
+        self.workflows : List[List[str]] = workflows
+        self.algorithm : str = algorithm
+        self.simulator : Simulator = simulator
+        self.loss : Callable = loss
 
     def compute_calibration(self, time_limit: float, num_threads: int):
 

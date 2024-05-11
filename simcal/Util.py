@@ -1,5 +1,7 @@
+import math
 import sys
 import pickle
+import time
 from typing import List, Callable
 from glob import glob
 import glob
@@ -9,8 +11,7 @@ import simcal as sc
 
 from Simulator import Simulator
 
-from WorkflowSimulatorCalibrator import WorkflowSimulatorCalibrator
-
+from WorkflowSimulatorCalibrator import WorkflowSimulatorCalibrator, CalibrationLossEvaluator
 
 
 def relative_average_error(x: List[float], y: List[float]):
@@ -68,7 +69,7 @@ def save_pickled_calibration(filepath: str,
         pickle.dump(to_pickle, f)
 
 
-def compute_calibration(workflows: List[str],
+def compute_calibration(workflows: List[List[str]],
                         algorithm: str,
                         simulator: Simulator,
                         loss_spec: str,
@@ -83,31 +84,30 @@ def compute_calibration(workflows: List[str],
     return calibration, loss
 
 
-def evaluate_calibration(workflows: List[str],
+def evaluate_calibration(workflows: List[List[str]],
                          simulator: Simulator,
                          calibration: dict[str, sc.parameters.Value],
                          loss_spec: str) -> float:
-    results = []
-    for workflow in workflows:
-        res = simulator((workflow, calibration))
-        results.append(res)
-    simulated_makespans, real_makespans = zip(*results)
-    return _get_loss_function(loss_spec)(simulated_makespans, real_makespans)
+
+    evaluator = CalibrationLossEvaluator(simulator, workflows, _get_loss_function(loss_spec))
+    print(f"CALLING evaluator on {workflows}")
+    loss = evaluator(calibration, stop_time= time.perf_counter() + 10000, log=True)
+    return loss
 
 
 class WorkflowSetSpec:
     def __init__(self, workflow_dir: str, workflow_name: str, architecture: str,
                  num_tasks_values: List[int], data_values: List[int], cpu_values: List[int],
                  num_nodes_values: List[int]):
-        self.workflow_dir = workflow_dir
-        self.workflow_name = workflow_name
-        self.architecture = architecture
-        self.num_tasks_values = num_tasks_values
-        self.data_values = data_values
-        self.cpu_values = cpu_values
-        self.num_nodes_values = num_nodes_values
+        self.workflow_dir : str = workflow_dir
+        self.workflow_name : str = workflow_name
+        self.architecture : str = architecture
+        self.num_tasks_values : List[int] = num_tasks_values
+        self.data_values : List[int] = data_values
+        self.cpu_values : List[int] = cpu_values
+        self.num_nodes_values : List[int] = num_nodes_values
 
-        self.workflows = []
+        self.workflows : List[List[str]] = []
         for num_tasks_value in num_tasks_values:
             for data_value in data_values:
                 for cpu_value in cpu_values:
@@ -132,16 +132,17 @@ class WorkflowSetSpec:
                         else:
                             search_string += str(num_nodes_value) + "-"
                         search_string += "*.json"
-                        self.workflows += glob.glob(search_string)
+                        found_workflows = glob.glob(search_string)
+                        if len(found_workflows) > 1:
+                            self.workflows.append([os.path.abspath(x) for x in found_workflows])
 
-        self.workflows = [os.path.abspath(x) for x in self.workflows]
         sys.stderr.write(".")
         sys.stderr.flush()
 
-    def get_workflow_set(self):
+    def get_workflow_set(self) -> List[List[str]]:
         return self.workflows
 
-    def is_empty(self):
+    def is_empty(self) -> bool:
         return len(self.workflows) == 0
 
     def __repr__(self):

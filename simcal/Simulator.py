@@ -220,7 +220,11 @@ class Simulator(sc.Simulator):
 
         # Run the simulator
         cmdargs = [f"{json_string}"]
+        sys.stderr.write(".")
+        print(cmdargs)
+        print("CALLING BASH")
         std_out, std_err, exit_code = env.bash("workflow-simulator-for-calibration", cmdargs, std_in=None)
+        print("CALLED BASH")
         if exit_code:
             sys.stderr.write(f"Simulator has failed with exit code {exit_code}!\n\n{std_err}\n")
             exit(1)
@@ -229,6 +233,7 @@ class Simulator(sc.Simulator):
             sys.stderr.write(std_err)
             sys.stderr.write(cmdargs[0] + "\n")
             exit(1)
+        print(std_out)
 
         [simulated_makespan, real_makespan, error] = std_out.split(":")
         return float(simulated_makespan), float(real_makespan)

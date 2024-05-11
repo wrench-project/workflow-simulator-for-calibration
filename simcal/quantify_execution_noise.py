@@ -7,10 +7,7 @@ from Util import *
 import json
 
 
-def get_makespan(workflow_file: str):
-    with open(workflow_file, "r") as f:
-        json_object = json.load(f)
-        return float(json_object["workflow"]["execution"]["makespanInSeconds"])
+
 
 
 def parse_command_line_arguments(program_name: str):
