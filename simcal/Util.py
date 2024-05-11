@@ -12,6 +12,7 @@ from Simulator import Simulator
 from WorkflowSimulatorCalibrator import WorkflowSimulatorCalibrator
 
 
+
 def relative_average_error(x: List[float], y: List[float]):
     return sum([abs(a - b) / a for (a, b) in list(zip(x, y))]) / len(x)
 
