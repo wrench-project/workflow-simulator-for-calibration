@@ -23,27 +23,17 @@ class CalibrationLossEvaluator:
         # print("IN CONS:", ground_truth)
         self.loss_function : Callable = loss
 
-    def __call__(self, calibration: dict[str, sc.parameters.Value], stop_time: float, log: bool = False):
+    def __call__(self, calibration: dict[str, sc.parameters.Value], stop_time: float):
         results = []
 
-        # print("IN CalibrationLossEvaluator()")
         # Run simulator for all known ground truth points
         for workflows in self.ground_truth:
             # Get the ground-truth makespans
-            if log:
-                print(f"workflows = {workflows}")
             ground_truth_makespans = [get_makespan(workflow) for workflow in workflows]
             # Compute the average
             average_ground_truth_makespan = sum(ground_truth_makespans) / len(ground_truth_makespans)
-            if log:
-                print("AVERAGE GTM: ", average_ground_truth_makespan)
             # Run the simulation for the first workflow only, since they are all the same
-            if log:
-                import time
-                print(f"Calling simulator on {workflows[0]} with stop time...{stop_time} (now={time.perf_counter()})")
             simulated_makespan, whatever = self.simulator((workflows[0], calibration), stoptime=stop_time)
-            if log:
-                print(ground_truth_makespans, average_ground_truth_makespan, simulated_makespan)
             results.append((simulated_makespan, average_ground_truth_makespan))
 
         simulated_makespans, real_makespans = zip(*results)
