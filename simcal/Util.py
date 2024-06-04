@@ -14,8 +14,8 @@ from Simulator import Simulator
 from WorkflowSimulatorCalibrator import WorkflowSimulatorCalibrator, CalibrationLossEvaluator, get_makespan
 
 
-def relative_average_error(x: List[float], y: List[float]):
-    return sum([abs(a - b) / a for (a, b) in list(zip(x, y))]) / len(x)
+def relative_average_error(x_simulated: List[float], y_real: List[float]):
+    return sum([abs(a - b) / b for (a, b) in list(zip(x_simulated, y_real))]) / len(x)
 
 
 def _get_loss_function(loss_spec: str) -> Callable:
