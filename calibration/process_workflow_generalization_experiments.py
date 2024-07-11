@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 import argparse
 import sys
+from glob import glob
 
-from Util import *
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
+
+from Util import *
 
 
 def build_label(workflow_sec_spec: WorkflowSetSpec):
@@ -23,7 +25,6 @@ def build_label(workflow_sec_spec: WorkflowSetSpec):
 
 
 def process_experiment_set(experiment_set: ExperimentSet):
-
     if experiment_set.is_empty():
         return
 
@@ -72,13 +73,13 @@ def process_experiment_set(experiment_set: ExperimentSet):
         evaluation_loss = result.evaluation_losses[0]
 
         to_plot.append((training_loss, evaluation_loss,
-                            "T-"+build_label(training_spec)+"\nE-" + eval_workflow))
+                        "T-" + build_label(training_spec) + "\nE-" + eval_workflow))
 
-    fig= plt.figure()
+    fig = plt.figure()
     fig.set_figheight(3)
     fig.set_figwidth(10)
     ax = fig.add_subplot()
-    fontsize=7
+    fontsize = 7
 
     bar_width = 0.25
     multiplier = 0
@@ -87,17 +88,17 @@ def process_experiment_set(experiment_set: ExperimentSet):
 
     x_values = list(range(0, len(to_plot)))
     offset = bar_width * multiplier
-    ax.bar([x + offset - bar_width/2 for x in x_values],
-                    [x for (x, y, z) in to_plot],
-                    bar_width,
-                    label="calibration loss")
+    ax.bar([x + offset - bar_width / 2 for x in x_values],
+           [x for (x, y, z) in to_plot],
+           bar_width,
+           label="calibration loss")
     # plt.bar_label(rects, padding=3)
     multiplier += 1
     offset = bar_width * multiplier
-    ax.bar([x + offset - bar_width/2 for x in x_values],
-                    [y for (x, y, z) in to_plot],
-                    bar_width,
-                    label="evaluation loss")
+    ax.bar([x + offset - bar_width / 2 for x in x_values],
+           [y for (x, y, z) in to_plot],
+           bar_width,
+           label="evaluation loss")
     # plt.bar_label(rects, padding=3)
     ax.set_xticks(x_values, rotation=90, labels=[z for (x, y, z) in to_plot])
     for label in (ax.get_xticklabels() + ax.get_yticklabels()):
@@ -111,8 +112,7 @@ def process_experiment_set(experiment_set: ExperimentSet):
 
 
 def main():
-
-    pickle_files = glob.glob("./pickled-workflow_generalization_experiments-*")
+    pickle_files = glob("./pickled-workflow_generalization_experiments-*")
     sys.stderr.write(f"Found {len(pickle_files)} pickled files to process...\n")
     for pickle_file in pickle_files:
         with open(pickle_file, 'rb') as file:

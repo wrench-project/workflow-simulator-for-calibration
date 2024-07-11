@@ -1,21 +1,20 @@
-import math
-import sys
-import pickle
-import time
-from typing import List, Callable
-from glob import glob
 import glob
+import math
 import os
+import pickle
+import sys
+import time
+from glob import glob
+from typing import List, Callable
 
 import simcal as sc
 
 from Simulator import Simulator
-
 from WorkflowSimulatorCalibrator import WorkflowSimulatorCalibrator, CalibrationLossEvaluator, get_makespan
 
 
 def relative_average_error(x_simulated: List[float], y_real: List[float]):
-    return sum([abs(a - b) / b for (a, b) in list(zip(x_simulated, y_real))]) / len(x)
+    return sum([abs(a - b) / b for (a, b) in list(zip(x_simulated, y_real))]) / len(x_simulated)
 
 
 def _get_loss_function(loss_spec: str) -> Callable:
@@ -88,24 +87,24 @@ def evaluate_calibration(workflows: List[List[str]],
                          simulator: Simulator,
                          calibration: dict[str, sc.parameters.Value],
                          loss_spec: str) -> float:
-
     evaluator = CalibrationLossEvaluator(simulator, workflows, _get_loss_function(loss_spec))
-    loss = evaluator(calibration, stop_time= time.time() + 10000) #TODO Replace with None whenever simcal allows it
+    loss = evaluator(calibration)  # TODO Replace with None whenever simcal allows it
     return loss
+
 
 class WorkflowSetSpec:
     def __init__(self, workflow_dir: str, workflow_name: str, architecture: str,
                  num_tasks_values: List[int], data_values: List[int], cpu_values: List[int],
                  num_nodes_values: List[int]):
-        self.workflow_dir : str = workflow_dir
-        self.workflow_name : str = workflow_name
-        self.architecture : str = architecture
-        self.num_tasks_values : List[int] = num_tasks_values
-        self.data_values : List[int] = data_values
-        self.cpu_values : List[int] = cpu_values
-        self.num_nodes_values : List[int] = num_nodes_values
+        self.workflow_dir: str = workflow_dir
+        self.workflow_name: str = workflow_name
+        self.architecture: str = architecture
+        self.num_tasks_values: List[int] = num_tasks_values
+        self.data_values: List[int] = data_values
+        self.cpu_values: List[int] = cpu_values
+        self.num_nodes_values: List[int] = num_nodes_values
 
-        self.workflows : List[List[str]] = []
+        self.workflows: List[List[str]] = []
         for num_tasks_value in num_tasks_values:
             for data_value in data_values:
                 for cpu_value in cpu_values:
@@ -130,7 +129,7 @@ class WorkflowSetSpec:
                         else:
                             search_string += str(num_nodes_value) + "-"
                         search_string += "*.json"
-                        found_workflows = glob.glob(search_string)
+                        found_workflows = glob(search_string)
                         if len(found_workflows) > 1:
                             self.workflows.append([os.path.abspath(x) for x in found_workflows])
 
@@ -231,13 +230,13 @@ class ExperimentSet:
             for s in xp.evaluation_set_specs:
                 workflows.add(s.workflow_name)
         return list(workflows)
-    
+
     def get_workflow(self):
         if len(self.get_workflows()) > 1:
             raise Exception("Experiment set is for more than one workflow")
         else:
             return self.experiments[0].training_set_spec.workflow_name
-        
+
     def get_architectures(self):
         architectures = set({})
         for xp in self.experiments:
@@ -245,7 +244,7 @@ class ExperimentSet:
             for s in xp.evaluation_set_specs:
                 architectures.add(s.architecture)
         return list(architectures)
-    
+
     def get_architecture(self):
         if len(self.get_architectures()) > 1:
             raise Exception("Experiment set is for more than one architecture")
@@ -255,6 +254,8 @@ class ExperimentSet:
     def compute_all_calibrations(self):
         # Make a set of unique training_set_specs
         training_set_specs = []
+
+        print("In compute all calibrations")
 
         for xp in self.experiments:
             if xp.training_set_spec not in training_set_specs:
@@ -309,7 +310,7 @@ class ExperimentSet:
         num_evals = sum([len(x.evaluation_set_specs) for x in self.experiments])
 
         eval_time = 3  # Guess
-        fudge = 1.0    # LOL
+        fudge = 1.0  # LOL
 
         return fudge * (num_calibrations * self.time_limit + num_evals * eval_time)
 

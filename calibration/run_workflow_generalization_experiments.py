@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import argparse
-from datetime import timedelta
 import time
+from datetime import timedelta
+from glob import glob
+
 from Util import *
 
 
@@ -62,7 +64,6 @@ def parse_command_line_arguments(program_name: str):
 
 
 def main():
-
     # Parse command-line arguments
     args, parser, error = parse_command_line_arguments(sys.argv[0])
     if not args:
@@ -97,7 +98,7 @@ def main():
                     f"*-" \
                     f"{args['architecture']}-" \
                     f"*-*.json"
-    workflows_train = glob.glob(search_string)
+    workflows_train = glob(search_string)
     search_string = f"{args['workflow_dir']}/" \
                     f"{args['workflow_name_eval']}-" \
                     f"*-" \
@@ -106,8 +107,7 @@ def main():
                     f"*-" \
                     f"{args['architecture']}-" \
                     f"*-*.json"
-    workflows_eval = glob.glob(search_string)
-
+    workflows_eval = glob(search_string)
 
     if len(workflows_train) == 0:
         sys.stdout.write(f"No training workflows found ({search_string})\n")
@@ -169,8 +169,6 @@ def main():
     except Exception as error:
         sys.stderr.write(f"Error while running experiments: {error}\n")
         sys.exit(1)
-
-
 
     # Pickle it
     with open(pickle_file_name, 'wb') as f:

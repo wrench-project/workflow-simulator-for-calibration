@@ -1,29 +1,32 @@
 import json
 import os
 import sys
+from pathlib import Path
 from time import time
+from typing import List, Callable, Any
 
 import simcal
-from sklearn.metrics import mean_squared_error as sklearn_mean_squared_error
-from pathlib import Path
-from typing import List, Callable, Any
 import simcal as sc
+from sklearn.metrics import mean_squared_error as sklearn_mean_squared_error
 
 import Simulator
 
-def get_makespan(workflow_file: str)-> float:
+
+def get_makespan(workflow_file: str) -> float:
     with open(workflow_file, "r") as f:
         json_object = json.load(f)
         return float(json_object["workflow"]["execution"]["makespanInSeconds"])
 
-class CalibrationLossEvaluator:
-    def __init__(self, simulator: Simulator, ground_truth: List[List[str]], loss: Callable):
-        self.simulator : Simulator = simulator
-        self.ground_truth : List[List[str]] = ground_truth
-        # print("IN CONS:", ground_truth)
-        self.loss_function : Callable = loss
 
-    def __call__(self, calibration: dict[str, sc.parameters.Value], stop_time: float):
+class CalibrationLossEvaluator(sc.Simulator):
+    def __init__(self, simulator: Simulator, ground_truth: List[List[str]], loss: Callable):
+        super().__init__()
+        self.simulator: Simulator = simulator
+        self.ground_truth: List[List[str]] = ground_truth
+        # print("IN CONS:", ground_truth)
+        self.loss_function: Callable = loss
+
+    def run(self, env: sc.Environment, calibration: dict[str, sc.parameters.Value]):
         results = []
 
         # Run simulator for all known ground truth points
@@ -33,7 +36,7 @@ class CalibrationLossEvaluator:
             # Compute the average
             average_ground_truth_makespan = sum(ground_truth_makespans) / len(ground_truth_makespans)
             # Run the simulation for the first workflow only, since they are all the same
-            simulated_makespan, whatever = self.simulator((workflows[0], calibration), stoptime=stop_time)
+            simulated_makespan, whatever = self.simulator.run(env, (workflows[0], calibration))
             results.append((simulated_makespan, average_ground_truth_makespan))
 
         simulated_makespans, real_makespans = zip(*results)
@@ -45,10 +48,10 @@ class WorkflowSimulatorCalibrator:
                  algorithm: str,
                  simulator: Simulator,
                  loss: Callable):
-        self.workflows : List[List[str]] = workflows
-        self.algorithm : str = algorithm
-        self.simulator : Simulator = simulator
-        self.loss : Callable = loss
+        self.workflows: List[List[str]] = workflows
+        self.algorithm: str = algorithm
+        self.simulator: Simulator = simulator
+        self.loss: Callable = loss
 
     def compute_calibration(self, time_limit: float, num_threads: int):
 
@@ -108,7 +111,6 @@ class WorkflowSimulatorCalibrator:
 
         else:
             raise Exception(f"Compute service scheme '{self.simulator.compute_service_scheme}' not implemented yet")
-
 
         # STORAGE SERVICE SCHEME
         if self.simulator.storage_service_scheme == "submit_only":
@@ -203,6 +205,6 @@ class WorkflowSimulatorCalibrator:
 
         evaluator = CalibrationLossEvaluator(self.simulator, self.workflows, self.loss)
 
-        calibration, loss = calibrator.calibrate(evaluator, timelimit=time_limit, coordinator=coordinator)
+        calibration, loss = calibrator.calibrate(evaluator, timelimit=time_limit, coordinator=None)
 
         return calibration, loss

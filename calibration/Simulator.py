@@ -1,13 +1,13 @@
 """
 """
-import sys
+import copy
+import json
 import os
+import sys
 import time
 from typing import Any
-import copy
 
 import simcal as sc
-import json
 
 template_json_input = {
     "workflow": {
@@ -66,10 +66,10 @@ template_json_input = {
                 "speed": "123Gf"
             },
             "compute_hosts":
-            {
-                "num_cores": "16",
-                "speed": "423Gf"
-            },
+                {
+                    "num_cores": "16",
+                    "speed": "423Gf"
+                },
             "bare_metal_properties": {
                 "BareMetalComputeServiceProperty::THREAD_STARTUP_OVERHEAD": "42s"
             },
@@ -83,7 +83,7 @@ template_json_input = {
             },
             "htcondor_payloads": {
                 # "ServiceMessagePayload::DAEMON_STOPPED_MESSAGE_PAYLOAD": "0",
-             }
+            }
         }
     },
 
@@ -181,7 +181,7 @@ template_json_input = {
 }
 
 
-class Simulator(sc.Simulator):
+class Simulator:
 
     def __init__(self,
                  compute_service_scheme: str,
@@ -210,7 +210,8 @@ class Simulator(sc.Simulator):
             tmp_object = json_input
             for item in metadata[0:-1]:
                 if item not in tmp_object.keys():
-                    sys.stderr.write(f"Raising an exception for 'cannot set parameter values for {metadata}' but that won't be propagated for now")
+                    sys.stderr.write(
+                        f"Raising an exception for 'cannot set parameter values for {metadata}' but that won't be propagated for now")
                     raise Exception(f"Internal error: cannot set parameter values for {metadata}")
                 tmp_object = tmp_object[item]
             tmp_object[metadata[-1]] = str(calibration[parameter])

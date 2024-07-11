@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 import argparse
-from datetime import timedelta
-from scipy.stats import variation
-import time
-from Util import *
 import json
+import time
+from datetime import timedelta
+from glob import glob
 
+from scipy.stats import variation
 
-
+from Util import *
 
 
 def parse_command_line_arguments(program_name: str):
@@ -23,7 +23,6 @@ def parse_command_line_arguments(program_name: str):
         parser.add_argument('-wd', '--workflow_dir', type=str, metavar="<workflow dir>", required=True,
                             help='Directory that contains all workflow instances')
 
-
         return vars(parser.parse_args()), parser, None
 
     except argparse.ArgumentError as error:
@@ -32,7 +31,7 @@ def parse_command_line_arguments(program_name: str):
 
 def main():
     from sklearn.metrics import r2_score
-    print(r2_score([1,3,3,3,3,6], [3,3,3,3,3,3]))
+    print(r2_score([1, 3, 3, 3, 3, 6], [3, 3, 3, 3, 3, 3]))
 
     # Parse command-line arguments
     args, parser, error = parse_command_line_arguments(sys.argv[0])
@@ -50,7 +49,7 @@ def main():
                     f"*-" \
                     f"*-" \
                     f"*-*.json"
-    workflows = glob.glob(search_string)
+    workflows = glob(search_string)
 
     if len(workflows) == 0:
         sys.stdout.write(f"No workflows found ({search_string})\n")
@@ -68,7 +67,6 @@ def main():
     workflow_names = sorted(list(workflow_names))
     architectures = sorted(list(architectures))
 
-
     for workflow_name in workflow_names:
         for architecture in architectures:
             print(f"{workflow_name} on {architecture}:")
@@ -80,7 +78,7 @@ def main():
                             f"*-" \
                             f"{architecture}-" \
                             f"*-*.json"
-            workflows = glob.glob(search_string)
+            workflows = glob(search_string)
             num_tasks_values = set({})
             cpu_values = set({})
             data_values = set({})
@@ -102,7 +100,7 @@ def main():
                     for data in data_values:
                         for num_nodes in num_nodes_values:
                             search_string = f"{args['workflow_dir']}/{workflow_name}-{num_tasks}-{cpu}-0.6-{data}-{architecture}-{num_nodes}-*"
-                            workflows = glob.glob(search_string)
+                            workflows = glob(search_string)
                             makespans = [get_makespan(workflow) for workflow in workflows]
                             if len(makespans) > 1:
                                 coeff_of_variance = variation(makespans)

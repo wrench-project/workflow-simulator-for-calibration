@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import argparse
-from datetime import timedelta
 import time
+from glob import glob
+from datetime import timedelta
+
 from Util import *
 
 
@@ -60,7 +62,6 @@ def parse_command_line_arguments(program_name: str):
 
 
 def main():
-
     # Parse command-line arguments
     args, parser, error = parse_command_line_arguments(sys.argv[0])
     if not args:
@@ -95,7 +96,7 @@ def main():
                     f"{args['architecture']}-" \
                     f"*-*.json"
 
-    workflows = glob.glob(search_string)
+    workflows = glob(search_string)
     # workflows = [os.path.abspath(x) for x in workflows]  # Make all path absolute
     if len(workflows) == 0:
         sys.stdout.write(f"No workflow found ({search_string})\n")
@@ -257,8 +258,6 @@ def main():
         sys.stderr.write(str(type(error)))
         sys.stderr.write(f"Error while running experiments: {error}\n")
         sys.exit(1)
-
-
 
     # Pickle it
     with open(pickle_file_name, 'wb') as f:
