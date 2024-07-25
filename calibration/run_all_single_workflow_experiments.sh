@@ -9,11 +9,11 @@ ALGORITHM="$1"
 TIME_LIMIT="$2"
 NUM_THREADS="$3"
 
-WORKFLOWS = "$4"
+WORKFLOWS="$4"
 #WORKFLOWS="chain cycles epigenomics forkjoin genome montage seismology soykb"
 #WORKFLOWS="bwa"
 
-ARCHITECTURES = "$5"
+ARCHITECTURES="$5"
 #ARCHITECTURES="haswell skylake cascadelake"
 #ARCHITECTURES="cascadelake"
 
