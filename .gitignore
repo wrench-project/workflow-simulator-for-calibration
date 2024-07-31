@@ -8,3 +8,6 @@ build
 cmake-build-debug
 install_manifest.txt
 .idea
+*.pyc
+*.pdf
+*.pickled
