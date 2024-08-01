@@ -27,45 +27,45 @@ def _get_loss_function(loss_spec: str) -> Callable:
         raise Exception(f"Unknown loss function name '{loss_spec}'")
 
 
-def load_pickled_calibration(filepath: str,
-                             compute_service_scheme: str,
-                             storage_service_scheme: str,
-                             network_topology_scheme: str):
-    with open(filepath, 'rb') as file:
-        pickled_calibration = pickle.load(file)
-        calibration = pickled_calibration["calibration"]
-
-        # Consistency checking
-        if pickled_calibration["compute_service_scheme"] != compute_service_scheme:
-            sys.stderr.write(f"Loading calibration's compute service scheme ("
-                             f"{pickled_calibration['compute_service_scheme']}) "
-                             f"inconsistent with command-line arguments ({compute_service_scheme})")
-        if pickled_calibration["storage_service_scheme"] != storage_service_scheme:
-            sys.stderr.write(f"Loading calibration's storage service scheme ("
-                             f"{pickled_calibration['storage_service_scheme']}) "
-                             f"inconsistent with command-line arguments ({storage_service_scheme})")
-        if pickled_calibration["network_topology_scheme"] != network_topology_scheme:
-            sys.stderr.write(f"Loading calibration's' network topology scheme ("
-                             f"{pickled_calibration['network_topology_scheme']}) "
-                             f"inconsistent with command-line arguments ({network_topology_scheme})")
-
-        return pickled_calibration["calibration"], pickled_calibration["loss"]
-
-
-def save_pickled_calibration(filepath: str,
-                             calibration: dict[str, sc.parameters.Value],
-                             loss: float,
-                             compute_service_scheme: str,
-                             storage_service_scheme: str,
-                             network_topology_scheme: str,makespan: str):
-    to_pickle = {"calibration": calibration,
-                 "loss": loss,
-                 "compute_service_scheme": compute_service_scheme,
-                 "storage_service_scheme": storage_service_scheme,
-                 "network_topology_scheme": network_topology_scheme,"makespan":makespan}
-    # Save it
-    with open(filepath, 'wb') as f:
-        pickle.dump(to_pickle, f)
+#def load_pickled_calibration(filepath: str,
+#                             compute_service_scheme: str,
+#                             storage_service_scheme: str,
+#                             network_topology_scheme: str):
+#    with open(filepath, 'rb') as file:
+#        pickled_calibration = pickle.load(file)
+#        calibration = pickled_calibration["calibration"]
+#
+#        # Consistency checking
+#        if pickled_calibration["compute_service_scheme"] != compute_service_scheme:
+#            sys.stderr.write(f"Loading calibration's compute service scheme ("
+#                             f"{pickled_calibration['compute_service_scheme']}) "
+#                             f"inconsistent with command-line arguments ({compute_service_scheme})")
+#        if pickled_calibration["storage_service_scheme"] != storage_service_scheme:
+#            sys.stderr.write(f"Loading calibration's storage service scheme ("
+#                             f"{pickled_calibration['storage_service_scheme']}) "
+#                             f"inconsistent with command-line arguments ({storage_service_scheme})")
+#        if pickled_calibration["network_topology_scheme"] != network_topology_scheme:
+#            sys.stderr.write(f"Loading calibration's' network topology scheme ("
+#                             f"{pickled_calibration['network_topology_scheme']}) "
+#                             f"inconsistent with command-line arguments ({network_topology_scheme})")
+#
+#        return pickled_calibration["calibration"], pickled_calibration["loss"]
+#
+#
+#def save_pickled_calibration(filepath: str,
+#                             calibration: dict[str, sc.parameters.Value],
+#                             loss: float,
+#                             compute_service_scheme: str,
+#                             storage_service_scheme: str,
+#                             network_topology_scheme: str,makespan: str):
+#    to_pickle = {"calibration": calibration,
+#                 "loss": loss,
+#                 "compute_service_scheme": compute_service_scheme,
+#                 "storage_service_scheme": storage_service_scheme,
+#                 "network_topology_scheme": network_topology_scheme,"makespan":makespan}
+#    # Save it
+#    with open(filepath, 'wb') as f:
+#        pickle.dump(to_pickle, f)
 
 
 def compute_calibration(workflows: List[List[str]],
@@ -175,6 +175,7 @@ class Experiment:
         self.calibration: dict[str, sc.parameters.Value] | None = None
         self.calibration_loss: float | None = None
         self.evaluation_losses: List[float] | None = None
+        self.evaluation_makespans: List[float] | None = None
 
     def __eq__(self, other: object):
         if not isinstance(other, Experiment):
@@ -300,6 +301,8 @@ class ExperimentSet:
                     self.simulator,
                     xp.calibration,
                     self.loss_function))
+				with sc.Environment() as env:
+				    xp.evaluation_makespans.append(self.simulator(env,xp.calibration)[0])
 
     def estimate_run_time(self):
         training_set_specs = []

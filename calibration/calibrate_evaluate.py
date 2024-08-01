@@ -106,7 +106,7 @@ def main():
 
     if args["output_calibration"]:
         with Environment() as env:
-            makespan=simulator(env, calibration)[1]
+            makespan=simulator(env, calibration)[0]
         save_pickled_calibration(args["output_calibration"], calibration, loss,
                                  args["compute_service_scheme"],
                                  args["storage_service_scheme"],
