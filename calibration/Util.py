@@ -295,6 +295,7 @@ class ExperimentSet:
             sys.stderr.write(f"  Performing evaluation #{count}/{len(self.experiments)}...\n")
             count += 1
             xp.evaluation_losses = []
+            xp.evaluation_makespans = []
             for evaluation_set_spec in xp.evaluation_set_specs:
                 xp.evaluation_losses.append(evaluate_calibration(
                     evaluation_set_spec.get_workflow_set(),
