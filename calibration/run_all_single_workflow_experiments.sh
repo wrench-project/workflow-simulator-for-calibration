@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ "$#" -ne 6 ]; then
-    echo "Usage: $0 <grid | random | gradient> <time limit in seconds> <number of threads to use> <workflows> <architectures> <locale>"
+    echo "Usage: $0 <grid | random | gradient | skopt.gp | skopt.et | skopt.rf | skopt.gbrt> <time limit in seconds> <number of threads to use> <workflows> <architectures> <locale>"
     exit 1
 fi
 
