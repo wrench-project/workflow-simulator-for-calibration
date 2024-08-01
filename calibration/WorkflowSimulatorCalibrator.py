@@ -62,13 +62,13 @@ class WorkflowSimulatorCalibrator:
         elif self.algorithm == "gradient":
             calibrator = sc.calibrators.GradientDescent(0.001, 0.00001)
         elif self.algorithm == "skopt.gp":
-            calibrator = sc.calibrators.ScikitOptimizer(1000,"GP")
+            calibrator = sc.calibrators.ScikitOptimizer(1000,"GP",0)
         elif self.algorithm == "skopt.et":
-            calibrator = sc.calibrators.ScikitOptimizer(1000,"ET")
+            calibrator = sc.calibrators.ScikitOptimizer(1000,"ET",0)
         elif self.algorithm == "skopt.rf":
-            calibrator = sc.calibrators.ScikitOptimizer(1000,"RF")
+            calibrator = sc.calibrators.ScikitOptimizer(1000,"RF",0)
         elif self.algorithm == "skopt.gbrt":
-            calibrator = sc.calibrators.ScikitOptimizer(1000,"GBRT")
+            calibrator = sc.calibrators.ScikitOptimizer(1000,"GBRT",0)
         else:
             raise Exception(f"Unknown calibration algorithm {self.algorithm}")
 

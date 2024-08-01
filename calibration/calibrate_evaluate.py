@@ -105,10 +105,12 @@ def main():
     sys.stderr.write(f"  calibration loss: {loss}\n")
 
     if args["output_calibration"]:
+        with Environment() as env:
+            makespan=simulator(env, calibration)[1]
         save_pickled_calibration(args["output_calibration"], calibration, loss,
                                  args["compute_service_scheme"],
                                  args["storage_service_scheme"],
-                                 args["network_topology_scheme"])
+                                 args["network_topology_scheme"],str(makespan))
         sys.stderr.write(f"Saved calibration to '{args['output_calibration']}'.\n")
 
     # Perform the evaluation if needed

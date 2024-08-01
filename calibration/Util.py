@@ -57,12 +57,12 @@ def save_pickled_calibration(filepath: str,
                              loss: float,
                              compute_service_scheme: str,
                              storage_service_scheme: str,
-                             network_topology_scheme: str):
+                             network_topology_scheme: str,makespan: str):
     to_pickle = {"calibration": calibration,
                  "loss": loss,
                  "compute_service_scheme": compute_service_scheme,
                  "storage_service_scheme": storage_service_scheme,
-                 "network_topology_scheme": network_topology_scheme}
+                 "network_topology_scheme": network_topology_scheme,"makespan":makespan}
     # Save it
     with open(filepath, 'wb') as f:
         pickle.dump(to_pickle, f)
