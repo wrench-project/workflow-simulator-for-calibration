@@ -298,9 +298,11 @@ class ExperimentSet:
                     self.simulator,
                     xp.calibration,
                     self.loss_function))
-                with sc.Environment() as env:
-                    xp.evaluation_makespans.append(self.simulator.run(env, xp.calibration)[0])
-
+				makespans={}
+				for workflow in evaluation_set_spec.get_workflow_set():
+					with sc.Environment() as env:
+						makesoans[workflow[0]]=self.simulator.run(env, (workflow[0],xp.calibration)[0])
+				xp.evaluation_makespans.append(makespans)
     def estimate_run_time(self):
         training_set_specs = []
         for xp in self.experiments:
