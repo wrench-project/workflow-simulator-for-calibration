@@ -7,7 +7,7 @@ from typing import List, Callable
 import simcal as sc
 
 from Simulator import Simulator
-from WorkflowSimulatorCalibrator import WorkflowSimulatorCalibrator, CalibrationLossEvaluator
+from WorkflowSimulatorCalibrator import WorkflowSimulatorCalibrator, CalibrationLossEvaluator, get_makespan
 
 
 def relative_average_error(x_simulated: List[float], y_real: List[float]):
