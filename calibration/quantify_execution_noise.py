@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-import json
-import time
-from datetime import timedelta
-from glob import glob
 
 from scipy.stats import variation
 
@@ -50,7 +46,6 @@ def main():
                     f"*-" \
                     f"*-*.json"
     workflows = glob(search_string)
-
     if len(workflows) == 0:
         sys.stdout.write(f"No workflows found ({search_string})\n")
         sys.exit(1)
@@ -60,10 +55,13 @@ def main():
     # Build list of workflow names and architectures
     workflow_names = set({})
     architectures = set({})
+
     for workflow in workflows:
+        workflow = workflow.replace('\\', '/') # this is why we cant have nice things windows
         tokens = workflow.split('/')[-1].split("-")
         workflow_names.add(tokens[0])
         architectures.add(tokens[5])
+    print(workflow_names)
     workflow_names = sorted(list(workflow_names))
     architectures = sorted(list(architectures))
 
@@ -93,7 +91,6 @@ def main():
             cpu_values = sorted(list(cpu_values))
             data_values = sorted(list(data_values))
             num_nodes_values = sorted(list(num_nodes_values))
-
             coeffs_of_variance = []
             for num_tasks in num_tasks_values:
                 for cpu in cpu_values:
@@ -107,6 +104,7 @@ def main():
                                 coeffs_of_variance.append(coeff_of_variance)
 
             if len(coeffs_of_variance) == 0:
+                print(f"   no coeff of variance")
                 continue
             average_coeff_of_variance = sum(coeffs_of_variance) / len(coeffs_of_variance)
             print(f"  max coeff of variance={max(coeffs_of_variance)}")

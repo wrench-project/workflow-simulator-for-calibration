@@ -1,16 +1,13 @@
 import glob
-import math
 import os
-import pickle
 import sys
-import time
 from glob import glob
 from typing import List, Callable
 
 import simcal as sc
 
 from Simulator import Simulator
-from WorkflowSimulatorCalibrator import WorkflowSimulatorCalibrator, CalibrationLossEvaluator, get_makespan
+from WorkflowSimulatorCalibrator import WorkflowSimulatorCalibrator, CalibrationLossEvaluator
 
 
 def relative_average_error(x_simulated: List[float], y_real: List[float]):
@@ -27,7 +24,7 @@ def _get_loss_function(loss_spec: str) -> Callable:
         raise Exception(f"Unknown loss function name '{loss_spec}'")
 
 
-#def load_pickled_calibration(filepath: str,
+# def load_pickled_calibration(filepath: str,
 #                             compute_service_scheme: str,
 #                             storage_service_scheme: str,
 #                             network_topology_scheme: str):
@@ -52,7 +49,7 @@ def _get_loss_function(loss_spec: str) -> Callable:
 #        return pickled_calibration["calibration"], pickled_calibration["loss"]
 #
 #
-#def save_pickled_calibration(filepath: str,
+# def save_pickled_calibration(filepath: str,
 #                             calibration: dict[str, sc.parameters.Value],
 #                             loss: float,
 #                             compute_service_scheme: str,
@@ -73,7 +70,6 @@ def compute_calibration(workflows: List[List[str]],
                         simulator: Simulator,
                         loss_spec: str,
                         time_limit: float, num_threads: int):
-
     calibrator = WorkflowSimulatorCalibrator(workflows,
                                              algorithm,
                                              simulator,
@@ -181,7 +177,7 @@ class Experiment:
         if not isinstance(other, Experiment):
             return NotImplemented
         return (self.training_set_spec == other.training_set_spec) and \
-               (self.evaluation_set_specs == other.evaluation_set_specs)
+            (self.evaluation_set_specs == other.evaluation_set_specs)
 
     def __repr__(self):
         eval_str = ""
@@ -303,7 +299,7 @@ class ExperimentSet:
                     xp.calibration,
                     self.loss_function))
                 with sc.Environment() as env:
-                    xp.evaluation_makespans.append(self.simulator.run(env,xp.calibration)[0])
+                    xp.evaluation_makespans.append(self.simulator.run(env, xp.calibration)[0])
 
     def estimate_run_time(self):
         training_set_specs = []

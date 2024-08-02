@@ -249,15 +249,16 @@ def main():
         sys.exit(0)
 
     sys.stderr.write(f"Running experiments (should take about {time_estimate_str})\n")
-    try:
-        start = time.perf_counter()
-        experiment_set.run()
-        elapsed = int(time.perf_counter() - start)
-        sys.stderr.write(f"Actually ran in {timedelta(seconds=elapsed)}\n")
-    except Exception as error:
-        sys.stderr.write(str(type(error)))
-        sys.stderr.write(f"Error while running experiments: {error}\n")
-        sys.exit(1)
+    # try:
+    start = time.perf_counter()
+    experiment_set.run()
+    elapsed = int(time.perf_counter() - start)
+    sys.stderr.write(f"Actually ran in {timedelta(seconds=elapsed)}\n")
+    # except Exception as error:
+    #    sys.stderr.write(str(type(error)))
+    #    sys.stderr.write(f"Error while running experiments: {error}\n")
+    #    sys.exit(1)
+    # dont catch print exit errors.  Just let the error throw its self and python will give a much better print then still exit
 
     # Pickle it
     with open(pickle_file_name, 'wb') as f:
