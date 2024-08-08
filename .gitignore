@@ -11,3 +11,4 @@ install_manifest.txt
 *.pyc
 *.pdf
 *.pickled
+*.png
