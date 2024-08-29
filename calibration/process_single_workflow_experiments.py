@@ -27,7 +27,7 @@ def build_label(workflow_sec_spec: WorkflowSetSpec):
 
 def process_experiment_set(experiment_set: ExperimentSet):
     if experiment_set.is_empty():
-        return
+        return 
 
     # sys.stderr.write("Processing ")
     figure_name = f"figure-one_workflow_experiments-" \
@@ -62,12 +62,15 @@ def process_experiment_set(experiment_set: ExperimentSet):
             evaluation_spec = result.evaluation_set_specs[i]
             if len(training_spec.cpu_values) == 1:
                 kind = "one_cpu_one_data"
+                continue
             elif training_spec.num_tasks_values != evaluation_spec.num_tasks_values:
                 kind = "num_tasks_generalization"
             elif training_spec.num_nodes_values != evaluation_spec.num_nodes_values:
                 kind = "num_nodes_generalization"
+
             else:
                 kind = "training=eval"
+                continue
             if kind not in to_plot:
                 to_plot[kind] = []
 
@@ -77,6 +80,7 @@ def process_experiment_set(experiment_set: ExperimentSet):
                                   "T-" + build_label(training_spec) + "\nE-" + build_label(evaluation_spec)))
 
     to_plot = dict(sorted(to_plot.items()))
+    #print(to_plot)
     total_num_results = sum([len(to_plot[x]) for x in to_plot])
 
     width_ratios = [len(to_plot[kind]) / total_num_results for kind in to_plot]
