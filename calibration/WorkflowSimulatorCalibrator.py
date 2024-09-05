@@ -52,6 +52,8 @@ class WorkflowSimulatorCalibrator:
         self.algorithm: str = algorithm
         self.simulator: Simulator = simulator
         self.loss: Callable = loss
+        self.gradientDescentStep=0.001
+        self.gradientDescentFlat=0.00001
 
     def compute_calibration(self, time_limit: float, num_threads: int):
 
@@ -60,7 +62,7 @@ class WorkflowSimulatorCalibrator:
         elif self.algorithm == "random":
             calibrator = sc.calibrators.Random()
         elif self.algorithm == "gradient":
-            calibrator = sc.calibrators.GradientDescent(0.001, 0.00001)
+            calibrator = sc.calibrators.GradientDescent(self.gradientDescentStep, self.gradientDescentFlat)
         elif self.algorithm == "skopt.gp":
             calibrator = sc.calibrators.ScikitOptimizer(1000,"GP",0)
         elif self.algorithm == "skopt.et":
