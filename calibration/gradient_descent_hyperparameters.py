@@ -157,7 +157,7 @@ def main():
 	calibrator = WorkflowSimulatorCalibrator(training.get_workflow_set(),
 													 "gradient",
 													 simulator,
-													 args["loss_function"])
+													 _get_loss_function(args["loss_function"]))
 	best_args=None
 	bestLoss=None
 	d=dh
