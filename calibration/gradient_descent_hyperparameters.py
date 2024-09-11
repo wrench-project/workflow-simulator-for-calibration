@@ -5,7 +5,8 @@ from glob import glob
 from datetime import timedelta
 import math
 
-from Util import *, _get_loss_function
+from Util import *
+from Util import _get_loss_function
 
 
 def parse_command_line_arguments(program_name: str):
