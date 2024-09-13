@@ -172,7 +172,7 @@ def main():
 			if bestLoss is None or bestLoss>loss:
 				best_args=(e,d)
 				bestLoss=loss
-			print((e,d))
+			print((e,d),loss)
 			e/=10
 		d/=10
 	print(best_args,bestLoss)
