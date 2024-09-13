@@ -24,8 +24,8 @@ def parse_command_line_arguments(program_name: str):
         parser.add_argument('-wn', '--workflow_name', type=str, metavar="<workflow name>", required=True,
                             help='Name of the workflow to run the calibration/validation on')
         parser.add_argument('-ar', '--architecture', type=str,
-                            metavar="[haswell|skylake|cascadelake]",
-                            choices=['haswell', 'skylake', 'cascadelake'], required=True,
+                            metavar="[haswell|skylake|cascadelake|icelake]",
+                            choices=['haswell', 'skylake', 'cascadelake','icelake'], required=True,
                             help='The computer architecture')
         parser.add_argument('-al', '--algorithm', type=str,
                             metavar="[grid|random|gradient|skopt.gp|skopt.gbrt|]",
