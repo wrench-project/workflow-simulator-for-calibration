@@ -53,7 +53,7 @@ class WorkflowSimulatorCalibrator:
         self.simulator: Simulator = simulator
         self.loss: Callable = loss
         self.gradientDescentStep=0.001
-        self.gradientDescentFlat=0.00001
+        self.gradientDescentFlat=1
 
     def compute_calibration(self, time_limit: float, num_threads: int):
 
