@@ -14,7 +14,7 @@ WORKFLOWS_TRAIN="forkjoin"
 #WORKFLOWS_EVAL="cycles epigenomics genome montage seismology soykb"
 WORKFLOWS_EVAL="cycles"
 #ARCHITECTURES="haswell skylake cascadelake"
-ARCHITECTURES="skylake"
+ARCHITECTURES="icelake"
 
 export DYLD_LIBRARY_PATH=/usr/local/lib
 

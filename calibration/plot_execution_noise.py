@@ -102,7 +102,7 @@ def main():
 					for data in data_values:
 						makespans = []
 						for num_nodes in num_nodes_values:
-							search_string = f"{args['workflow_dir']}/{workflow_name}-{num_tasks}-{cpu}-0.6-{data}-{architecture}-{num_nodes}-*"
+							search_string = f"{args['workflow_dir']}/{workflow_name}-{num_tasks}-{cpu}-1.0-{data}-{architecture}-{num_nodes}-*"
 							workflows = glob(search_string)
 							makespans.extend([get_makespan(workflow) for workflow in workflows])
 
