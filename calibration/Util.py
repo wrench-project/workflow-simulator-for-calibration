@@ -185,7 +185,7 @@ class Experiment:
         for i in range(0, len(self.evaluation_set_specs)):
             eval_str += f"  Evaluation: {self.evaluation_set_specs[i]}\n"
             eval_str += f"    loss={self.evaluation_losses[i]}\n"
-        return f"Training: {self.training_set_spec}\n  loss={self.calibration_loss}\n{eval_str}"
+        return f"Training: {self.training_set_spec}\n  loss={self.calibration_loss}\n  calibration=\"{self.calibration}\"\n{eval_str}"
 
     def __str__(self):
         return self.__repr__()
