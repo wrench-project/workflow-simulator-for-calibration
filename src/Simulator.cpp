@@ -398,9 +398,31 @@ int main(int argc, char **argv) {
     }
 
     double simulated_makespan = workflow->getCompletionDate();
-    double err = std::fabs(observed_real_makespan - simulated_makespan) / observed_real_makespan;
 
-    std::cout << simulated_makespan << ":" << observed_real_makespan << ":" << err << std::endl;
+    // Create output json
+    boost::json::object json_output;
+    json_output["real_makespan"] = observed_real_makespan;
+    json_output["simulated_makespan"] = simulated_makespan;
+    auto workflow_file = boost::json::value_to<std::string>(json_input["workflow"].as_object()["file"]);
+    boost::json::object json_workflow = readJSONFromFile(workflow_file);
 
+    json_output["tasks"] = {};
+    for (auto const &task_spec : json_workflow["workflow"].as_object()["execution"].as_object()["tasks"].as_array()) {
+        auto real_task_id = std::string(task_spec.as_object().at("id").as_string().c_str());
+        double real_task_duration;
+        if (task_spec.as_object().at("runtimeInSeconds").is_double()) {
+            real_task_duration = task_spec.as_object().at("runtimeInSeconds").as_double();
+        } else if (task_spec.as_object().at("runtimeInSeconds").is_int64()) {
+            real_task_duration = static_cast<double>(task_spec.as_object().at("runtimeInSeconds").as_int64());
+        } else {
+            throw std::runtime_error("In WfFormat, runtimeInSeconds is not a valid number");
+        }
+        auto task = workflow->getTaskByID(real_task_id);
+        double simulated_task_duration = task->getExecutionHistory().top().task_end - task->getExecutionHistory().top().task_start;
+        json_output["tasks"].as_object()[real_task_id] = {{"real_duration", real_task_duration},
+                                     {"simulated_duration", simulated_task_duration}};
+    }
+
+    std::cout << json_output << "\n";
     return 0;
 }
