@@ -82,7 +82,7 @@ class WorkflowSimulatorCalibrator:
                                                                  "compute_hosts",
                                                                  "speed"]))
 
-            calibrator.add_param("thread_startup_overhead", sc.parameters.Linear(0, 10).
+            calibrator.add_param("thread_startup_overhead", sc.parameters.Linear(0, 20).
                                  format("%lfs").set_custom_data(["compute_service_scheme_parameters",
                                                                  "all_bare_metal",
                                                                  "properties",
@@ -95,25 +95,25 @@ class WorkflowSimulatorCalibrator:
                                                                  "compute_hosts",
                                                                  "speed"]))
 
-            calibrator.add_param("thread_startup_overhead", sc.parameters.Linear(0, 10).
+            calibrator.add_param("thread_startup_overhead", sc.parameters.Linear(0, 20).
                                  format("%lfs").set_custom_data(["compute_service_scheme_parameters",
                                                                  "htcondor_bare_metal",
                                                                  "bare_metal_properties",
                                                                  "BareMetalComputeServiceProperty::THREAD_STARTUP_OVERHEAD"]))
 
-            calibrator.add_param("htcondor_negotiator_overhead", sc.parameters.Linear(0, 10).
+            calibrator.add_param("htcondor_negotiator_overhead", sc.parameters.Linear(0, 20).
                                  format("%lfs").set_custom_data(["compute_service_scheme_parameters",
                                                                  "htcondor_bare_metal",
                                                                  "htcondor_properties",
                                                                  "HTCondorComputeServiceProperty::NEGOTIATOR_OVERHEAD"]))
 
-            calibrator.add_param("htcondor_pre_execution_delay", sc.parameters.Linear(0, 10).
+            calibrator.add_param("htcondor_pre_execution_delay", sc.parameters.Linear(0, 20).
                                  format("%lfs").set_custom_data(["compute_service_scheme_parameters",
                                                                  "htcondor_bare_metal",
                                                                  "htcondor_properties",
                                                                  "HTCondorComputeServiceProperty::GRID_PRE_EXECUTION_DELAY"]))
 
-            calibrator.add_param("htcondor_post_execution_delay", sc.parameters.Linear(0, 10).
+            calibrator.add_param("htcondor_post_execution_delay", sc.parameters.Linear(0, 20).
                                  format("%lfs").set_custom_data(["compute_service_scheme_parameters",
                                                                  "htcondor_bare_metal",
                                                                  "htcondor_properties",
@@ -132,7 +132,7 @@ class WorkflowSimulatorCalibrator:
                                  format("%lfbps").set_custom_data(["storage_service_scheme_parameters",
                                                                    "submit_only",
                                                                    "bandwidth_submit_disk_write"]))
-            calibrator.add_param("max_num_data_connections", sc.parameters.Linear(0, 100).
+            calibrator.add_param("max_num_data_connections", sc.parameters.Linear(1, 100).
                                  format("%d").set_custom_data(["storage_service_scheme_parameters",
                                                                "submit_only",
                                                                "submit_properties",
@@ -147,7 +147,7 @@ class WorkflowSimulatorCalibrator:
                                  format("%lfbps").set_custom_data(["storage_service_scheme_parameters",
                                                                    "submit_and_compute_hosts",
                                                                    "bandwidth_submit_disk_write"]))
-            calibrator.add_param("submit_max_num_data_connections", sc.parameters.Linear(0, 100).
+            calibrator.add_param("submit_max_num_data_connections", sc.parameters.Linear(1, 100).
                                  format("%d").set_custom_data(["storage_service_scheme_parameters",
                                                                "submit_and_compute_hosts",
                                                                "submit_properties",
@@ -161,7 +161,7 @@ class WorkflowSimulatorCalibrator:
                                  format("%lfbps").set_custom_data(["storage_service_scheme_parameters",
                                                                    "submit_and_compute_hosts",
                                                                    "bandwidth_compute_host_write"]))
-            calibrator.add_param("compute_host_max_num_data_connections", sc.parameters.Linear(0, 100).
+            calibrator.add_param("compute_host_max_num_data_connections", sc.parameters.Linear(1, 100).
                                  format("%d").set_custom_data(["storage_service_scheme_parameters",
                                                                "submit_and_compute_hosts",
                                                                "compute_host_properties",
