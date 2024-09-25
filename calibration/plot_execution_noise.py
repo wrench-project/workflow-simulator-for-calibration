@@ -83,7 +83,7 @@ def main():
 		for architecture in architectures:
 			for num_node in num_nodes:
 				makespans_data = {}
-				print(f"{workflow_name} on {architecture}:")
+				#print(f"{workflow_name} on {architecture}:")
 				search_string = f"{args['workflow_dir']}/" \
 								f"{workflow_name}-" \
 								f"*-" \
