@@ -28,8 +28,8 @@ def parse_command_line_arguments(program_name: str):
                             choices=['haswell', 'skylake', 'cascadelake','icelake'], required=True,
                             help='The computer architecture')
         parser.add_argument('-al', '--algorithm', type=str,
-                            metavar="[grid|random|gradient|skopt.gp|skopt.gbrt|]",
-                            choices=['grid', 'random', 'gradient','skopt.gp','skopt.gbrt','skopt.rt','skopt.et'], required=True,
+                            metavar="[grid|random|gradient|skopt.gp|skopt.gbrt|skopt.rf|skopt.et]",
+                            choices=['grid', 'random', 'gradient','skopt.gp','skopt.gbrt','skopt.rf','skopt.et'], required=True,
                             help='The calibration algorithm')
         parser.add_argument('-tl', '--time_limit', type=int, metavar="<number of second>", required=True,
                             help='A training time limit, in seconds')
