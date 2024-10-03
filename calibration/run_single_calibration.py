@@ -114,19 +114,19 @@ def main():
 								   args["num_threads"])
 
 	num_tasks_values = []
-    cpu_values = []
-    data_values = []
-    num_nodes_values = []
-    for workflow in workflows:
-        tokens = workflow.split('/')[-1].split("-")
-        num_tasks_values.add(int(tokens[1]))
-        cpu_values.add(int(tokens[2]))
-        data_values.add(int(tokens[4]))
-        num_nodes_values.add(int(tokens[6]))
-    print(num_tasks_values)
-    print(cpu_values )
-    print(data_values )
-    print(num_nodes_values)
+	cpu_values = []
+	data_values = []
+	num_nodes_values = []
+	for workflow in workflows:
+		tokens = workflow.split('/')[-1].split("-")
+		num_tasks_values.add(int(tokens[1]))
+		cpu_values.add(int(tokens[2]))
+		data_values.add(int(tokens[4]))
+		num_nodes_values.add(int(tokens[6]))
+	print(num_tasks_values)
+	print(cpu_values )
+	print(data_values )
+	print(num_nodes_values)
 	exit()
 	experiment_set.add_experiment(
 		WorkflowSetSpec(args["workflow_dir"],
