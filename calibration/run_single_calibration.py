@@ -119,10 +119,10 @@ def main():
 	num_nodes_values = []
 	for workflow in workflows:
 		tokens = workflow.split('/')[-1].split("-")
-		num_tasks_values.add(int(tokens[1]))
-		cpu_values.add(int(tokens[2]))
-		data_values.add(int(tokens[4]))
-		num_nodes_values.add(int(tokens[6]))
+		num_tasks_values.append(int(tokens[1]))
+		cpu_values.append(int(tokens[2]))
+		data_values.append(int(tokens[4]))
+		num_nodes_values.append(int(tokens[6]))
 	print(num_tasks_values)
 	print(cpu_values )
 	print(data_values )
