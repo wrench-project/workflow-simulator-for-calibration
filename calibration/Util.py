@@ -112,6 +112,7 @@ class WorkflowSetSpec:
     def set_workflows(self,workflows: List[List[str]]):
         self.workflows=workflows
         self.rehash()
+        return self
         
     def populate(self, workflow_dir: str, workflow_name: str, architecture: str,
                  num_tasks_values: List[int], data_values: List[int], cpu_values: List[int],
@@ -147,7 +148,8 @@ class WorkflowSetSpec:
         self.rehash()
         sys.stderr.write(".")
         sys.stderr.flush()
-
+        return self
+		
     def get_workflow_set(self) -> List[List[str]]:
         return self.workflows
 
