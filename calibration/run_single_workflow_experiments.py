@@ -139,28 +139,28 @@ def main():
     for i in range(1, len(num_tasks_values)):
         for num_nodes in num_nodes_values:
             experiment_set.add_experiment(
-                WorkflowSetSpec(args["workflow_dir"],
+                WorkflowSetSpec().populate(args["workflow_dir"],
                                 args["workflow_name"],
                                 args["architecture"],
                                 num_tasks_values[0:i], data_values, cpu_values, [num_nodes]),
                 [
-                    WorkflowSetSpec(args["workflow_dir"],
+                    WorkflowSetSpec().populate(args["workflow_dir"],
                                     args["workflow_name"],
                                     args["architecture"],
                                     num_tasks_values[i:], data_values, cpu_values, [num_nodes]),
-                    WorkflowSetSpec(args["workflow_dir"],
+                    WorkflowSetSpec().populate(args["workflow_dir"],
                                     args["workflow_name"],
                                     args["architecture"],
                                     [num_tasks_values[-1]], data_values, cpu_values, [num_nodes]),
                 ])
         # Overfitting "control" experiment
         experiment_set.add_experiment(
-            WorkflowSetSpec(args["workflow_dir"],
+            WorkflowSetSpec().populate(args["workflow_dir"],
                             args["workflow_name"],
                             args["architecture"],
                             [num_tasks_values[i]], data_values, cpu_values, num_nodes_values),
             [
-                WorkflowSetSpec(args["workflow_dir"],
+                WorkflowSetSpec().populate(args["workflow_dir"],
                                 args["workflow_name"],
                                 args["architecture"],
                                 [num_tasks_values[i]], data_values, cpu_values, num_nodes_values),
@@ -170,28 +170,28 @@ def main():
     for i in range(1, len(num_nodes_values)):
         for num_tasks in num_tasks_values:
             experiment_set.add_experiment(
-                WorkflowSetSpec(args["workflow_dir"],
+                WorkflowSetSpec().populate(args["workflow_dir"],
                                 args["workflow_name"],
                                 args["architecture"],
                                 [num_tasks], data_values, cpu_values, num_nodes_values[0:i]),
                 [
-                    WorkflowSetSpec(args["workflow_dir"],
+                    WorkflowSetSpec().populate(args["workflow_dir"],
                                     args["workflow_name"],
                                     args["architecture"],
                                     [num_tasks], data_values, cpu_values, num_nodes_values[i:]),
-                    WorkflowSetSpec(args["workflow_dir"],
+                    WorkflowSetSpec().populate(args["workflow_dir"],
                                     args["workflow_name"],
                                     args["architecture"],
                                     [num_tasks], data_values, cpu_values, [num_nodes_values[-1]]),
                 ])
         # Overfitting "control" experiment
         experiment_set.add_experiment(
-            WorkflowSetSpec(args["workflow_dir"],
+            WorkflowSetSpec().populate(args["workflow_dir"],
                             args["workflow_name"],
                             args["architecture"],
                             num_tasks_values, data_values, cpu_values, [num_nodes_values[i]]),
             [
-                WorkflowSetSpec(args["workflow_dir"],
+                WorkflowSetSpec().populate(args["workflow_dir"],
                                 args["workflow_name"],
                                 args["architecture"],
                                 num_tasks_values, data_values, cpu_values, [num_nodes_values[i]]),
@@ -204,12 +204,12 @@ def main():
             for data_value in data_values:
                 for cpu_value in cpu_values:
                     added = experiment_set.add_experiment(
-                        WorkflowSetSpec(args["workflow_dir"],
+                        WorkflowSetSpec().populate(args["workflow_dir"],
                                         args["workflow_name"],
                                         args["architecture"],
                                         num_tasks_values[0:i], [data_value], [cpu_value], [num_nodes]),
                         [
-                            WorkflowSetSpec(args["workflow_dir"],
+                            WorkflowSetSpec().populate(args["workflow_dir"],
                                             args["workflow_name"],
                                             args["architecture"],
                                             num_tasks_values[-1:], data_values, cpu_values, [num_nodes])
@@ -225,12 +225,12 @@ def main():
             for data_value in data_values:
                 for cpu_value in cpu_values:
                     added = experiment_set.add_experiment(
-                        WorkflowSetSpec(args["workflow_dir"],
+                        WorkflowSetSpec().populate(args["workflow_dir"],
                                         args["workflow_name"],
                                         args["architecture"],
                                         [num_tasks], [data_value], [cpu_value], num_nodes_values[0:i]),
                         [
-                            WorkflowSetSpec(args["workflow_dir"],
+                            WorkflowSetSpec().populate(args["workflow_dir"],
                                             args["workflow_name"],
                                             args["architecture"],
                                             [num_tasks], data_values, cpu_values, num_nodes_values[-1:])

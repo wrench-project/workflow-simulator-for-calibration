@@ -141,12 +141,12 @@ def main():
     # Num task variation experiments
     for i in range(1, len(num_tasks_values) + 1):
         experiment_set.add_experiment(
-            WorkflowSetSpec(args["workflow_dir"],
+            WorkflowSetSpec().populate(args["workflow_dir"],
                             args["workflow_name_train"],
                             args["architecture"],
                             num_tasks_values[0:i], [-1], [-1], [-1]),
             [
-                WorkflowSetSpec(args["workflow_dir"],
+                WorkflowSetSpec().populate(args["workflow_dir"],
                                 args["workflow_name_eval"],
                                 args["architecture"],
                                 [-1], [-1], [-1], [-1])

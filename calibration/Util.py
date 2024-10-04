@@ -3,7 +3,9 @@ import os
 import sys
 from glob import glob
 from typing import List, Callable
-import pickle 
+import pickle
+import base64
+import hashlib 
 
 import simcal as sc
 
@@ -11,6 +13,16 @@ from Simulator import Simulator
 from WorkflowSimulatorCalibrator import WorkflowSimulatorCalibrator, CalibrationLossEvaluator, get_makespan
 
 
+def orderinvarient_hash(x,l=22):
+	acc=bytearray(hashlib.md5(bytes(len(x))).digest())
+	for i in x:
+		tmp=hashlib.md5(i.encode()).digest()
+		
+		for j in range(len(acc)):
+			#acc[j]^=tmp[j]
+			acc[j]=(tmp[j]+acc[j])%256
+	return base64.urlsafe_b64encode(acc)[:l].decode()
+	
 def relative_average_error(x_simulated: List[float], y_real: List[float]):
     return sum([abs(a - b) / b for (a, b) in list(zip(x_simulated, y_real))]) / len(x_simulated)
 
@@ -90,18 +102,21 @@ def evaluate_calibration(workflows: List[List[str]],
 
 
 class WorkflowSetSpec:
-    def __init__(self, workflow_dir: str, workflow_name: str, architecture: str,
+	def __init__(self):
+		self.workflows: List[List[str]]=[]
+		self.ivhash=orderinvarient_hash(self.workflows)
+		
+	def rehash(self):
+		self.ivhash=orderinvarient_hash(self.workflows)
+		
+	def set_workflows(self,workflows: List[List[str]]):
+		self.workflows=workflows
+		self.rehash()
+		
+    def populate(self, workflow_dir: str, workflow_name: str, architecture: str,
                  num_tasks_values: List[int], data_values: List[int], cpu_values: List[int],
                  num_nodes_values: List[int]):
-        self.workflow_dir: str = workflow_dir
-        self.workflow_name: str = workflow_name
-        self.architecture: str = architecture
-        self.num_tasks_values: List[int] = num_tasks_values
-        self.data_values: List[int] = data_values
-        self.cpu_values: List[int] = cpu_values
-        self.num_nodes_values: List[int] = num_nodes_values
-
-        self.workflows: List[List[str]] = []
+        self.workflows = []
         for num_tasks_value in num_tasks_values:
             for data_value in data_values:
                 for cpu_value in cpu_values:
@@ -129,7 +144,7 @@ class WorkflowSetSpec:
                         found_workflows = glob(search_string)
                         if len(found_workflows) > 1:
                             self.workflows.append([os.path.abspath(x) for x in found_workflows])
-
+		self.rehash()
         sys.stderr.write(".")
         sys.stderr.flush()
 
@@ -146,14 +161,7 @@ class WorkflowSetSpec:
     def __eq__(self, other: object):
         if not isinstance(other, WorkflowSetSpec):
             return NotImplemented
-        to_return = (self.workflow_dir == other.workflow_dir) and \
-                    (self.workflow_name == other.workflow_name) and \
-                    (self.architecture == other.architecture) and \
-                    (self.num_tasks_values == other.num_tasks_values) and \
-                    (self.data_values == other.data_values) and \
-                    (self.cpu_values == other.cpu_values) and \
-                    (self.num_nodes_values == other.num_nodes_values)
-        return to_return
+        return other.ivhash==self.ivhash
 
 
 class Experiment:

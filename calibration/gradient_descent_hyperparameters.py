@@ -139,7 +139,7 @@ def main():
 	# Num task variation experiments
 	
 
-	training=WorkflowSetSpec(args["workflow_dir"],
+	training=WorkflowSetSpec().populate(args["workflow_dir"],
 								args["workflow_name"],
 								args["architecture"],
 								num_tasks_values, data_values, cpu_values, 

@@ -3,10 +3,7 @@ import argparse
 import time
 from glob import glob
 from datetime import timedelta
-import base64
-import sys
 from Util import *
-import hashlib
 
 def parse_command_line_arguments(program_name: str):
 	epilog_string = ""
@@ -64,15 +61,6 @@ def parse_command_line_arguments(program_name: str):
 	except argparse.ArgumentError as error:
 		return None, parser, error
 
-def orderinvarient_hash(x,l):
-	acc=bytearray(hashlib.md5(bytes(len(x))).digest())
-	for i in x:
-		tmp=hashlib.md5(i.encode()).digest()
-		
-		for j in range(len(acc)):
-			#acc[j]^=tmp[j]
-			acc[j]=(tmp[j]+acc[j])%256
-	return base64.urlsafe_b64encode(acc)[:l].decode()
 
 
 def main():
@@ -84,7 +72,7 @@ def main():
 		sys.exit(1)
 	#print(base64.urlsafe_b64encode(hashlib.md5(str(set(args['training_set'])).encode()).digest()))
 	# Pickle results filename
-	pickle_file_name = f"pickled-one_workflow_experiments-" \
+	pickle_file_name = f"pickled-one_calibration-" \
 					   f"{orderinvarient_hash(args['training_set'],8)}-" \
 					   f"{orderinvarient_hash(args['evaluation_set'],8)}-" \
 					   f"{args['compute_service_scheme']}-" \
@@ -100,8 +88,7 @@ def main():
 		sys.stderr.write(f"There is already a pickled file '{pickle_file_name}'... Not doing anything!\n")
 		sys.exit(1)
 
-	
-	workflows = args['training_set']
+	sys.stderr.write(f"repacking expiriments for {pickle_file_name}\n")
 
 	simulator = Simulator(args["compute_service_scheme"],
 						  args["storage_service_scheme"],
@@ -113,37 +100,51 @@ def main():
 								   args["time_limit"],
 								   args["num_threads"])
 
-	num_tasks_values = []
-	cpu_values = []
-	data_values = []
-	num_nodes_values = []
-	for workflow in workflows:
+	repackaged_t=[[] for _ in range(6)]
+	repackaged_e=[[] for _ in range(6)]
+	for workflow in args['training_set']:
 		tokens = workflow.split('/')[-1].split("-")
-		num_tasks_values.append(int(tokens[1]))
-		cpu_values.append(int(tokens[2]))
-		data_values.append(int(tokens[4]))
-		num_nodes_values.append(int(tokens[6]))
-	print(num_tasks_values)
-	print(cpu_values )
-	print(data_values )
-	print(num_nodes_values)
-	exit()
-	experiment_set.add_experiment(
-		WorkflowSetSpec(args["workflow_dir"],
-						args["workflow_name"],
-						args["architecture"],
-						num_tasks_values[0:i], data_values, cpu_values, [num_nodes]),
-		[
-			WorkflowSetSpec(args["workflow_dir"],
-							args["workflow_name"],
-							args["architecture"],
-							num_tasks_values[i:], data_values, cpu_values, [num_nodes]),
-			WorkflowSetSpec(args["workflow_dir"],
-							args["workflow_name"],
-							args["architecture"],
-							[num_tasks_values[-1]], data_values, cpu_values, [num_nodes]),
-		])
+		repackaged_t[0].append(tokens[0]) #workflow
+		repackaged_t[1].append(tokens[5]) #architectures
+		repackaged_t[2].append(int(tokens[1])) #num tasks
+		repackaged_t[3].append(int(tokens[4])) #data values
+		repackaged_t[4].append(int(tokens[2])) #cpu values
+		repackaged_t[5].append(int(tokens[6])) #num nodes
+	for workflow in args['evaluation_set']:
+		tokens = workflow.split('/')[-1].split("-")
+		repackaged_e[0].append(tokens[0]) #workflow
+		repackaged_e[1].append(tokens[5]) #architectures
+		repackaged_e[2].append(int(tokens[1])) #num tasks
+		repackaged_e[3].append(int(tokens[4])) #data values
+		repackaged_e[4].append(int(tokens[2])) #cpu values
+		repackaged_e[5].append(int(tokens[6])) #num nodes
+		#num_tasks_values.append(int(tokens[1]))
+		#cpu_values.append(int(tokens[2]))
+		#data_values.append(int(tokens[4]))
+		#architectures.append(int(tokens[5]))
+		#num_nodes_values.append(int(tokens[6]))
+		##0-workflow
+		##1-tasks
+		##2-CPU 
+		##3-Fixed (1.0 (sometimes))
+		##4-data
+		##5-architecture
+		##6-Num nodes
+		##7-trial number (inc)
+		##8-timestamp
+	sys.stderr.write(f"\nCreating {len(repackaged_t[0])} scenarios...\n")
 		
+	experiment_set.add_experiment(
+		WorkflowSetSpec().populate(args["workflow_dir"],
+						*repackaged_t),
+		[
+			WorkflowSetSpec().populate(args["workflow_dir"],
+						*repackaged_e)
+		])
+	sys.stderr.write(f"\nCreated {len(experiment_set)} experiments...\n")
+
+	time_estimate_str = timedelta(seconds=experiment_set.estimate_run_time())
+	sys.stderr.write(f"Running experiments (should take about {time_estimate_str})\n")
 	start = time.perf_counter()
 	experiment_set.run()
 	elapsed = int(time.perf_counter() - start)
