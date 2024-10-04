@@ -135,9 +135,9 @@ def main():
 	#sys.stderr.write(f"\nCreating {len(repackaged_t[0])} scenarios...\n")
 		
 	experiment_set.add_experiment(
-		WorkflowSetSpec().populate(args['training_set']),
+		WorkflowSetSpec().set_workflows(args['training_set']),
 		[
-			WorkflowSetSpec().populate(args['evaluation_set'])
+			WorkflowSetSpec().set_workflows(args['evaluation_set'])
 		])
 	sys.stderr.write(f"\nCreated {len(experiment_set)} experiments...\n")
 

@@ -14,15 +14,15 @@ from WorkflowSimulatorCalibrator import WorkflowSimulatorCalibrator, Calibration
 
 
 def orderinvarient_hash(x,l=22):
-	acc=bytearray(hashlib.md5(bytes(len(x))).digest())
-	for i in x:
-		tmp=hashlib.md5(i.encode()).digest()
-		
-		for j in range(len(acc)):
-			#acc[j]^=tmp[j]
-			acc[j]=(tmp[j]+acc[j])%256
-	return base64.urlsafe_b64encode(acc)[:l].decode()
-	
+    acc=bytearray(hashlib.md5(bytes(len(x))).digest())
+    for i in x:
+        tmp=hashlib.md5(i.encode()).digest()
+        
+        for j in range(len(acc)):
+            #acc[j]^=tmp[j]
+            acc[j]=(tmp[j]+acc[j])%256
+    return base64.urlsafe_b64encode(acc)[:l].decode()
+    
 def relative_average_error(x_simulated: List[float], y_real: List[float]):
     return sum([abs(a - b) / b for (a, b) in list(zip(x_simulated, y_real))]) / len(x_simulated)
 
@@ -102,17 +102,17 @@ def evaluate_calibration(workflows: List[List[str]],
 
 
 class WorkflowSetSpec:
-	def __init__(self):
-		self.workflows: List[List[str]]=[]
-		self.ivhash=orderinvarient_hash(self.workflows)
-		
-	def rehash(self):
-		self.ivhash=orderinvarient_hash(self.workflows)
-		
-	def set_workflows(self,workflows: List[List[str]]):
-		self.workflows=workflows
-		self.rehash()
-		
+    def __init__(self):
+        self.workflows: List[List[str]]=[]
+        self.ivhash=orderinvarient_hash(self.workflows)
+        
+    def rehash(self):
+        self.ivhash=orderinvarient_hash(self.workflows)
+        
+    def set_workflows(self,workflows: List[List[str]]):
+        self.workflows=workflows
+        self.rehash()
+        
     def populate(self, workflow_dir: str, workflow_name: str, architecture: str,
                  num_tasks_values: List[int], data_values: List[int], cpu_values: List[int],
                  num_nodes_values: List[int]):
@@ -144,7 +144,7 @@ class WorkflowSetSpec:
                         found_workflows = glob(search_string)
                         if len(found_workflows) > 1:
                             self.workflows.append([os.path.abspath(x) for x in found_workflows])
-		self.rehash()
+        self.rehash()
         sys.stderr.write(".")
         sys.stderr.flush()
 
