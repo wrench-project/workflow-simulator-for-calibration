@@ -100,46 +100,44 @@ def main():
 								   args["time_limit"],
 								   args["num_threads"])
 
-	repackaged_t=[[] for _ in range(6)]
-	repackaged_e=[[] for _ in range(6)]
-	for workflow in args['training_set']:
-		tokens = workflow.split('/')[-1].split("-")
-		repackaged_t[0].append(tokens[0]) #workflow
-		repackaged_t[1].append(tokens[5]) #architectures
-		repackaged_t[2].append(int(tokens[1])) #num tasks
-		repackaged_t[3].append(int(tokens[4])) #data values
-		repackaged_t[4].append(int(tokens[2])) #cpu values
-		repackaged_t[5].append(int(tokens[6])) #num nodes
-	for workflow in args['evaluation_set']:
-		tokens = workflow.split('/')[-1].split("-")
-		repackaged_e[0].append(tokens[0]) #workflow
-		repackaged_e[1].append(tokens[5]) #architectures
-		repackaged_e[2].append(int(tokens[1])) #num tasks
-		repackaged_e[3].append(int(tokens[4])) #data values
-		repackaged_e[4].append(int(tokens[2])) #cpu values
-		repackaged_e[5].append(int(tokens[6])) #num nodes
-		#num_tasks_values.append(int(tokens[1]))
-		#cpu_values.append(int(tokens[2]))
-		#data_values.append(int(tokens[4]))
-		#architectures.append(int(tokens[5]))
-		#num_nodes_values.append(int(tokens[6]))
-		##0-workflow
-		##1-tasks
-		##2-CPU 
-		##3-Fixed (1.0 (sometimes))
-		##4-data
-		##5-architecture
-		##6-Num nodes
-		##7-trial number (inc)
-		##8-timestamp
-	sys.stderr.write(f"\nCreating {len(repackaged_t[0])} scenarios...\n")
+	#repackaged_t=[[] for _ in range(6)]
+	#repackaged_e=[[] for _ in range(6)]
+	#for workflow in args['training_set']:
+	#	tokens = workflow.split('/')[-1].split("-")
+	#	repackaged_t[0].append(tokens[0]) #workflow
+	#	repackaged_t[1].append(tokens[5]) #architectures
+	#	repackaged_t[2].append(int(tokens[1])) #num tasks
+	#	repackaged_t[3].append(int(tokens[4])) #data values
+	#	repackaged_t[4].append(int(tokens[2])) #cpu values
+	#	repackaged_t[5].append(int(tokens[6])) #num nodes
+	#for workflow in args['evaluation_set']:
+	#	tokens = workflow.split('/')[-1].split("-")
+	#	repackaged_e[0].append(tokens[0]) #workflow
+	#	repackaged_e[1].append(tokens[5]) #architectures
+	#	repackaged_e[2].append(int(tokens[1])) #num tasks
+	#	repackaged_e[3].append(int(tokens[4])) #data values
+	#	repackaged_e[4].append(int(tokens[2])) #cpu values
+	#	repackaged_e[5].append(int(tokens[6])) #num nodes
+	#	#num_tasks_values.append(int(tokens[1]))
+	#	#cpu_values.append(int(tokens[2]))
+	#	#data_values.append(int(tokens[4]))
+	#	#architectures.append(int(tokens[5]))
+	#	#num_nodes_values.append(int(tokens[6]))
+	#	##0-workflow
+	#	##1-tasks
+	#	##2-CPU 
+	#	##3-Fixed (1.0 (sometimes))
+	#	##4-data
+	#	##5-architecture
+	#	##6-Num nodes
+	#	##7-trial number (inc)
+	#	##8-timestamp
+	#sys.stderr.write(f"\nCreating {len(repackaged_t[0])} scenarios...\n")
 		
 	experiment_set.add_experiment(
-		WorkflowSetSpec().populate(args["workflow_dir"],
-						*repackaged_t),
+		WorkflowSetSpec().populate(args['training_set']),
 		[
-			WorkflowSetSpec().populate(args["workflow_dir"],
-						*repackaged_e)
+			WorkflowSetSpec().populate(args['evaluation_set'])
 		])
 	sys.stderr.write(f"\nCreated {len(experiment_set)} experiments...\n")
 
