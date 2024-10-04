@@ -134,13 +134,16 @@ def main():
 	#	##8-timestamp
 	#sys.stderr.write(f"\nCreating {len(repackaged_t[0])} scenarios...\n")
 		
+		
+	#TODO group sets
 	experiment_set.add_experiment(
-		WorkflowSetSpec().set_workflows(args['training_set']),
+		WorkflowSetSpec().set_workflows([args['training_set']]),
 		[
-			WorkflowSetSpec().set_workflows(args['evaluation_set'])
+			WorkflowSetSpec().set_workflows([args['evaluation_set']])
 		])
+		
 	sys.stderr.write(f"\nCreated {len(experiment_set)} experiments...\n")
-
+	#print(experiment_set.experiments[0].training_set_spec.workflows)
 	time_estimate_str = timedelta(seconds=experiment_set.estimate_run_time())
 	sys.stderr.write(f"Running experiments (should take about {time_estimate_str})\n")
 	start = time.perf_counter()
@@ -154,9 +157,9 @@ def main():
 	# dont catch print exit errors.  Just let the error throw its self and python will give a much better print then still exit
 
 	# Pickle it
-	with open(pickle_file_name, 'wb') as f:
-		pickle.dump(experiment_set, f)
-	sys.stderr.write(f"Pickled to ./{pickle_file_name}\n")
+	#with open(pickle_file_name, 'wb') as f:
+	#	pickle.dump(experiment_set, f)
+	#sys.stderr.write(f"Pickled to ./{pickle_file_name}\n")
 
 
 if __name__ == "__main__":

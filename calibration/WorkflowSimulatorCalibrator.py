@@ -28,7 +28,6 @@ class CalibrationLossEvaluator(sc.Simulator):
 
     def run(self, env: sc.Environment, calibration: dict[str, sc.parameters.Value]):
         results = []
-
         # Run simulator for all known ground truth points
         for workflows in self.ground_truth:
             # Get the ground-truth makespans

@@ -11,9 +11,18 @@ import simcal as sc
 
 from Simulator import Simulator
 from WorkflowSimulatorCalibrator import WorkflowSimulatorCalibrator, CalibrationLossEvaluator, get_makespan
+def flatten(arr):
+    flat_list = []
+    for item in arr:
+        if isinstance(item, list):
+            flat_list.extend(flatten(item))  # Recursively flatten the nested list
+        else:
+            flat_list.append(item)  # Append non-list item
+    return flat_list
 
 
 def orderinvarient_hash(x,l=22):
+    x=flatten(x)
     acc=bytearray(hashlib.md5(bytes(len(x))).digest())
     for i in x:
         tmp=hashlib.md5(i.encode()).digest()
@@ -103,12 +112,19 @@ def evaluate_calibration(workflows: List[List[str]],
 
 class WorkflowSetSpec:
     def __init__(self):
-        self.workflows: List[List[str]]=[]
+        self.workflow_dir="."
+        self.workflow_name="custom"
+        self.architecture="custom"
+        self.num_tasks_values=[]
+        self.data_values=[]
+        self.cpu_values=[]
+        self.num_nodes_values=[]
+        self.workflows: List[List[str]]=[[]]
         self.ivhash=orderinvarient_hash(self.workflows)
         
     def rehash(self):
         self.ivhash=orderinvarient_hash(self.workflows)
-        
+    
     def set_workflows(self,workflows: List[List[str]]):
         self.workflows=workflows
         self.rehash()
@@ -117,6 +133,13 @@ class WorkflowSetSpec:
     def populate(self, workflow_dir: str, workflow_name: str, architecture: str,
                  num_tasks_values: List[int], data_values: List[int], cpu_values: List[int],
                  num_nodes_values: List[int]):
+        self.workflow_dir=workflow_dir
+        self.workflow_name=workflow_name
+        self.architecture=architecture
+        self.num_tasks_values=num_tasks_values
+        self.data_values=data_values
+        self.cpu_values=cpu_values
+        self.num_nodes_values=num_nodes_values
         self.workflows = []
         for num_tasks_value in num_tasks_values:
             for data_value in data_values:
@@ -149,7 +172,7 @@ class WorkflowSetSpec:
         sys.stderr.write(".")
         sys.stderr.flush()
         return self
-		
+        
     def get_workflow_set(self) -> List[List[str]]:
         return self.workflows
 
@@ -213,14 +236,15 @@ class ExperimentSet:
     def add_experiment(self, training_set_spec: WorkflowSetSpec, evaluation_set_specs: List[WorkflowSetSpec]):
         if training_set_spec.is_empty():
             # Perhaps print a message?
+            sys.stderr.write("Empty training set")	
             return False
         non_empty_evaluation_set_specs = []
         for evaluation_set_spec in evaluation_set_specs:
             if not evaluation_set_spec.is_empty():
                 non_empty_evaluation_set_specs.append(evaluation_set_spec)
-        if len(non_empty_evaluation_set_specs) == 0:
-            # Perhaps print a message?
-            return False
+        #if len(non_empty_evaluation_set_specs) == 0:
+            #sys.stderr.write("Empty evaluation set")	
+            #return False
 
         xp = Experiment(training_set_spec, non_empty_evaluation_set_specs)
         if xp not in self.experiments:
