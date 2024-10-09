@@ -220,13 +220,15 @@ class Simulator:
         json_string = json.dumps(json_input, separators=(',', ':'))
 
         # Run the simulator
-        cmdargs = [f"{json_string}"]
-        # print(cmdargs)
+        cmdargs = ["--wrench-commport-pool-size=10000",f"{json_string}"]
+        
         std_out, std_err, exit_code = env.bash("workflow-simulator-for-calibration", cmdargs, std_in=None)
         if exit_code:
+            sys.stderr.write(str(cmdargs))
             sys.stderr.write(f"Simulator has failed with exit code {exit_code}!\n\n{std_err}\n")
             exit(1)
         if std_err:
+            sys.stderr.write(str(cmdargs))
             sys.stderr.write("The simulator produced something on stderr. ABORTING\n")
             sys.stderr.write(std_err)
             sys.stderr.write(cmdargs[0] + "\n")

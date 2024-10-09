@@ -14,7 +14,7 @@ from WorkflowSimulatorCalibrator import WorkflowSimulatorCalibrator, Calibration
 def flatten(arr):
     flat_list = []
     for item in arr:
-        if isinstance(item, list):
+        if isinstance(item, list) or isinstance(item, tuple):
             flat_list.extend(flatten(item))  # Recursively flatten the nested list
         else:
             flat_list.append(item)  # Append non-list item

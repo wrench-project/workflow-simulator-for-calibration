@@ -4,7 +4,19 @@ import time
 from glob import glob
 from datetime import timedelta
 from Util import *
+from itertools import groupby
+def group(flat):
+    # Use a regular expression to split the string before the last part (repeat number)
+    def split_key(s):
+        return '-'.join(s.split('-')[0:7])
 
+    # Sort the strings based on the non-repeat part
+    sorted_strings = sorted(flat, key=split_key)
+    
+    # Group by the non-repeat part
+    grouped_strings = [list(group) for _, group in groupby(sorted_strings, key=split_key)]
+    
+    return grouped_strings
 def parse_command_line_arguments(program_name: str):
 	epilog_string = ""
 
@@ -54,7 +66,7 @@ def parse_command_line_arguments(program_name: str):
 							help='The network topology scheme used by the simulator')
 		parser.add_argument('-ts', '--training_set',required=True, type=str, nargs="+",
 							help='The list of json files to use for training')
-		parser.add_argument('-es', '--evaluation_set', type=str, nargs="*",default=(), 
+		parser.add_argument('-es', '--evaluation_set', type=str, nargs="*",default=None, 
 							help='The list of json files to use for evaluation')
 		return vars(parser.parse_args()), parser, None
 
@@ -72,9 +84,16 @@ def main():
 		sys.exit(1)
 	#print(base64.urlsafe_b64encode(hashlib.md5(str(set(args['training_set'])).encode()).digest()))
 	# Pickle results filename
+
+	training=group(args['training_set'])
+	#print(training)
+	if args['evaluation_set'] is None:
+		evaluation=training
+	else:
+		evaluation=group(args['evaluation_set'])
 	pickle_file_name = f"pickled-one_calibration-" \
-					   f"{orderinvarient_hash(args['training_set'],8)}-" \
-					   f"{orderinvarient_hash(args['evaluation_set'],8)}-" \
+					   f"{orderinvarient_hash(training,8)}-" \
+					   f"{orderinvarient_hash(evaluation,8)}-" \
 					   f"{args['compute_service_scheme']}-" \
 					   f"{args['storage_service_scheme']}-" \
 					   f"{args['network_topology_scheme']}-" \
@@ -135,11 +154,11 @@ def main():
 	#sys.stderr.write(f"\nCreating {len(repackaged_t[0])} scenarios...\n")
 		
 		
-	#TODO group sets
+	
 	experiment_set.add_experiment(
-		WorkflowSetSpec().set_workflows([args['training_set']]),
+		WorkflowSetSpec().set_workflows(training),
 		[
-			WorkflowSetSpec().set_workflows([args['evaluation_set']])
+			WorkflowSetSpec().set_workflows(evaluation)
 		])
 		
 	sys.stderr.write(f"\nCreated {len(experiment_set)} experiments...\n")
