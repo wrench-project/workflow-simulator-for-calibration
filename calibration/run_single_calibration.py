@@ -6,17 +6,17 @@ from datetime import timedelta
 from Util import *
 from itertools import groupby
 def group(flat):
-    # Use a regular expression to split the string before the last part (repeat number)
-    def split_key(s):
-        return '-'.join(s.split('-')[0:7])
+	# Use a regular expression to split the string before the last part (repeat number)
+	def split_key(s):
+		return '-'.join(s.split('-')[0:7])
 
-    # Sort the strings based on the non-repeat part
-    sorted_strings = sorted(flat, key=split_key)
-    
-    # Group by the non-repeat part
-    grouped_strings = [list(group) for _, group in groupby(sorted_strings, key=split_key)]
-    
-    return grouped_strings
+	# Sort the strings based on the non-repeat part
+	sorted_strings = sorted(flat, key=split_key)
+	
+	# Group by the non-repeat part
+	grouped_strings = [list(group) for _, group in groupby(sorted_strings, key=split_key)]
+	
+	return grouped_strings
 def parse_command_line_arguments(program_name: str):
 	epilog_string = ""
 
@@ -48,10 +48,15 @@ def parse_command_line_arguments(program_name: str):
 		#parser.add_argument('-n', '--estimate_run_time_only', action="store_true",
 		#					help='A number of threads to use for training')
 		parser.add_argument('-lf', '--loss_function', type=str,
-							metavar="mean_square_error, relative_average_error",
-							choices=['mean_square_error', 'relative_average_error'], nargs='?',
-							default="relative_average_error",
+							metavar="makespan, average_runtimes, max_runtimes",
+							choices=['makespan', 'average_runtimes','max_runtimes'], nargs='?',
+							default="makespan",
 							help='The loss function to evaluate a calibration')
+		parser.add_argument('-la', '--loss_aggregator', type=str,
+							metavar="average_error, max_error",
+							choices=['average_error', 'max_error'], nargs='?',
+							default="average_error",
+							help='The loss aggregator to evaluate a calibration')					
 		parser.add_argument('-cs', '--compute_service_scheme', type=str,
 							metavar="[all_bare_metal|htcondor_bare_metal]",
 							choices=['all_bare_metal', 'htcondor_bare_metal'], required=True,
@@ -116,6 +121,7 @@ def main():
 	experiment_set = ExperimentSet(simulator,
 								   args["algorithm"],
 								   args["loss_function"],
+								   args["loss_aggregator"],
 								   args["time_limit"],
 								   args["num_threads"])
 

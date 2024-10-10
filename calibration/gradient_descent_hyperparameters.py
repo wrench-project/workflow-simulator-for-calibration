@@ -6,7 +6,7 @@ from datetime import timedelta
 import math
 
 from Util import *
-from Util import _get_loss_function
+from Loss import get_loss_function
 
 
 def parse_command_line_arguments(program_name: str):
@@ -158,7 +158,7 @@ def main():
 	calibrator = WorkflowSimulatorCalibrator(training.get_workflow_set(),
 													 "gradient",
 													 simulator,
-													 _get_loss_function(args["loss_function"]))
+													 get_loss_function(args["loss_function"]))
 	best_args=None
 	bestLoss=None
 	d=dh
