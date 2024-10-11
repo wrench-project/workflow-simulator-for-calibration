@@ -34,7 +34,7 @@ class CalibrationLossEvaluator(sc.Simulator):
 				result = self.simulator.run(env, (workflow, calibration))
 				results.append(json.loads(result))
 
-		return self.loss_function(result)
+		return self.loss_function(results)
 
 
 class WorkflowSimulatorCalibrator:
