@@ -51,7 +51,7 @@ class LossHandler:
 	
 	def __call__(self,output: List[dict]):
 		losses = []
-		print(output)
+		#print(output)
 		for x in output:
 			real_makespan = float(x["real_makespan"])
 			simulated_makespan = float(x["simulated_makespan"])
