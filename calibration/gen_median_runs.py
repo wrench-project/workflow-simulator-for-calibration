@@ -82,7 +82,7 @@ def main():
         if makespan_values:
             # Find the median makespan
             median_makespan = median(makespan_values)
-            median_index = makespan_values.index(median_makespan)
+            median_index = min(range(len(makespan_values)), key=lambda i: abs(makespan_values[i] - median_makespan))
             selected_file = valid_files[median_index]
             
             # Copy the selected file to the destination folder
