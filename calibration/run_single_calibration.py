@@ -185,7 +185,6 @@ def main():
 	#with open(pickle_file_name, 'wb') as f:
 	#	pickle.dump(experiment_set, f)
 	#sys.stderr.write(f"Pickled to ./{pickle_file_name}\n")
-
-
+	print(pickle_file_name)
 if __name__ == "__main__":
 	main()
