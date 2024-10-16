@@ -68,12 +68,12 @@ def main():
     if not os.path.exists(destination_folder):
         os.makedirs(destination_folder)
 
-    for group in training_groups:
+    for groupd in training_groups:
         makespan_values = []
         valid_files = []
         
         # Collect makespan values and valid json files
-        for file in group:
+        for file in groupd:
             makespan = get_makespan(file)
             if makespan is not None:
                 makespan_values.append(makespan)
