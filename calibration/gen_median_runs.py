@@ -47,7 +47,7 @@ def get_makespan(json_file):
     try:
         with open(json_file, 'r') as f:
             data = json.load(f)
-            return data.get('makespan', None)
+            return float(data["workflow"]["execution"]["makespanInSeconds"])
     except (json.JSONDecodeError, KeyError):
         sys.stderr.write(f"Error: Could not read or find 'makespan' in {json_file}\n")
         return None
