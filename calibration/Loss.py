@@ -23,9 +23,10 @@ def average_runtimes(x: dict):
 	
 def max_runtimes(x: dict):
 	loss = 0
-	if len(task['tasks']) == 0:
+	
+	if len(x['tasks']) == 0:
 		return float('inf')
-	for x in task['tasks']:		
+	for task in x['tasks']:		
 		real = float(x['tasks'][task]["real_duration"])
 		sim = float(x['tasks'][task]["simulated_duration"])
 		loss = max(loss,abs(real-sim)/real)
