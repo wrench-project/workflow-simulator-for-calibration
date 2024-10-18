@@ -182,8 +182,8 @@ def main():
 	# dont catch print exit errors.  Just let the error throw its self and python will give a much better print then still exit
 
 	# Pickle it
-	#with open(pickle_file_name, 'wb') as f:
-	#	pickle.dump(experiment_set, f)
+	with open(pickle_file_name, 'wb') as f:
+		pickle.dump(experiment_set, f)
 	#sys.stderr.write(f"Pickled to ./{pickle_file_name}\n")
 	print(pickle_file_name)
 if __name__ == "__main__":
