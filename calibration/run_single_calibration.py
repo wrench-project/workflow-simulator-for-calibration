@@ -103,6 +103,8 @@ def main():
 					   f"{args['storage_service_scheme']}-" \
 					   f"{args['network_topology_scheme']}-" \
 					   f"{args['algorithm']}-" \
+					   f"{args['loss_function']}-" \
+					   f"{args['loss_aggregator']}-" \
 					   f"{args['time_limit']}-" \
 					   f"{args['num_threads']}-" \
 					   f"{args['computer_name']}.pickled"
