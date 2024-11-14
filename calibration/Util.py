@@ -6,7 +6,7 @@ from typing import List, Callable
 import pickle
 import base64
 import hashlib 
-
+import ast
 import simcal as sc
 
 from Simulator import Simulator
@@ -333,10 +333,11 @@ class ExperimentSet:
 					self.loss_aggregator))
 				makespans={}
 				for workflow in evaluation_set_spec.get_workflow_set():
-					with sc.Environment() as env:
-						makespans[workflow[0]]=self.simulator.run(env, (workflow[0],xp.calibration))[0]
+					for w,i in enumerate(workflow):
+						with sc.Environment() as env:
+							makespans[w]=ast.literal_eval(self.simulator.run(env, (w,xp.calibration))
 				xp.evaluation_makespans.append(makespans)
-	def estimate_run_time(self):
+	def estimate_run_time(self):	
 		training_set_specs = []
 		for xp in self.experiments:
 			if xp.training_set_spec not in training_set_specs:
