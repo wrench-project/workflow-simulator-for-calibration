@@ -8,10 +8,10 @@ from Util import *
 
 
 if __name__ == "__main__":
-	if len(sys.argv<2):
+	if len(sys.argv)<2:
 		print(f"Usage:{sys.argv[0]} pickle_file") 
 		exit()
-	if len(sys.argv>2):
+	if len(sys.argv)>2:
 		print(f"{sys.argv[0]} * not supported, try find") 
 		exit()
 	pickle_path=sys.argv[1]
