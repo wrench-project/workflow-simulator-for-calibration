@@ -333,7 +333,7 @@ class ExperimentSet:
 					self.loss_aggregator))
 				makespans={}
 				for workflow in evaluation_set_spec.get_workflow_set():
-					for w,i in enumerate(workflow):
+					for i,w in enumerate(workflow):
 						with sc.Environment() as env:
 							makespans[w]=ast.literal_eval(self.simulator.run(env, (w,xp.calibration)))
 				xp.evaluation_makespans.append(makespans)
