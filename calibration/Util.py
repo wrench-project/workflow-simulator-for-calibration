@@ -335,7 +335,7 @@ class ExperimentSet:
 				for workflow in evaluation_set_spec.get_workflow_set():
 					for w,i in enumerate(workflow):
 						with sc.Environment() as env:
-							makespans[w]=ast.literal_eval(self.simulator.run(env, (w,xp.calibration))
+							makespans[w]=ast.literal_eval(self.simulator.run(env, (w,xp.calibration)))
 				xp.evaluation_makespans.append(makespans)
 	def estimate_run_time(self):	
 		training_set_specs = []
