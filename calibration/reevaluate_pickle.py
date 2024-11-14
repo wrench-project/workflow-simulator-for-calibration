@@ -8,13 +8,13 @@ from Util import *
 
 
 if __name__ == "__main__":
-	if len(sys.args<2):
-		print(f"Usage:{sys.args[0]} pickle_file") 
+	if len(sys.argv<2):
+		print(f"Usage:{sys.argv[0]} pickle_file") 
 		exit()
-	if len(sys.args>2):
-		print(f"{sys.args[0]} * not supported, try find") 
+	if len(sys.argv>2):
+		print(f"{sys.argv[0]} * not supported, try find") 
 		exit()
-	pickle_path=sys.args[1]
+	pickle_path=sys.argv[1]
 	with open(pickle_path, 'rb') as f:
 		data = pickle.load(f)
 	data.compute_all_evaluations()
