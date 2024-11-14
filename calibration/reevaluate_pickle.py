@@ -12,8 +12,7 @@ if __name__ == "__main__":
 		print(f"Usage:{sys.argv[0]} pickle_file") 
 		exit()
 	if len(sys.argv)>2:
-		print(f"'{sys.argv[0]} *' not supported, try 'for file in *.pickled; do {sys.argv[0]} \"$file\"'"
-done") 
+		print(f"'{sys.argv[0]} *' not supported, try 'for file in *.pickled; do {sys.argv[0]} \"$file\" done'") 
 		exit()
 	pickle_path=sys.argv[1]
 	with open(pickle_path, 'rb') as f:
