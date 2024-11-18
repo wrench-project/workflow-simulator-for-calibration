@@ -109,8 +109,9 @@ def main():
 	experiment_set.loss_function = args["loss_function"]
 	experiment_set.loss_aggregator = args["loss_aggregator"]
 	experiment_set.num_threads = args["num_threads"]
-	experiment_set.experiments = []
-
+	#experiment_set.experiments = []
+	if(len(experiment_set.experiments)!=1):
+		sys.stderr.write("Currently only supports pickles with exactly 1 expiriemnt
 	#repackaged_t=[[] for _ in range(6)]
 	#repackaged_e=[[] for _ in range(6)]
 	#for workflow in args['training_set']:
@@ -147,7 +148,7 @@ def main():
 		
 		
 	
-	experiment_set.experiments.append(Experiment(None, [WorkflowSetSpec().set_workflows(evaluation)]))
+	experiment_set.experiments[0].evaluation_set_specs=[WorkflowSetSpec().set_workflows(evaluation)	]
 		
 	sys.stderr.write(f"\nCreated {len(experiment_set)} experiments...\n")
 	#print(experiment_set.experiments[0].training_set_spec.workflows)
