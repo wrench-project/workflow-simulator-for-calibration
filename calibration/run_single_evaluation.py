@@ -111,7 +111,7 @@ def main():
 	experiment_set.num_threads = args["num_threads"]
 	#experiment_set.experiments = []
 	if(len(experiment_set.experiments)!=1):
-		sys.stderr.write("Currently only supports pickles with exactly 1 expiriemnt
+		sys.stderr.write("Currently only supports pickles with exactly 1 expiriemnt]n");
 	#repackaged_t=[[] for _ in range(6)]
 	#repackaged_e=[[] for _ in range(6)]
 	#for workflow in args['training_set']:
