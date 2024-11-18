@@ -147,7 +147,7 @@ def main():
 		
 		
 	
-	experiment_set.append(Experiment(None, evaluation))
+	experiment_set.experiments.append(Experiment(None, evaluation))
 		
 	sys.stderr.write(f"\nCreated {len(experiment_set)} experiments...\n")
 	#print(experiment_set.experiments[0].training_set_spec.workflows)
