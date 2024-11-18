@@ -105,7 +105,7 @@ def main():
 
 	with open(args['pickle'], 'rb') as f:
 		experiment_set = pickle.load(f)
-	experiment_set.algorithm = args["algorithm"]
+	#experiment_set.algorithm = args["algorithm"]
 	experiment_set.loss_function = args["loss_function"]
 	experiment_set.loss_aggregator = args["loss_aggregator"]
 	experiment_set.num_threads = args["num_threads"]
