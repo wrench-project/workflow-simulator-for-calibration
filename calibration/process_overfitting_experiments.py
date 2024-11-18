@@ -16,7 +16,7 @@ def process_experiment_sets(pickle_files, threshold1, threshold2):
 	to_plot_low = []
 	to_plot_medium = []
 	to_plot_high = []
-
+	loss=LossHandler("makespan","average")
 	# Load and categorize experiment data
 	for pickle_file in pickle_files:
 		with open(pickle_file, 'rb') as file:
@@ -26,17 +26,18 @@ def process_experiment_sets(pickle_files, threshold1, threshold2):
 			return 
 
 		for result in experiment_set.experiments:
-			training_loss = result.calibration_loss
-			label = f"{experiment_set.algorithm} {experiment_set.loss_function} {experiment_set.loss_aggregator}"
-			# = max(largest_value, training_loss)
+			for output in result.evaluation_makespans:
+				training_loss = loss(output)
+				label = f"{experiment_set.algorithm} {experiment_set.loss_function} {experiment_set.loss_aggregator}"
+				# = max(largest_value, training_loss)
 
-			# Categorize data based on thresholds
-			if training_loss < threshold1:
-				to_plot_low.append((training_loss, label))
-			elif training_loss < threshold2:
-				to_plot_medium.append((training_loss, label))
-			else:
-				to_plot_high.append((training_loss, label))
+				# Categorize data based on thresholds
+				if training_loss < threshold1:
+					to_plot_low.append((training_loss, label))
+				elif training_loss < threshold2:
+					to_plot_medium.append((training_loss, label))
+				else:
+					to_plot_high.append((training_loss, label))
 
 	# Sort data within each category
 	to_plot_low = sorted(to_plot_low)
