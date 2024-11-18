@@ -88,24 +88,14 @@ def main():
 	#print(base64.urlsafe_b64encode(hashlib.md5(str(set(args['training_set'])).encode()).digest()))
 	# Pickle results filename
 
-	training=group(args['training_set'])
+	#training=group(args['training_set'])
 	#print(training)
-	if args['evaluation_set'] is None:
-		evaluation=training
-	else:
-		evaluation=group(args['evaluation_set'])
-	pickle_file_name = f"pickled-one_calibration-" \
-					   f"{orderinvarient_hash(training,8)}-" \
+	evaluation=group(args['evaluation_set'])
+	pickle_file_name = f"{args['pickle']}-Reevaluation-" \
 					   f"{orderinvarient_hash(evaluation,8)}-" \
-					   f"{args['compute_service_scheme']}-" \
-					   f"{args['storage_service_scheme']}-" \
-					   f"{args['network_topology_scheme']}-" \
 					   f"{args['algorithm']}-" \
 					   f"{args['loss_function']}-" \
-					   f"{args['loss_aggregator']}-" \
-					   f"{args['time_limit']}-" \
-					   f"{args['num_threads']}-" \
-					   f"{args['computer_name']}.pickled"
+					   f"{args['loss_aggregator']}.pickled"
 
 	# If the pickled file already exists, then print a warning and move on
 	if os.path.isfile(pickle_file_name):
@@ -114,16 +104,13 @@ def main():
 
 	sys.stderr.write(f"repacking expiriments for {pickle_file_name}\n")
 
-	simulator = Simulator(args["compute_service_scheme"],
-						  args["storage_service_scheme"],
-						  args["network_topology_scheme"])
-
-	experiment_set = ExperimentSet(simulator,
-								   args["algorithm"],
-								   args["loss_function"],
-								   args["loss_aggregator"],
-								   args["time_limit"],
-								   args["num_threads"])
+	with open(pickle_path, 'rb') as f:
+		experiment_set = pickle.load(f)
+	experiment_set.algorithm = args["algorithm"]
+	experiment_set.loss_function = args["loss_function"]
+	experiment_set.loss_aggregator = args["loss_aggregator"]
+	experiment_set.num_threads = args["num_threads"]
+	experiment_set.experiments = []
 
 	#repackaged_t=[[] for _ in range(6)]
 	#repackaged_e=[[] for _ in range(6)]
@@ -161,18 +148,15 @@ def main():
 		
 		
 	
-	experiment_set.add_experiment(
-		WorkflowSetSpec().set_workflows(training),
-		[
-			WorkflowSetSpec().set_workflows(evaluation)
-		])
+	experiments.append(Experiment(None, evaluation))
 		
 	sys.stderr.write(f"\nCreated {len(experiment_set)} experiments...\n")
 	#print(experiment_set.experiments[0].training_set_spec.workflows)
-	time_estimate_str = timedelta(seconds=experiment_set.estimate_run_time())
-	sys.stderr.write(f"Running experiments (should take about {time_estimate_str})\n")
+	#time_estimate_str = timedelta(seconds=experiment_set.estimate_run_time())
+	#sys.stderr.write(f"Running experiments (should take about {time_estimate_str})\n")
 	start = time.perf_counter()
-	experiment_set.run()
+	pickle_path=sys.argv[1]
+	experiment_set.compute_all_evaluations()
 	elapsed = int(time.perf_counter() - start)
 	sys.stderr.write(f"Actually ran in {timedelta(seconds=elapsed)}\n")
 	# except Exception as error:
