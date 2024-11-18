@@ -37,10 +37,10 @@ def parse_command_line_arguments(program_name: str):
 		#					metavar="[haswell|skylake|cascadelake|icelake]",
 		#					choices=['haswell', 'skylake', 'cascadelake','icelake'], required=True,
 		#					help='The computer architecture')
-		parser.add_argument('-al', '--algorithm', type=str,
-							metavar="[grid|random|gradient|skopt.gp|skopt.gbrt|skopt.rf|skopt.et]",
-							choices=['grid', 'random', 'gradient','skopt.gp','skopt.gbrt','skopt.rf','skopt.et'], required=True,
-							help='The calibration algorithm')
+		#parser.add_argument('-al', '--algorithm', type=str,
+		#					metavar="[grid|random|gradient|skopt.gp|skopt.gbrt|skopt.rf|skopt.et]",
+		#					choices=['grid', 'random', 'gradient','skopt.gp','skopt.gbrt','skopt.rf','skopt.et'], required=True,
+		#					help='The calibration algorithm')
 		#parser.add_argument('-tl', '--time_limit', type=int, metavar="<number of second>", required=True,
 		#					help='A training time limit, in seconds')
 		parser.add_argument('-th', '--num_threads', type=int, metavar="<number of threads (default=1)>", nargs='?',
