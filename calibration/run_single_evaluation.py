@@ -92,7 +92,7 @@ def main():
 	#print(training)
 	evaluation=group(args['evaluation_set'])
 	pickle_file_name = f"{args['pickle']}-Reevaluation-" \
-					   f"{orderinvarient_hash(evaluation,8)}-" \
+					   f"{orderinvarient_hash(evaluation,8)}-" \	 	
 					   f"{args['loss_function']}-" \
 					   f"{args['loss_aggregator']}.pickled"
 
@@ -103,7 +103,7 @@ def main():
 
 	sys.stderr.write(f"repacking expiriments for {pickle_file_name}\n")
 
-	with open(pickle_path, 'rb') as f:
+	with open(args['pickle'], 'rb') as f:
 		experiment_set = pickle.load(f)
 	experiment_set.algorithm = args["algorithm"]
 	experiment_set.loss_function = args["loss_function"]
