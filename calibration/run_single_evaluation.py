@@ -27,10 +27,10 @@ def parse_command_line_arguments(program_name: str):
 
 	try:
 
-		parser.add_argument('-wd', '--workflow_dir', type=str, metavar="<workflow dir>", required=False,
-							help='Unused, left for backwards compatibility, replaced with -ts and -es')
-		parser.add_argument('-cn', '--computer_name', type=str, metavar="<computer name>", required=True,
-							help='Name of this computer to add to the pickled file name')
+		parser.add_argument('-p', '--pickle', type=str, metavar="<pickle>", required=True,
+							help='Pickled calibration to use')
+		#parser.add_argument('-cn', '--computer_name', type=str, metavar="<computer name>", required=True,
+		#					help='Name of this computer to add to the pickled file name')
 		#parser.add_argument('-wn', '--workflow_name', type=str, metavar="<workflow name>", required=True,
 		#					help='Name of the workflow to run the calibration/validation on')
 		#parser.add_argument('-ar', '--architecture', type=str,
@@ -41,8 +41,8 @@ def parse_command_line_arguments(program_name: str):
 							metavar="[grid|random|gradient|skopt.gp|skopt.gbrt|skopt.rf|skopt.et]",
 							choices=['grid', 'random', 'gradient','skopt.gp','skopt.gbrt','skopt.rf','skopt.et'], required=True,
 							help='The calibration algorithm')
-		parser.add_argument('-tl', '--time_limit', type=int, metavar="<number of second>", required=True,
-							help='A training time limit, in seconds')
+		#parser.add_argument('-tl', '--time_limit', type=int, metavar="<number of second>", required=True,
+		#					help='A training time limit, in seconds')
 		parser.add_argument('-th', '--num_threads', type=int, metavar="<number of threads (default=1)>", nargs='?',
 							default=1, help='A number of threads to use for training')
 		#parser.add_argument('-n', '--estimate_run_time_only', action="store_true",
@@ -57,20 +57,18 @@ def parse_command_line_arguments(program_name: str):
 							choices=['average_error', 'max_error'], nargs='?',
 							default="average_error",
 							help='The loss aggregator to evaluate a calibration')					
-		parser.add_argument('-cs', '--compute_service_scheme', type=str,
-							metavar="[all_bare_metal|htcondor_bare_metal]",
-							choices=['all_bare_metal', 'htcondor_bare_metal'], required=True,
-							help='The compute service scheme used by the simulator')
-		parser.add_argument('-ss', '--storage_service_scheme', type=str,
-							metavar="[submit_only|submit_and_compute_hosts]",
-							choices=['submit_only', 'submit_and_compute_hosts'], required=True,
-							help='The storage service scheme used by the simulator')
-		parser.add_argument('-ns', '--network_topology_scheme', type=str,
-							metavar="[one_link|one_and_then_many_links|many_links]",
-							choices=['one_link', 'one_and_then_many_links', 'many_links'], required=True,
-							help='The network topology scheme used by the simulator')
-		parser.add_argument('-ts', '--training_set',required=True, type=str, nargs="+",
-							help='The list of json files to use for training')
+		#parser.add_argument('-cs', '--compute_service_scheme', type=str,
+		#					metavar="[all_bare_metal|htcondor_bare_metal]",
+		#					choices=['all_bare_metal', 'htcondor_bare_metal'], required=True,
+		#					help='The compute service scheme used by the simulator')
+		#parser.add_argument('-ss', '--storage_service_scheme', type=str,
+		#					metavar="[submit_only|submit_and_compute_hosts]",
+		#					choices=['submit_only', 'submit_and_compute_hosts'], required=True,
+		#					help='The storage service scheme used by the simulator')
+		#parser.add_argument('-ns', '--network_topology_scheme', type=str,
+		#					metavar="[one_link|one_and_then_many_links|many_links]",
+		#					choices=['one_link', 'one_and_then_many_links', 'many_links'], required=True,
+		#					help='The network topology scheme used by the simulator')
 		parser.add_argument('-es', '--evaluation_set', type=str, nargs="*",default=None, 
 							help='The list of json files to use for evaluation')
 		return vars(parser.parse_args()), parser, None
