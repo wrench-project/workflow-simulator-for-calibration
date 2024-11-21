@@ -57,6 +57,8 @@ def main():
 	with open(json.loads(args["simulator_args"]["workflow"]), 'r')) as source_json:
 		data = json.load(source_json)
 		data["real_makespan"]=result["real_makespan"]
+		for task in result["tasks"]
+			data["tasks"][task]["syntheticRuntimeInSeconds"]=result["tasks"][task]["simulated_duration"]
 	with open(args["output"], 'w') as output_json:
 		json.dump(data, output_json)
 

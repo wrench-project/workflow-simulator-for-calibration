@@ -221,7 +221,7 @@ class Simulator:
 
 		# Run the simulator
 		cmdargs = ["--wrench-commport-pool-size=10000",f"{json_string}"]
-		print(cmdargs)
+		#print(cmdargs)
 		std_out, std_err, exit_code = env.bash("workflow-simulator-for-calibration", cmdargs, std_in=None)
 		if exit_code:
 			sys.stderr.write(str(cmdargs))
