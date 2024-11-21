@@ -54,7 +54,7 @@ def main():
 						  args["network_topology_scheme"])
 
 	result=simulator(args["simulator_args"])
-	with open(json.loads(args["simulator_args"]["workflow"]), 'r')) as source_json:
+	with open(json.loads(args["simulator_args"]["workflow"]), 'r') as source_json:
 		data = json.load(source_json)
 		data["real_makespan"]=result["real_makespan"]
 		for task in result["tasks"]
