@@ -410,12 +410,22 @@ int main(int argc, char **argv) {
     for (auto const &task_spec : json_workflow["workflow"].as_object()["execution"].as_object()["tasks"].as_array()) {
         auto real_task_id = std::string(task_spec.as_object().at("id").as_string().c_str());
         double real_task_duration;
-        if (task_spec.as_object().at("runtimeInSeconds").is_double()) {
-            real_task_duration = task_spec.as_object().at("runtimeInSeconds").as_double();
-        } else if (task_spec.as_object().at("runtimeInSeconds").is_int64()) {
-            real_task_duration = static_cast<double>(task_spec.as_object().at("runtimeInSeconds").as_int64());
+        if (task_spec.as_object().contains("syntheticRuntimeInSecond")) {
+            if (task_spec.as_object().at("syntheticRuntimeInSecond").is_double()) {
+                real_task_duration = task_spec.as_object().at("syntheticRuntimeInSecond").as_double();
+            } else if (task_spec.as_object().at("syntheticRuntimeInSecond").is_int64()) {
+                real_task_duration = static_cast<double>(task_spec.as_object().at("syntheticRuntimeInSecond").as_int64());
+            } else {
+                throw std::runtime_error("In WfFormat, syntheticRuntimeInSecond is not a valid number");
+            }
         } else {
-            throw std::runtime_error("In WfFormat, runtimeInSeconds is not a valid number");
+            if (task_spec.as_object().at("runtimeInSeconds").is_double()) {
+                real_task_duration = task_spec.as_object().at("runtimeInSeconds").as_double();
+            } else if (task_spec.as_object().at("runtimeInSeconds").is_int64()) {
+                real_task_duration = static_cast<double>(task_spec.as_object().at("runtimeInSeconds").as_int64());
+            } else {
+                throw std::runtime_error("In WfFormat, runtimeInSeconds is not a valid number");
+            }
         }
         auto task = workflow->getTaskByID(real_task_id);
         double simulated_task_duration = task->getExecutionHistory().top().task_end - task->getExecutionHistory().top().task_start;
