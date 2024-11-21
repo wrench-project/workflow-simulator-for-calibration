@@ -49,18 +49,21 @@ def main():
 	#print(training)
 	
 	
-	simulator = Simulator(args["compute_service_scheme"],
-						  args["storage_service_scheme"],
-						  args["network_topology_scheme"])
-
-	result=simulator(args["simulator_args"])
-	with open(json.loads(args["simulator_args"]["workflow"]), 'r') as source_json:
+	sim_args=json.loads(args["simulator_args"])
+	cmdargs = ["--wrench-commport-pool-size=10000",f"{args["simulator_args"]}"]
+	std_out, std_err, exit_code = sc.bash("workflow-simulator-for-calibration", cmdargs, std_in=None)
+	if std_err:
+		print(std_err)
+	
+	result=json.loads(std_out)
+	with open(sim_args["workflow"]["file"], 'r') as source_json:
 		data = json.load(source_json)
-		data["real_makespan"]=result["real_makespan"]
-		for task in result["tasks"]
-			data["tasks"][task]["syntheticRuntimeInSeconds"]=result["tasks"][task]["simulated_duration"]
+		data["runtimeInSeconds"]=result["real_makespan"]
+		for task in range(len(data["workflow"]["execution"]["tasks"])):
+
+			data["workflow"]["execution"]["tasks"][task]["syntheticRuntimeInSeconds"]=result["tasks"][data["workflow"]["execution"]["tasks"][task]["id"]]["simulated_duration"]
 	with open(args["output"], 'w') as output_json:
-		json.dump(data, output_json)
+		json.dump(data, output_json, indent=4)
 
 if __name__ == "__main__":
 	main()

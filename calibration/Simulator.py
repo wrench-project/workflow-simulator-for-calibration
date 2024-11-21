@@ -181,7 +181,7 @@ template_json_input = {
 }
 
 
-class Simulator:
+class Simulator(sc.Simulator):
 
 	def __init__(self,
 				 compute_service_scheme: str,
