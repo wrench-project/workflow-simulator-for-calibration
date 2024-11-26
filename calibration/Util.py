@@ -20,7 +20,7 @@ _units={"":1,
 "b":1,"Kb":1_000,"Mb":1_000_000,"Gb":1_000_000_000,
 "B":1,"KB":1_000,"MB":1_000_000,"GB":1_000_000_000}
 def parseDoubleUnited(raw: str):
-	result = re.match(r"(\d+\.?\d*)([a-zA-Z]+)", raw).groups()\
+	result = re.match(r"(\d+\.?\d*)([a-zA-Z]+)", raw).groups()
 	return float(result[0])*_units[result[1]]
 def flatten(arr):
 	flat_list = []

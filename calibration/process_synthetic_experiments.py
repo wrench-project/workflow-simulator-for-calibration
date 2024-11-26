@@ -3,7 +3,7 @@ import argparse
 import sys
 from glob import glob
 import pickle 
-
+import json 
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 
@@ -17,7 +17,7 @@ def process_experiment_sets(pickle_files, calibration, threshold1, threshold2):
 	to_plot_medium = []
 	to_plot_high = []
 	
-	loss=LossHandler("makespan","average")
+	loss=LossHandler("makespan","average_error")
 	# Load and categorize experiment data
 	for pickle_file in pickle_files:
 		with open(pickle_file, 'rb') as file:
@@ -25,12 +25,17 @@ def process_experiment_sets(pickle_files, calibration, threshold1, threshold2):
 
 		if experiment_set.is_empty():
 			return 
+		for experiment in experiment_set.experiments:
 
-		for parameter in experiment_set.calibration:
-			partial=calibration
-			for key in parameter.parameter.custom_data
-				partial=partial[key]
-			ground=parseDoubleUnited(partial)
+			for parameter in experiment.calibration.values():
+				print (calibration)
+				partial=json.loads(calibration)
+				print (partial)
+				#print(parameter)
+				for key in parameter.parameter.custom_data:
+					
+					partial=partial[key]
+				ground=parseDoubleUnited(partial)
 			
 			to_plot_low+=relative_error(ground,parameter.value)
 	# Sort data within each category
@@ -49,8 +54,9 @@ def process_experiment_sets(pickle_files, calibration, threshold1, threshold2):
 	plots = [to_plot_low, to_plot_medium, to_plot_high]
 	titles = ['Low', 'Medium', 'High']
 	fontsize = 7
-
+	print(gs,plots)
 	for i, data in enumerate(plots):
+		
 		ax = fig.add_subplot(gs[i])
 		ax.set_title(f"{titles[i]} Range", fontsize=fontsize + 2)
 		
@@ -82,11 +88,11 @@ def main():
 	parser = argparse.ArgumentParser(description="Process experiment pickle files and generate a plot.")
 	parser.add_argument('-a ', '--simulator_args', type=str, metavar="<json args>", 
 						help='Json string of arguments used to generate synthetic data')
-	args = parser.parse_args()
+	args = vars(parser.parse_args())
 
 	pickle_files = glob("./pickled-one_calibration-*")
 	sys.stderr.write(f"Found {len(pickle_files)} pickled files to process...\n")
-	process_experiment_sets(pickle_files, args["simulator_args"] 50, 1000)
+	process_experiment_sets(pickle_files, args["simulator_args"], 50, 1000)
 
 
 if __name__ == "__main__":
