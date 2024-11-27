@@ -12,3 +12,4 @@ install_manifest.txt
 *.pdf
 *.pickled
 *.png
+calibration/tmp.json

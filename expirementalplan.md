@@ -1,4 +1,4 @@
-[ ]1. generate arbitrary data
+[X]1. generate arbitrary data
 [ ]2. calibrate on arbitrary data to discover most acurate loss funciton
 [ ]3. Use accurate loss function to overfit to exclude algorithms 
 [ ]4. Use best few algorithms and loss function going forward
