@@ -80,13 +80,9 @@ def parse_command_line_arguments(program_name: str):
 
 
 
-def main():
+def main(args):
 	# Parse command-line arguments
-	args, parser, error = parse_command_line_arguments(sys.argv[0])
-	if not args:
-		sys.stderr.write(f"Error: {error}\n")
-		parser.print_usage()
-		sys.exit(1)
+
 	#print(base64.urlsafe_b64encode(hashlib.md5(str(set(args['training_set'])).encode()).digest()))
 	# Pickle results filename
 
@@ -189,4 +185,9 @@ def main():
 	#sys.stderr.write(f"Pickled to ./{pickle_file_name}\n")
 	print(pickle_file_name)
 if __name__ == "__main__":
-	main()
+	args, parser, error = parse_command_line_arguments(sys.argv[0])
+	if not args:
+		sys.stderr.write(f"Error: {error}\n")
+		parser.print_usage()
+		sys.exit(1)
+	main(args)
