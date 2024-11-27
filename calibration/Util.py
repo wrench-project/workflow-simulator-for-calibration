@@ -8,11 +8,12 @@ import base64
 import hashlib 
 import ast
 import simcal as sc
+import re
 
 from Simulator import Simulator
 from WorkflowSimulatorCalibrator import WorkflowSimulatorCalibrator, CalibrationLossEvaluator, get_makespan
 from Loss import *
-_units={"":1,
+_units={None:1,"":1,
 "s":1,"ms":0.001,"us":0.000001,"ns":0.000000001,
 "f":1,"Kf":1_000, "Mf":1_000_000,"Gf":1_000_000_000,
 "Bps":1,"KBps":1_000,"MBps":1_000_000,"GBps":1_000_000_000,
@@ -20,7 +21,8 @@ _units={"":1,
 "b":1,"Kb":1_000,"Mb":1_000_000,"Gb":1_000_000_000,
 "B":1,"KB":1_000,"MB":1_000_000,"GB":1_000_000_000}
 def parseDoubleUnited(raw: str):
-	result = re.match(r"(\d+\.?\d*)([a-zA-Z]+)", raw).groups()
+	#print(raw,re.match(r"(\d+\.?\d*)([a-zA-Z]+)*", raw).groups())
+	result = re.match(r"(\d+\.?\d*)([a-zA-Z]+)*", raw).groups()
 	return float(result[0])*_units[result[1]]
 def flatten(arr):
 	flat_list = []
