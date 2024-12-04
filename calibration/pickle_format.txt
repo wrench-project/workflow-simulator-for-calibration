@@ -1,0 +1,42 @@
+ExperimentSet:{
+	simulator:Simulator,
+	algorithm,
+	loss_function,
+	loss_agregator,
+	average_error,
+	time_limit,
+	num_threads,
+	experiments:[Experiment:{
+			training_set_spec:WorkflowSetSpec{
+				workflow_dir,
+				workflow_name,//unreliable
+				architecture,
+				num_task_values,//unreliable
+				data_values,//unreliable
+				cpu_values,//unreliable
+				num_nodes_values,//unreliable
+				workflows:[[
+						workflowFilePath
+				]],
+				ivhash
+			},
+			evaluation_set_spec:WorkflowSetSpec,
+			calibration,
+			calibration_loss,
+			evaluation_losses,
+			evaluation_makespans:{,//sic, full output
+				workflowFileName:{
+					real_makespan,
+					simulated_makespan,
+					tasks:{
+						taskName:{
+							real_duration,
+							simulated_duration
+						}
+					}
+				}
+			}
+		},
+		...
+	]
+}

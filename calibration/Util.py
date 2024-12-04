@@ -138,7 +138,43 @@ class WorkflowSetSpec:
 		self.workflows=workflows
 		self.rehash()
 		return self
-		
+	def update_fields(self)	:
+		workflow_name=""
+		architecture=""
+		data_values=set()
+		cpu_values=set()
+		num_nodes_values=set()
+		num_tasks_values=set()
+		for workflow_group in self.workflows:
+			for workflow in workflow_group:
+				tokens = workflow.split('/')[-1].split("-")
+				#0-workflow
+				#1-tasks
+				#2-CPU 
+				#3-Fixed (1.0 (sometimes))
+				#4-data
+				#5-architecture
+				#6-Num nodes
+				#7-trial number (inc)
+				#8-timestamp
+				if not workflow_name:
+					workflow_name=tokens[0]
+				elif workflow_name!=tokens[0]:
+					workflow_name="various"
+				if not architecture:
+					architecture=tokens[5]
+				elif architecture!=tokens[5]:
+					architecture="various"	
+				num_tasks_values.add(int(tokens[1]))
+				cpu_values.add(int(tokens[2]))
+				data_values.add(int(tokens[4]))
+				num_nodes_values.add(int(tokens[6]))
+		self.workflow_name=workflow_name
+		self.architecture=architecture
+		self.num_tasks_values=list(num_tasks_values)
+		self.data_values=list(data_values)
+		self.cpu_values=list(cpu_values)
+		self.num_nodes_values=list(num_nodes_values)
 	def populate(self, workflow_dir: str, workflow_name: str, architecture: str,
 				 num_tasks_values: List[int], data_values: List[int], cpu_values: List[int],
 				 num_nodes_values: List[int]):
@@ -231,7 +267,7 @@ class Experiment:
 
 	def __str__(self):
 		return self.__repr__()
-
+	
 
 class ExperimentSet:
 	def __init__(self, simulator: Simulator, algorithm: str, loss_function: str, loss_aggregator: str, time_limit: float, num_threads: int):
