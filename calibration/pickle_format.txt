@@ -11,7 +11,7 @@ ExperimentSet:{
 				workflow_dir,
 				workflow_name,//unreliable
 				architecture,
-				num_task_values,//unreliable
+				num_tasks_values,//unreliable
 				data_values,//unreliable
 				cpu_values,//unreliable
 				num_nodes_values,//unreliable

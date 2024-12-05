@@ -21,7 +21,9 @@ def load_and_group_pickles(file_paths):
 			tokens=data.experiments[0].training_set_spec.workflows[0][0].split("/")[-1].split("-")
 			key = tokens[0]+data.algorithm
 			grouped_data[key].append(data)
-
+			data.experiments[0].training_set_spec.update_fields()
+			file_token=file_path.split("/")[-1].split("-")
+			print("mv",file_path,f"{file_token[0]}-one_workflow-{tokens[0]}-{max(data.experiments[0].training_set_spec.num_nodes_values)}-{max(data.experiments[0].training_set_spec.num_tasks_values)}-{file_token[7]}.pickled")
 	
 	return dict(grouped_data)
 
@@ -68,8 +70,8 @@ def process_experiment_group(experiment_group: [ExperimentSet]):
 	for experiment_set in experiment_group:
 		for result in experiment_set.experiments:
 			training_loss = result.calibration_loss
-			training_spec = result.training_set_spec
 			result.training_set_spec.update_fields()
+			training_spec = result.training_set_spec
 			#print(experiment_set)
 			#print(result.training_set_spec.num_nodes_values)
 			#print(result.training_set_spec.num_tasks_values)
@@ -97,8 +99,8 @@ def process_experiment_group(experiment_group: [ExperimentSet]):
 	# Extract task and node counts
 	task_counts = sorted(list(task_counts),reverse=True)
 	node_counts = sorted(list(node_counts))
-	print(task_counts)
-	print(node_counts)
+	#print(task_counts)
+	#print(node_counts)
 	# Initialize arrays for the heatmaps
 	single_loss_array = np.full((len(task_counts), len(node_counts)), np.nan)
 	average_loss_array = np.full((len(task_counts), len(node_counts)), np.nan)
@@ -113,7 +115,7 @@ def process_experiment_group(experiment_group: [ExperimentSet]):
 				single_loss_array[i, j] = round(entry['training_loss'],3)
 				average_loss_array[i, j] = round(np.mean(entry['evaluation_losses']),3)
 				max_loss_array[i, j] = round(np.max(entry['evaluation_losses']),3)
-	print(single_loss_array)
+	#print(single_loss_array)
 	# Create a single figure for the heatmaps
 	fig, ax = plt.subplots(1, 2, figsize=(10, 5))
 
