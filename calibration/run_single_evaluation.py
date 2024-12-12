@@ -78,13 +78,8 @@ def parse_command_line_arguments(program_name: str):
 
 
 
-def main():
-	# Parse command-line arguments
-	args, parser, error = parse_command_line_arguments(sys.argv[0])
-	if not args:
-		sys.stderr.write(f"Error: {error}\n")
-		parser.print_usage()
-		sys.exit(1)
+def main(args):
+	
 	#print(base64.urlsafe_b64encode(hashlib.md5(str(set(args['training_set'])).encode()).digest()))
 	# Pickle results filename
 
@@ -170,5 +165,12 @@ def main():
 		pickle.dump(experiment_set, f)
 	#sys.stderr.write(f"Pickled to ./{pickle_file_name}\n")
 	print(pickle_file_name)
+	return pickle_file_name
 if __name__ == "__main__":
-	main()
+	args, parser, error = parse_command_line_arguments(sys.argv[0])
+	# Parse command-line arguments
+	if not args:
+		sys.stderr.write(f"Error: {error}\n")
+		parser.print_usage()
+		sys.exit(1)
+	main(args)

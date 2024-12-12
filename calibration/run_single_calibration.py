@@ -108,7 +108,7 @@ def main(args):
 	# If the pickled file already exists, then print a warning and move on
 	if os.path.isfile(pickle_file_name):
 		sys.stderr.write(f"There is already a pickled file '{pickle_file_name}'... Not doing anything!\n")
-		sys.exit(1)
+		return pickle_file_name
 
 	sys.stderr.write(f"repacking expiriments for {pickle_file_name}\n")
 
@@ -184,6 +184,7 @@ def main(args):
 		pickle.dump(experiment_set, f)
 	#sys.stderr.write(f"Pickled to ./{pickle_file_name}\n")
 	print(pickle_file_name)
+	return pickle_file_name
 if __name__ == "__main__":
 	args, parser, error = parse_command_line_arguments(sys.argv[0])
 	if not args:
