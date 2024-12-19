@@ -23,8 +23,10 @@ def load_and_group_pickles(file_paths):
 			grouped_data[key].append(data)
 			data.experiments[0].training_set_spec.update_fields()
 			file_token=file_path.split("/")[-1].split("-")
-			print("mv",file_path,f"{file_token[0]}-one_workflow-{tokens[0]}-{max(data.experiments[0].training_set_spec.num_nodes_values)}-{max(data.experiments[0].training_set_spec.num_tasks_values)}-{file_token[7]}.pickled")
-	
+			try:
+				print("mv","\""+file_path+"\"",f"\"{file_token[0]}-one_workflow-{tokens[0]}-{max(data.experiments[0].training_set_spec.num_nodes_values)}-{max(data.experiments[0].training_set_spec.num_tasks_values)}-{file_token[7]}.pickled\"")
+			except:
+				pass
 	return dict(grouped_data)
 
 def build_label(workflow_sec_spec: WorkflowSetSpec):
