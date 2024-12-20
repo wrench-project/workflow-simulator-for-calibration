@@ -89,16 +89,24 @@ def process_experiment_sets(pickle_files, calibration, threshold1, threshold2):
 	plt.close()
 
 
-def main():
-	parser = argparse.ArgumentParser(description="Process experiment pickle files and generate a plot.")
-	parser.add_argument('-a ', '--simulator_args', type=str, metavar="<json args>", 
-						help='Json string of arguments used to generate synthetic data')
-	args = vars(parser.parse_args())
-
-	pickle_files = glob("./pickled-one_calibration-*")
+def main(args):
+	
+	pickle_files = []
+	for pattern in args['pickle_files']:
+		if '*' in pattern or '?' in pattern:
+			pickle_files += glob(pattern)
+		else:
+			pickle_files.append(pattern)
+	
 	sys.stderr.write(f"Found {len(pickle_files)} pickled files to process...\n")
 	process_experiment_sets(pickle_files, args["simulator_args"], 50, 1000)
 
 
 if __name__ == "__main__":
-	main()
+	parser = argparse.ArgumentParser(description="Process experiment pickle files and generate a plot.")
+	parser.add_argument('-a', '--simulator_args', required=True, type=str, metavar="<json args>",
+						help="JSON string of arguments used to generate synthetic data")
+	parser.add_argument('pickle_files', nargs='+', type=str, metavar="<pickle files>",
+						help="List of pickle files or patterns to process. Supports wildcards.")					
+	args = vars(parser.parse_args())
+	main(args)
