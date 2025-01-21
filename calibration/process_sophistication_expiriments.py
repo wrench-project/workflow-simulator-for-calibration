@@ -55,113 +55,78 @@ def process_experiment_group(experiment_group: [ExperimentSet]):
 		  #experiment_group[0].time_limit,
 		  #experiment_group[0].num_threads
 		  ]
+	#print(name)
 	name = [str(x) for x in name]
-	task_counts = set()
-	node_counts = set()
+	#print(name)
+	network = set()
+	storage = set()
+	compute = set()
 
 	#print(name)
 	# sys.stderr.write("Processing ")
-	figure_name = f"figure-one_workflow_experiments-"+\
+	figure_name = f"figure-sophistication_experiments-"+\
 				"-".join(name)+".pdf"
 				  
 
 	
 
-	to_plot = defaultdict(dict)
+	to_plot = defaultdict(lambda: defaultdict(dict))
 	largest_value = 0
 	for experiment_set in experiment_group:
 		for result in experiment_set.experiments:
 			training_loss = result.calibration_loss
 			result.training_set_spec.update_fields()
 			training_spec = result.training_set_spec
-			#print(experiment_set)
+			#print(vars(experiment_set.simulator))
 			#print(result.training_set_spec.num_nodes_values)
 			#print(result.training_set_spec.num_tasks_values)
+			network.add(experiment_set.simulator.compute_service_scheme)
+			storage.add(experiment_set.simulator.storage_service_scheme)
+			compute.add(experiment_set.simulator.network_topology_scheme)
 			
-			to_plot[max(result.training_set_spec.num_nodes_values)]\
-			       [max(result.training_set_spec.num_tasks_values)]\
+			to_plot[experiment_set.simulator.compute_service_scheme]\
+			       [experiment_set.simulator.storage_service_scheme]\
+			       [experiment_set.simulator.network_topology_scheme]\
 				   =({"training_loss":training_loss,
-				      "evaluation_losses": result.evaluation_losses})
-			task_counts.add(max(result.training_set_spec.num_tasks_values))
-			node_counts.add(max(result.training_set_spec.num_nodes_values))
+				      "evaluation_losses": result.evaluation_losses[0]})
+			#task_counts.add(max(result.training_set_spec.num_tasks_values))
+			#node_counts.add(max(result.training_set_spec.num_nodes_values))
 	#to_plot = dict(sorted(to_plot.items()))
-	data=to_plot
-	#data = {
-	#	1: {//node
-	#		1: //task
-	#          {'training_loss': 0.1, 'evaluation_losses': [0.2, 0.3, 0.25]},
-	#		2: {'training_loss': 0.15, 'evaluation_losses': [0.1, 0.2, 0.15]},
-	#	},
-	#	2: {
-	#		1: {'training_loss': 0.2, 'evaluation_losses': [0.3, 0.4, 0.35]},
-	#		2: {'training_loss': 0.25, 'evaluation_losses': [0.2, 0.3, 0.25]},
-	#	},
-	##}
+	for key in to_plot.keys():
+		to_plot[key]=dict(to_plot[key])
+	data=dict(to_plot)
 
-	# Extract task and node counts
-	task_counts = sorted(list(task_counts),reverse=True)
-	node_counts = sorted(list(node_counts))
-	#print(task_counts)
-	#print(node_counts)
-	# Initialize arrays for the heatmaps
-	single_loss_array = np.full((len(task_counts), len(node_counts)), np.nan)
-	average_loss_array = np.full((len(task_counts), len(node_counts)), np.nan)
-	max_loss_array = np.full((len(task_counts), len(node_counts)), np.nan)
-	
-	# Populate arrays with data
-	for i, task in enumerate(task_counts):
-		for j, node in enumerate(node_counts):
 
-			if task in data[node]:
-				entry = data[node][task]
-				single_loss_array[i, j] = round(entry['training_loss'],3)
-				average_loss_array[i, j] = round(np.mean(entry['evaluation_losses']),3)
-				max_loss_array[i, j] = round(np.max(entry['evaluation_losses']),3)
-	#print(single_loss_array)
-	# Create a single figure for the heatmaps
-	fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+	categories = []
+	training_losses = []
+	evaluation_losses = []
 
-	# Shared color scale
-	vmin = min(
-		np.nanmin(single_loss_array),
-		np.nanmin(average_loss_array),
-		#np.nanmin(max_loss_array),
-	)
-	vmax = max(
-		np.nanmax(single_loss_array),
-		np.nanmax(average_loss_array),
-		#np.nanmax(max_loss_array),
-	)
-	norm = Normalize(vmin=vmin, vmax=vmax)
+	for system, modes in data.items():
+		for mode, links in modes.items():
+			for link, metrics in links.items():
+				categories.append(f"{system} | {mode} | {link}")
+				training_losses.append(metrics['training_loss'])
+				evaluation_losses.append(metrics['evaluation_losses'])
 
-	# Plot the heatmaps
-	titles = ["Trainng Loss", "Eval Loss", "Max Loss"]
-	heatmaps = [single_loss_array, average_loss_array]#, max_loss_array]
+	# Plot
+	fig, axs = plt.subplots(2, 1, figsize=(10, 12), sharex=True)
 
-	cmap = cm.plasma  # Choose a color map
-	for ax, title, heatmap in zip(ax, titles, heatmaps):
-		im = ax.imshow(heatmap, cmap=cmap, norm=norm, aspect='equal')
-		# Add text annotations
-		for i in range(heatmap.shape[0]):
-			for j in range(heatmap.shape[1]):
-				bg_color = im.cmap(im.norm(heatmap[i, j]))
-				# Calculate luminance (using RGB luminance formula)
-				luminance = 0.299 * bg_color[0] + 0.587 * bg_color[1] + 0.114 * bg_color[2]
-				# Set text color based on luminance (high contrast)
-				text_color = 'white' if luminance < 0.5 else 'black'
-				ax.text(j, i, f'{heatmap[i, j]}', ha='center', va='center', color=text_color)
-		# Label axes
-		ax.set_xticks(range(len(node_counts)))
-		ax.set_xticklabels(node_counts)
-		ax.set_yticks(range(len(task_counts)))
-		ax.set_yticklabels(task_counts)
-		ax.set_title(title)
-		ax.set_xlabel("Node Count")
-		ax.set_ylabel("Task Count")
-		#ax.set_xticklabels(node_counts)
-		#ax.set_yticklabels(task_counts)
-	# Add a colorbar
-	
+	# Training Loss
+	axs[0].barh(categories, training_losses, color='skyblue', edgecolor='black')
+	axs[0].set_title('Training Loss')
+	axs[0].set_xlabel('Loss')
+	axs[0].set_ylabel('Configuration')
+	axs[0].invert_yaxis()
+
+	# Evaluation Loss
+	axs[1].barh(categories, evaluation_losses, color='lightgreen', edgecolor='black')
+	axs[1].set_title('Evaluation Loss')
+	axs[1].set_xlabel('Loss')
+	axs[1].set_ylabel('Configuration')
+	axs[1].invert_yaxis()
+
+	plt.tight_layout()
+	plt.show()
 	fig.colorbar(cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax, orientation='vertical', fraction=0.02, pad=0.04)
 	plt.suptitle(" ".join(name))
 	sys.stderr.write(f"Saving {figure_name}...\n")

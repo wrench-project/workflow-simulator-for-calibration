@@ -109,4 +109,5 @@ if __name__ == "__main__":
 	parser.add_argument('pickle_files', nargs='+', type=str, metavar="<pickle files>",
 						help="List of pickle files or patterns to process. Supports wildcards.")					
 	args = vars(parser.parse_args())
+
 	main(args)
