@@ -16,7 +16,7 @@ def process_experiment_sets(pickle_files, threshold1, threshold2):
 	to_plot_low = []
 	to_plot_medium = []
 	to_plot_high = []
-	loss=LossHandler("makespan","average")
+	loss=LossHandler("makespan","average_error")
 	# Load and categorize experiment data
 	for pickle_file in pickle_files:
 		with open(pickle_file, 'rb') as file:
@@ -27,7 +27,11 @@ def process_experiment_sets(pickle_files, threshold1, threshold2):
 
 		for result in experiment_set.experiments:
 			for output in result.evaluation_makespans:
-				training_loss = loss(output)
+				loss_set=[]
+				for key in output:
+					loss_set.append(output[key])
+				training_loss = loss(loss_set)
+				
 				label = f"{experiment_set.algorithm} {experiment_set.loss_function} {experiment_set.loss_aggregator}"
 				# = max(largest_value, training_loss)
 
@@ -86,10 +90,16 @@ def process_experiment_sets(pickle_files, threshold1, threshold2):
 
 def main():
 	parser = argparse.ArgumentParser(description="Process experiment pickle files and generate a plot.")
-	
-	args = parser.parse_args()
+	parser.add_argument('pickle_files', nargs='+', type=str, metavar="<pickle files>",
+						help="List of pickle files or patterns to process. Supports wildcards.")	
+	args = vars(parser.parse_args())
 
-	pickle_files = glob("./pickled-one_calibration-*")
+	pickle_files = []
+	for pattern in args['pickle_files']:
+		if '*' in pattern or '?' in pattern:
+			pickle_files += glob(pattern)
+		else:
+			pickle_files.append(pattern)
 	sys.stderr.write(f"Found {len(pickle_files)} pickled files to process...\n")
 	process_experiment_sets(pickle_files, 50, 1000)
 

@@ -39,7 +39,7 @@ class LossHandler:
 		elif aggregation == "max_error":
 			self.method = max
 		else:
-			raise Exception(f"Unknown loss aggrigation name '{aggregation}'")
+			raise Exception(f"Unknown loss aggrigation name '{aggregation}', expected average_error or max_error")
 			
 		if loss_spec == "makespan":
 			self.loss_spec = void
@@ -54,6 +54,7 @@ class LossHandler:
 		losses = []
 		#print(output)
 		for x in output:
+			#print(x)
 			real_makespan = float(x["real_makespan"])
 			simulated_makespan = float(x["simulated_makespan"])
 			makespan_loss = abs(real_makespan-simulated_makespan)/real_makespan
