@@ -85,7 +85,8 @@ def process_experiment_group(experiment_group: [ExperimentSet]):
 			task_counts.add(max(result.training_set_spec.num_tasks_values))
 			node_counts.add(max(result.training_set_spec.num_nodes_values))
 	#to_plot = dict(sorted(to_plot.items()))
-	data=to_plot
+	data=dict(to_plot)
+	#print(data)
 	#data = {
 	#	1: {//node
 	#		1: //task
@@ -167,7 +168,7 @@ def process_experiment_group(experiment_group: [ExperimentSet]):
 	sys.stderr.write(f"Saving {figure_name}...\n")
 	plt.savefig(figure_name, bbox_inches='tight')
 	plt.close()
-
+	return name[0],data
 
 def main():
 	pickle_files = []
@@ -178,9 +179,10 @@ def main():
 			pickle_files.append(arg)
 	data=load_and_group_pickles(pickle_files)
 	sys.stderr.write(f"Found {len(pickle_files)} pickled files to process...\n")
+	dv={}
 	for group in data.values():
-		process_experiment_group(group)
-
-
+		a,b=process_experiment_group(group)
+		dv[a]=b
+	print(dv)
 if __name__ == "__main__":
 	main()

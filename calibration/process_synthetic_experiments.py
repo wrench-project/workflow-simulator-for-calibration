@@ -24,6 +24,10 @@ def process_experiment_sets(pickle_files, calibration, threshold1, threshold2):
 		if experiment_set.is_empty():
 			return 
 		for experiment in experiment_set.experiments:
+			#print(dir(experiment.training_set_spec))
+		
+			experiment.training_set_spec.update_fields()
+			#print(experiment.training_set_spec.workflow_name)
 			resl=0
 			for parameter in experiment.calibration.values():
 				#print (calibration)

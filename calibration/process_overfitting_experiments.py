@@ -47,7 +47,7 @@ def process_experiment_sets(pickle_files, threshold1, threshold2):
 	to_plot_low = sorted(to_plot_low)
 	to_plot_medium = sorted(to_plot_medium)
 	to_plot_high = sorted(to_plot_high)
-
+	print(to_plot_low)
 	# Calculate dynamic widths for each subplot
 	bar_width = 0.25
 	num_items = [len(to_plot_low), len(to_plot_medium), len(to_plot_high)]
