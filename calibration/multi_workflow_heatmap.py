@@ -19,10 +19,11 @@ def load_and_group_pickles(file_paths):
 		with open(file_path, 'rb') as file:
 			data = pickle.load(file)
 			tokens=data.experiments[0].training_set_spec.workflows[0][0].split("/")[-1].split("-")
-			key = tokens[0]+data.algorithm
-			grouped_data[key].append(data)
 			data.experiments[0].training_set_spec.update_fields()
 			file_token=file_path.split("/")[-1].split("-")
+			key = file_token[2]
+			#print(file_token[2])
+			grouped_data[key].append(data)
 			try:
 				print("mv","\""+file_path+"\"",f"\"{"\\".join(file_path.split("/")[0:-1])}-one_workflow-{tokens[0]}-{max(data.experiments[0].training_set_spec.num_nodes_values)}-{max(data.experiments[0].training_set_spec.num_tasks_values)}-{file_token[-6]}.pickled\"")
 			except:
@@ -168,7 +169,7 @@ def process_experiment_group(experiment_group: [ExperimentSet]):
 	sys.stderr.write(f"Saving {figure_name}...\n")
 	plt.savefig(figure_name, bbox_inches='tight')
 	plt.close()
-	return name[0],data
+	return data
 
 def main():
 	pickle_files = []
@@ -180,9 +181,9 @@ def main():
 	data=load_and_group_pickles(pickle_files)
 	sys.stderr.write(f"Found {len(pickle_files)} pickled files to process...\n")
 	dv={}
-	for group in data.values():
-		a,b=process_experiment_group(group)
-		dv[a]=b
+	for group in data.keys():
+		b=process_experiment_group(data[group])
+		dv[group]=b
 	print(dv)
 if __name__ == "__main__":
 	main()
