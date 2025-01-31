@@ -140,7 +140,7 @@ def process_experiment_group(experiment_group: [ExperimentSet]):
 					bars.append(row)  # Store data for plotting
 					y_labels.append(f"{row[0]} - {row[1]} ({row[2]})")
 					y_offset += 1  # Move y position
-					print(row)
+					print((name[0],*row),',')
 			
 			#y_offset += sep_small  # Space between sub-groups
 		
