@@ -58,7 +58,7 @@ def main():
 	result=json.loads(std_out)
 	with open(sim_args["workflow"]["file"], 'r') as source_json:
 		data = json.load(source_json)
-		data["runtimeInSeconds"]=result["real_makespan"]
+		data["workflow"]["execution"]["makespanInSeconds"]=result["simulated_makespan"]
 		for task in range(len(data["workflow"]["execution"]["tasks"])):
 
 			data["workflow"]["execution"]["tasks"][task]["syntheticRuntimeInSeconds"]=result["tasks"][data["workflow"]["execution"]["tasks"][task]["id"]]["simulated_duration"]
