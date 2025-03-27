@@ -16,7 +16,7 @@ PlatformCreator::PlatformCreator(boost::json::object &json_spec, unsigned long n
 void PlatformCreator::create_platform() {
 
     // Create the top-level zone
-    auto zone = sg4::create_full_zone("AS0");
+    auto zone = simgrid::s4u::Engine::get_instance()->get_netzone_root();
 
     // Get compute, storage, and topology schemes
     boost::json::string compute_service_scheme;
@@ -73,7 +73,7 @@ void PlatformCreator::create_platform() {
         throw std::invalid_argument("Missing or invalid value for the submit host's 'num_cores'");
     }
 
-    auto submit_host = zone->create_host("submit_host", submit_host_speed);
+    auto submit_host = zone->add_host("submit_host", submit_host_speed);
     submit_host->set_core_count(submit_host_num_cores);
     submit_host->set_property("type", "submit");
 
@@ -89,7 +89,7 @@ void PlatformCreator::create_platform() {
         throw std::invalid_argument("Missing or invalid 'bandwidth_submit_disk_write' value");
     }
 
-    auto submit_host_disk = submit_host->create_disk("submit_host_hard_drive",
+    auto submit_host_disk = submit_host->add_disk("submit_host_hard_drive",
                                                      boost::json::value_to<std::string>(disk_specs["bandwidth_submit_disk_read"]),
                                                      boost::json::value_to<std::string>(disk_specs["bandwidth_submit_disk_write"]));
     submit_host_disk->set_property("size", "5000EiB");
@@ -117,7 +117,7 @@ void PlatformCreator::create_platform() {
 
     std::vector<sg4::Host*> compute_hosts;
     for (int i=0; i < num_compute_hosts; i++) {
-        auto compute_host = zone->create_host("compute_host_" + std::to_string(i), compute_host_speed);
+        auto compute_host = zone->add_host("compute_host_" + std::to_string(i), compute_host_speed);
         compute_host->set_core_count(compute_host_num_cores);
         compute_host->set_property("type", "compute");
 
@@ -136,7 +136,7 @@ void PlatformCreator::create_platform() {
                 throw std::invalid_argument("Missing or invalid 'bandwidth_compute_host_write' value");
             }
 
-            auto scratch_disk = compute_host->create_disk("scratch_" + std::to_string(i),
+            auto scratch_disk = compute_host->add_disk("scratch_" + std::to_string(i),
                                                          boost::json::value_to<std::string>(
                                                                  disk_specs["bandwidth_compute_host_disk_read"]),
                                                          boost::json::value_to<std::string>(
@@ -168,7 +168,7 @@ void PlatformCreator::create_platform() {
             throw std::invalid_argument("Missing or invalid 'latency' value for 'one_link' scheme");
         }
 
-        auto network_link = zone->create_link("network_link", bandwidth)->set_latency(
+        auto network_link = zone->add_link("network_link", bandwidth)->set_latency(
                 boost::json::value_to<std::string>(link_specs["latency"]))->seal();
 
         sg4::LinkInRoute network_link_in_route{network_link};
@@ -195,7 +195,7 @@ void PlatformCreator::create_platform() {
             throw std::invalid_argument(
                     "Missing or invalid 'latency_out_of_submit' value for 'one_and_then_many_links' scheme");
         }
-        auto network_link_out_of_submit = zone->create_link("network_link_out_of_submit",
+        auto network_link_out_of_submit = zone->add_link("network_link_out_of_submit",
                                                             bandwidth_out_of_submit)->set_latency(
                 boost::json::value_to<std::string>(link_specs["latency_out_of_submit"]))->seal();
 
@@ -217,7 +217,7 @@ void PlatformCreator::create_platform() {
         }
         std::vector<sg4::Link *> network_links_to_compute_hosts;
         for (int i = 0; i < num_compute_hosts; i++) {
-            auto link = zone->create_link("network_link_compute_host_" + std::to_string(i),
+            auto link = zone->add_link("network_link_compute_host_" + std::to_string(i),
                                           bandwidth_to_compute_hosts)->set_latency(
                     boost::json::value_to<std::string>(link_specs["latency_to_compute_hosts"]))->seal();
             network_links_to_compute_hosts.emplace_back(link);
@@ -255,7 +255,7 @@ void PlatformCreator::create_platform() {
         // Create all to_compute_host network links
         std::vector<sg4::Link *> network_links_to_compute_hosts;
         for (int i = 0; i < num_compute_hosts; i++) {
-            auto link = zone->create_link("network_link_compute_host_" + std::to_string(i),
+            auto link = zone->add_link("network_link_compute_host_" + std::to_string(i),
                                           bandwidth)->set_latency(
                     boost::json::value_to<std::string>(link_specs["latency_submit_to_compute_host"]))->seal();
             network_links_to_compute_hosts.emplace_back(link);

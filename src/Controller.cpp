@@ -197,7 +197,7 @@ namespace wrench {
      *
      * @param event: the event
      */
-    void Controller::processEventStandardJobCompletion(std::shared_ptr<StandardJobCompletedEvent> event) {
+    void Controller::processEventStandardJobCompletion(const std::shared_ptr<StandardJobCompletedEvent> &event) {
         auto job = event->standard_job;
         auto task = job->getTasks().at(0);
         WRENCH_INFO("Notified that a standard job has completed task %s", task->getID().c_str());
@@ -211,7 +211,7 @@ namespace wrench {
      *
      * @param event: the event
      */
-    void Controller::processEventStandardJobFailure(std::shared_ptr<StandardJobFailedEvent> event) {
+    void Controller::processEventStandardJobFailure(const std::shared_ptr<StandardJobFailedEvent> &event) {
         auto job = event->standard_job;
         auto task = job->getTasks().at(0);
         WRENCH_INFO("Notified that a standard job has failed for task %s (%s)",

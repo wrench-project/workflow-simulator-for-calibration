@@ -173,13 +173,13 @@ wrench::WRENCH_PROPERTY_COLLECTION_TYPE get_properties(boost::json::object &json
     return property_list;
 }
 
-wrench::WRENCH_MESSAGE_PAYLOADCOLLECTION_TYPE get_payloads(boost::json::object &json_input,
+wrench::WRENCH_MESSAGE_PAYLOAD_COLLECTION_TYPE get_payloads(boost::json::object &json_input,
                                                            std::string scheme_category,
                                                            std::string scheme,
                                                            std::string payloads_key) {
 
 
-    wrench::WRENCH_MESSAGE_PAYLOADCOLLECTION_TYPE  payload_list;
+    wrench::WRENCH_MESSAGE_PAYLOAD_COLLECTION_TYPE payload_list;
     auto specs = json_input[scheme_category].as_object()[scheme].as_object();
 
     if (specs.contains(payloads_key)) {

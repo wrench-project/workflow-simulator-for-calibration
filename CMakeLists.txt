@@ -1,5 +1,5 @@
 
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.12)
 message(STATUS "Cmake version ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}")
 
 project(workflow-simulator-for-calibration CXX)
@@ -17,7 +17,12 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMakeModules/")
 # Find WRENCH, SimGrid, and Boost
 find_package(WRENCH REQUIRED)
 find_package(SimGrid REQUIRED)
+find_package(FSMod REQUIRED)
 
+
+if(POLICY CMP0167)
+  cmake_policy(SET CMP0167 NEW)
+endif()
 find_package(Boost REQUIRED)
 find_package(Boost COMPONENTS json REQUIRED)
 
@@ -43,6 +48,7 @@ if (ENABLE_BATSCHED)
     target_link_libraries(workflow-simulator-for-calibration
             ${WRENCH_LIBRARY}
             ${SimGrid_LIBRARY}
+            ${FSMOD_LIBRARY}
             ${Boost_LIBRARIES}
             ${WRENCH_WFCOMMONS_WORKFLOW_PARSER_LIBRARY}
             -lzmq)
@@ -50,6 +56,7 @@ else()
     target_link_libraries(workflow-simulator-for-calibration
             ${WRENCH_LIBRARY}
             ${SimGrid_LIBRARY}
+            ${FSMOD_LIBRARY}
             ${Boost_LIBRARIES}
             ${WRENCH_WFCOMMONS_WORKFLOW_PARSER_LIBRARY}
             )
