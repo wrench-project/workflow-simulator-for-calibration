@@ -19,7 +19,7 @@ data={
 		3600:"../../../koa-rsync/workflow/single-sample-fast/pickles3600/*-koa.pickled",
 		7200:"../../../koa-rsync/workflow/single-sample-fast/pickles7200/*-koa.pickled",
 		18000:"../../../koa-rsync/workflow/single-sample-fast/pickles18000/*-koa.pickled",
-		86400:"../../../koa-rsync/workflow/single-sample/pickles/*-koa.pickled > single-sample-47-24.out"
+		86400:"../../../koa-rsync/workflow/single-sample/pickles/*-koa.pickled"
 	}
 }
 
@@ -42,7 +42,7 @@ data47={
 		3600:"../../../koa-rsync/workflow/single-sample-fast/pickles3600/*47-koa.pickled",
 		7200:"../../../koa-rsync/workflow/single-sample-fast/pickles7200/*47-koa.pickled",
 		18000:"../../../koa-rsync/workflow/single-sample-fast/pickles18000/*47-koa.pickled",
-		86400:"../../../koa-rsync/workflow/single-sample/pickles/*47-koa.pickled > single-sample-47-24.out"
+		86400:"../../../koa-rsync/workflow/single-sample/pickles/*47-koa.pickled"
 	}
 }
 for key in data:
