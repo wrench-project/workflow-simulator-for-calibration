@@ -9,6 +9,7 @@ import hashlib
 import ast
 import simcal as sc
 import re
+import json
 
 from Simulator import Simulator
 from WorkflowSimulatorCalibrator import WorkflowSimulatorCalibrator, CalibrationLossEvaluator, get_makespan
@@ -24,6 +25,9 @@ def parseDoubleUnited(raw: str):
 	#print(raw,re.match(r"(\d+\.?\d*)([a-zA-Z]+)*", raw).groups())
 	result = re.match(r"(\d+\.?\d*)([a-zA-Z]+)*", raw).groups()
 	return float(result[0])*_units[result[1]]
+def load_json(path):
+	with open(path) as json_file:
+		return json.load(json_file)
 def flatten(arr):
 	flat_list = []
 	for item in arr:

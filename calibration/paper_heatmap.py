@@ -151,6 +151,7 @@ def process_experiment_group(base_data,times,workflow,extra,temporal_samples):
 	plt.savefig(figure_name, bbox_inches='tight')
 	plt.close()
 	return name,data
+	
 from heatmapdata import *
 def main():
 	parser = argparse.ArgumentParser()

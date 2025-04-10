@@ -10,7 +10,7 @@ from matplotlib.colors import Normalize
 from matplotlib import cm
 from Util import *
 from collections import defaultdict
-
+path_translation={"NEW_RUNS":"/home/jamcdonald/workflow","JSONS":"/home/jamcdonald/workflow","LIMITED_RUNS":"/home/jamcdonald/workflow","SYNTHETIC_LIMITED":"/home/jamcdonald/workflow"}
 def load_and_group_pickles(file_paths):
 
 	grouped_data = defaultdict(list)
@@ -78,10 +78,28 @@ def process_experiment_group(experiment_group: [ExperimentSet]):
 			#print(result.training_set_spec.num_nodes_values)
 			#print(result.training_set_spec.num_tasks_values)
 			
+			
+			
+			#for json file in  expiriment.training_set_spec.workflows.flatten()
+			#path is unreliable, translate to local machine path by focusing on ALL_RUNS and NEW_RUNS and LIMITED_RUNS and JSONS in path name 
+			#open json file
+			#get workflow.execution.makespanInSeconds for makespan
+			#nodes can be collected from file path #6 or or len(workflow.execution.machines)
+			total_machinetime=0
+			for raw_path in flatten(training_spec.workflows):
+				for key in path_translation.keys():
+					if key in raw_path:
+						local_path=path_translation[key]+raw_path[raw_path.find(key):]
+						JSONfile=loadJson(local_path)
+						makespan=float(JSONfile["workflow"]["execution"]["makespanInSeconds"])
+						nodes=len(["workflow"]["execution"]["machines"])
+						total_machinetime+=makespan*nodes
+			
 			to_plot[max(result.training_set_spec.num_nodes_values)]\
 			       [max(result.training_set_spec.num_tasks_values)]\
 				   =({"training_loss":training_loss,
-				      "evaluation_losses": result.evaluation_losses})
+				      "evaluation_losses": result.evaluation_losses"machine_time":total_machinetime})
+					  
 			task_counts.add(max(result.training_set_spec.num_tasks_values))
 			node_counts.add(max(result.training_set_spec.num_nodes_values))
 	#to_plot = dict(sorted(to_plot.items()))
