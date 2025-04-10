@@ -92,7 +92,7 @@ def process_experiment_group(experiment_group: [ExperimentSet]):
 						local_path=path_translation[key]+raw_path[raw_path.find(key):]
 						JSONfile=loadJson(local_path)
 						makespan=float(JSONfile["workflow"]["execution"]["makespanInSeconds"])
-						nodes=len(["workflow"]["execution"]["machines"])
+						nodes=len(JSONfile["workflow"]["execution"]["machines"])
 						total_machinetime+=makespan*nodes
 			
 			to_plot[max(result.training_set_spec.num_nodes_values)]\
