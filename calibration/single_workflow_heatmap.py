@@ -98,7 +98,7 @@ def process_experiment_group(experiment_group: [ExperimentSet]):
 			to_plot[max(result.training_set_spec.num_nodes_values)]\
 			       [max(result.training_set_spec.num_tasks_values)]\
 				   =({"training_loss":training_loss,
-				      "evaluation_losses": result.evaluation_losses"machine_time":total_machinetime})
+				      "evaluation_losses": result.evaluation_losses,"machine_time":total_machinetime})
 					  
 			task_counts.add(max(result.training_set_spec.num_tasks_values))
 			node_counts.add(max(result.training_set_spec.num_nodes_values))
