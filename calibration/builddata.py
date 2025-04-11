@@ -45,22 +45,31 @@ data47={
 		86400:"../../../koa-rsync/workflow/single-sample/pickles/*47-koa.pickled"
 	}
 }
-for key in data:
-	each=data[key]
-	pickle_files=glob(each)
-	datat=load_and_group_pickles(pickle_files)
-	dv={}
-	for group in datat.values():
-			a,b=process_experiment_group(group)
-			dv[a]=b
-	data[key]=dv
+for sub in data:
+	for key in data[sub]:
+		each=data[sub][key]
+		#print(each)
+		pickle_files=glob(each)
+		datat=load_and_group_pickles(pickle_files)
+		dv={}
+		for group in datat.values():
+				a,b=process_experiment_group(group)
+				dv[a]=b
+		data[sub][key]=dv
 	
-for key in data47:
-	each=data47[key]
-	pickle_files=glob(each)
-	datat=load_and_group_pickles(pickle_files)
-	dv={}
-	for group in datat.values():
-			a,b=process_experiment_group(group)
-			dv[a]=b
-	data47[key]=dv
+for sub in data47:
+	for key in data47[sub]:
+		each=data47[sub][key]
+		#print(each)
+		pickle_files=glob(each)
+		datat=load_and_group_pickles(pickle_files)
+		dv={}
+		for group in datat.values():
+				a,b=process_experiment_group(group)
+				dv[a]=b
+		data47[sub][key]=dv
+
+print("data=")
+print(data)
+print("data47=")
+print(data47)
