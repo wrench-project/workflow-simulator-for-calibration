@@ -9,9 +9,8 @@ def printData(name,data):
 		for time in data[sub]:
 			print("\t\t"+str(time)+":{")
 			for workflow in data[sub][time]:
-				print("\t\t\t'"+workflow+"':{")
-				print("\t\t\t\t"+str(data[sub][time][workflow]))
-				print("\t\t\t},")
+				print("\t\t\t'"+workflow+"':")
+				print("\t\t\t\t"+str(data[sub][time][workflow])+",")
 			print("\t\t},")
 		print("\t},")		
 	print("}")		

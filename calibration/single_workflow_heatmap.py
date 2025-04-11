@@ -10,7 +10,7 @@ from matplotlib.colors import Normalize
 from matplotlib import cm
 from Util import *
 from collections import defaultdict
-path_translation={"NEW_RUNS":"/home/jamcdonald/workflow","JSONS":"/home/jamcdonald/workflow","LIMITED_RUNS":"/home/jamcdonald/workflow","SYNTHETIC_LIMITED":"/home/jamcdonald/workflow"}
+path_translation={"NEW_RUNS":"/home/jamcdonald/workflow/","JSONS":"/home/jamcdonald/workflow/","ALL_RUNS":"/home/jamcdonald/workflow/","LIMITED_RUNS":"/home/jamcdonald/workflow/","SYNTHETIC_LIMITED":"/home/jamcdonald/workflow/"}
 def load_and_group_pickles(file_paths):
 
 	grouped_data = defaultdict(list)
@@ -23,10 +23,10 @@ def load_and_group_pickles(file_paths):
 			grouped_data[key].append(data)
 			data.experiments[0].training_set_spec.update_fields()
 			file_token=file_path.split("/")[-1].split("-")
-			try:
-				print("mv","\""+file_path+"\"",f"\"{"\\".join(file_path.split("/")[0:-1])}-one_workflow-{tokens[0]}-{max(data.experiments[0].training_set_spec.num_nodes_values)}-{max(data.experiments[0].training_set_spec.num_tasks_values)}-{file_token[-6]}.pickled\"")
-			except:
-				pass
+			#try:
+			#	print("mv","\""+file_path+"\"",f"\"{"\\".join(file_path.split("/")[0:-1])}-one_workflow-{tokens[0]}-{max(data.experiments[0].training_set_spec.num_nodes_values)}-{max(data.experiments[0].training_set_spec.num_tasks_values)}-{file_token[-6]}.pickled\"")
+			#except:
+			#	pass
 	return dict(grouped_data)
 
 def build_label(workflow_sec_spec: WorkflowSetSpec):
@@ -90,11 +90,15 @@ def process_experiment_group(experiment_group: [ExperimentSet]):
 				for key in path_translation.keys():
 					if key in raw_path:
 						local_path=path_translation[key]+raw_path[raw_path.find(key):]
-						JSONfile=loadJson(local_path)
+						JSONfile=load_json(local_path)
 						makespan=float(JSONfile["workflow"]["execution"]["makespanInSeconds"])
 						nodes=len(JSONfile["workflow"]["execution"]["machines"])
 						total_machinetime+=makespan*nodes
-			
+						break
+				else:
+					print(raw_path)
+					raise
+			#print(total_machinetime)
 			to_plot[max(result.training_set_spec.num_nodes_values)]\
 			       [max(result.training_set_spec.num_tasks_values)]\
 				   =({"training_loss":training_loss,
