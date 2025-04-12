@@ -15,7 +15,8 @@ def avg(l):
 	return sum(l)/len(l)
 def process_experiment_group(base_data,times,workflows,extra,interest_point):
 	name="all"
-	colors = ['red', 'orange','yellow','green','blue'  ]
+	cmap = plt.get_cmap('Set1')
+	colors = [cmap(i) for i in range(5)]
 		  #experiment_group[0].get_architecture(),
 		  #experiment_group[0].simulator.compute_service_scheme,
 		  #experiment_group[0].simulator.storage_service_scheme,
@@ -86,32 +87,33 @@ def process_experiment_group(base_data,times,workflows,extra,interest_point):
 				ax.scatter(x_vals, y_vals,color=colors[c],s=5)
 				if dataset=="single_sample":
 					ax.scatter([data[dataset][time][workflow][cores_v][tasks_v]["evaluation_losses"]], 
-					[data[dataset][time][workflow][cores_v][tasks_v]["machine_time"]],color=colors[c],marker='s')
+					[data[dataset][time][workflow][cores_v][tasks_v]["machine_time"]],color=colors[c],marker='X')
 				
-	plt.xlim(*xscale)
-	plt.ylim(*yscale)
-			
+	plt.xlim((0,1))
+	#plt.ylim(*yscale)
+	#plt.xscale('log')
+	plt.yscale('log')		
 			
 
 	plt.suptitle(name)
 	sys.stderr.write(f"Saving {figure_name}...\n")
-	plt.grid(True)
+	#plt.grid(True)
 	plt.savefig(figure_name, bbox_inches='tight')
 	plt.close()
 	#return name,data
 
 def main():
 	parser = argparse.ArgumentParser()
-	parser.add_argument("top", type=int, help="time used for top graphs")
-	parser.add_argument("bottom", type=int, help="time used for bottom graphs")
-
+	#parser.add_argument("top", type=int, help="time used for top graphs")
+	#parser.add_argument("bottom", type=int, help="time used for bottom graphs")
+	times=[86400]
 	args = parser.parse_args()
 	alldata=[data,data47]
 	extra=["","-47"]
 	for datum,ex in zip(alldata,extra):
 		names=set()
 		for category in ["single_sample","single_workflow"]:
-			for time in [args.top,args.bottom]:
+			for time in times:
 				for workflow in datum[category][time]:
 					#print(workflow)
 					names.add(workflow)	
@@ -122,7 +124,7 @@ def main():
 			#try:
 		names.remove("chain")
 		names.remove("forkjoin")
-		process_experiment_group(datum,[86400],names,ex,[2,2])
+		process_experiment_group(datum,times,names,ex,[2,2])
 			#except:
 			#	print("failed to plot "+workflow)
 if __name__ == "__main__":
