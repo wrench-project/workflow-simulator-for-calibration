@@ -88,7 +88,7 @@ def main(args):
 	#print(training)
 	sim_args=args['simulator_args']
 	evaluation=group(args['evaluation_set'])
-	pickle_file_name = f"{single-Evaluation-" \
+	pickle_file_name = f"single-Evaluation-" \
 					   f"{orderinvarient_hash(evaluation,8)}-" \
 					   f"{orderinvarient_hash(sim_args,8)}-" \
 					   f"{args['loss_function']}-" \
