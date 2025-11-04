@@ -90,7 +90,7 @@ def main(args):
 	evaluation=group(args['evaluation_set'])
 	pickle_file_name = f"{args['pickle']}-Evaluation-" \
 					   f"{orderinvarient_hash(evaluation,8)}-" \
-					   f"{orderinvarient_hash(sim_args,8)}
+					   f"{orderinvarient_hash(sim_args,8)}-" \
 					   f"{args['loss_function']}-" \
 					   f"{args['loss_aggregator']}.pickled"
 
