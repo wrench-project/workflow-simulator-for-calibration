@@ -199,7 +199,7 @@ class Simulator(sc.Simulator):
 	def run(self, env: sc.Environment, args: tuple[str, dict[str, sc.parameters.Value]]) -> Any:
 		(workflow, calibration) = args
 		# Create the input json
-		if isSimcalCal(calibration):
+		if self.isSimcalCal(calibration):
 			json_input = copy.deepcopy(template_json_input)
 			# override the workflow
 			json_input["workflow"]["file"] = workflow
