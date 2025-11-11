@@ -5,6 +5,7 @@ from glob import glob
 from datetime import timedelta
 from Util import *
 from itertools import groupby
+import ast
 def group(flat):
 	# Use a regular expression to split the string before the last part (repeat number)
 	def split_key(s):
@@ -86,7 +87,7 @@ def main(args):
 
 	#training=group(args['training_set'])
 	#print(training)
-	sim_args=args['simulator_args']
+	sim_args=ast.literal_eval(args['simulator_args'])
 	evaluation=group(args['evaluation_set'])
 	pickle_file_name = f"single-Evaluation-" \
 					   f"{orderinvarient_hash(evaluation,8)}-" \
