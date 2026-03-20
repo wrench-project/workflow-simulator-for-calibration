@@ -209,6 +209,6 @@ class WorkflowSimulatorCalibrator:
 
 		evaluator = CalibrationLossEvaluator(self.simulator, self.workflows, self.loss)
 
-		calibration, loss = calibrator.calibrate(evaluator, timelimit=time_limit, coordinator=None)
+		calibration, loss = calibrator.calibrate(evaluator, timelimit=time_limit, coordinator=coordinator)
 
 		return calibration, loss
