@@ -193,7 +193,7 @@ class Simulator(sc.Simulator):
 		self.network_topology_scheme = network_topology_scheme
 	def isSimcalCal(self,cal):
 		for key in cal:
-			if isinstance(cal[key],sc.parameter.Base):
+			if isinstance(cal[key],sc.parameter.Base) or isinstance(cal[key],sc.parameter.value.Value):
 				return True
 		return False
 	def run(self, env: sc.Environment, args: tuple[str, dict[str, sc.parameters.Value]]) -> Any:
